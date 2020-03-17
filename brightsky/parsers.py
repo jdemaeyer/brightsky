@@ -1,4 +1,5 @@
 import csv
+import logging
 import os
 import re
 import zipfile
@@ -7,6 +8,9 @@ import dateutil.parser
 from parsel import Selector
 
 from brightsky.utils import download
+
+
+logger = logging.getLogger(__name__)
 
 
 class MOSMIXParser:
@@ -47,7 +51,11 @@ class MOSMIXParser:
     def parse(self):
         sel = self.get_selector()
         timestamps = self.parse_timestamps(sel)
-        for station_sel in sel.css('Placemark'):
+        logger.debug('Got %d timestamps', len(timestamps))
+        station_selectors = sel.css('Placemark')
+        for i, station_sel in enumerate(station_selectors):
+            logger.debug(
+                'Parsing station %d / %d', i+1, len(station_selectors))
             yield from self.parse_station(station_sel, timestamps)
 
     def parse_timestamps(self, sel):

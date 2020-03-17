@@ -6,7 +6,9 @@
 #
 certifi==2019.11.28       # via requests
 chardet==3.0.4            # via requests
+coloredlogs==14.0         # via brightsky (setup.py)
 cssselect==1.1.0          # via parsel
+humanfriendly==8.1        # via coloredlogs
 idna==2.9                 # via requests
 lxml==4.5.0               # via parsel
 parsel==1.5.2             # via brightsky (setup.py)
