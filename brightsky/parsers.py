@@ -3,7 +3,7 @@ import os
 import re
 import zipfile
 
-import pandas as pd
+import dateutil.parser
 from parsel import Selector
 
 from brightsky.utils import download
@@ -45,24 +45,30 @@ class MOSMIXParser:
 
     def parse(self):
         sel = self.get_selector()
-        timestamps = pd.to_datetime(
-            sel.css('ForecastTimeSteps > TimeStep::text').extract())
-        return pd.concat(
-            self.parse_station(station_sel, timestamps)
-            for station_sel in sel.css('Placemark'))
+        timestamps = self.parse_timestamps(sel)
+        for station_sel in sel.css('Placemark'):
+            yield from self.parse_station(station_sel, timestamps)
+
+    def parse_timestamps(self, sel):
+        return [
+            dateutil.parser.parse(ts)
+            for ts in sel.css('ForecastTimeSteps > TimeStep::text').extract()]
 
     def parse_station(self, station_sel, timestamps):
         station_id = station_sel.css('name::text').extract_first()
-        forecasts = pd.DataFrame(
-            {'station_id': station_id, 'timestamp': timestamps}
-        ).set_index(['station_id', 'timestamp'])
+        records = {
+            'timestamp': timestamps,
+            'station_id': [station_id] * len(timestamps),
+        }
         for element, column in self.ELEMENTS.items():
             values_str = station_sel.css(
                 f'Forecast[elementName="{element}"] value::text'
             ).extract_first()
-            forecasts[column] = [
+            records[column] = [
                 None if row[0] == '-' else float(row[0])
                 for row in csv.reader(
                     re.sub(r'\s+', '\n', values_str.strip()).splitlines())
             ]
-        return forecasts
+            assert len(records[column]) == len(timestamps)
+        # Turn dict of lists into list of dicts
+        return (dict(zip(records, l)) for l in zip(*records.values()))
