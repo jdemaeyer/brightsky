@@ -24,14 +24,15 @@ class MOSMIXParser:
         'PPPP': 'pressure',
     }
 
-    @property
-    def path(self):
-        filename = os.path.basename(self.URL)
-        dirname = os.path.join(os.getcwd(), '.brightsky_cache')
-        os.makedirs(dirname, exist_ok=True)
-        return os.path.join(dirname, filename)
+    def __init__(self, path=None):
+        self.path = path
+        if self.path is None:
+            filename = os.path.basename(self.URL)
+            dirname = os.path.join(os.getcwd(), '.brightsky_cache')
+            self.path = os.path.join(dirname, filename)
 
     def download(self):
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
         download(self.URL, self.path)
 
     def get_selector(self):
