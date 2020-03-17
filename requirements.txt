@@ -9,9 +9,9 @@ chardet==3.0.4            # via requests
 cssselect==1.1.0          # via parsel
 idna==2.9                 # via requests
 lxml==4.5.0               # via parsel
-parsel==1.5.2             # via -r requirements.in
-python-dateutil==2.8.1    # via -r requirements.in
-requests==2.23.0          # via -r requirements.in
+parsel==1.5.2             # via brightsky (setup.py)
+python-dateutil==2.8.1    # via brightsky (setup.py)
+requests==2.23.0          # via brightsky (setup.py)
 six==1.14.0               # via parsel, python-dateutil, w3lib
 urllib3==1.25.8           # via requests
 w3lib==1.21.0             # via parsel
