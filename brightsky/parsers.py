@@ -51,24 +51,28 @@ class MOSMIXParser:
     def parse(self):
         sel = self.get_selector()
         timestamps = self.parse_timestamps(sel)
-        logger.debug('Got %d timestamps', len(timestamps))
+        source = self.parse_source(sel)
+        logger.debug(
+            'Got %d timestamps for source %s', len(timestamps), source)
         station_selectors = sel.css('Placemark')
         for i, station_sel in enumerate(station_selectors):
             logger.debug(
                 'Parsing station %d / %d', i+1, len(station_selectors))
-            yield from self.parse_station(station_sel, timestamps)
+            yield from self.parse_station(station_sel, timestamps, source)
 
     def parse_timestamps(self, sel):
         return [
             dateutil.parser.parse(ts)
             for ts in sel.css('ForecastTimeSteps > TimeStep::text').extract()]
 
-    def parse_station(self, station_sel, timestamps):
+    def parse_source(self, sel):
+        return ':'.join(sel.css('ProductID::text, IssueTime::text').extract())
+
+    def parse_station(self, station_sel, timestamps, source):
         station_id = station_sel.css('name::text').extract_first()
-        records = {
-            'timestamp': timestamps,
-            'station_id': [station_id] * len(timestamps),
-        }
+        lat, lon, _ = station_sel.css(
+            'coordinates::text').extract_first().split(',')
+        records = {'timestamp': timestamps}
         for element, column in self.ELEMENTS.items():
             values_str = station_sel.css(
                 f'Forecast[elementName="{element}"] value::text'
@@ -79,5 +83,15 @@ class MOSMIXParser:
                     re.sub(r'\s+', '\n', values_str.strip()).splitlines())
             ]
             assert len(records[column]) == len(timestamps)
+        base_record = {
+            'type': 'forecast',
+            'source': source,
+            'station_id': station_id,
+            'lat': float(lat),
+            'lon': float(lon),
+        }
         # Turn dict of lists into list of dicts
-        return (dict(zip(records, l)) for l in zip(*records.values()))
+        yield from (
+            {**base_record, **dict(zip(records, l))}
+            for l in zip(*records.values())
+        )
