@@ -41,7 +41,7 @@ class MOSMIXParser(Parser):
         'FF': 'wind_speed',
         'RR1c': 'precipitation',
         'SunD1': 'sunshine',
-        'PPPP': 'pressure',
+        'PPPP': 'pressure_sea_level',
     }
 
     def parse(self):
@@ -75,7 +75,7 @@ class MOSMIXParser(Parser):
 
     def parse_station(self, station_sel, timestamps, source):
         station_id = station_sel.css('name::text').extract_first()
-        lat, lon, _ = station_sel.css(
+        lat, lon, height = station_sel.css(
             'coordinates::text').extract_first().split(',')
         records = {'timestamp': timestamps}
         for element, column in self.ELEMENTS.items():
@@ -94,6 +94,7 @@ class MOSMIXParser(Parser):
             'station_id': station_id,
             'lat': float(lat),
             'lon': float(lon),
+            'height': float(height),
         }
         # Turn dict of lists into list of dicts
         yield from (

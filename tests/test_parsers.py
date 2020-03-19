@@ -20,13 +20,14 @@ def test_mosmix_parser(data_dir):
         'station_id': '01028',
         'lat': 19.02,
         'lon': 74.52,
+        'height': 16.,
         'timestamp': datetime.datetime(2020, 3, 13, 10, 0, tzinfo=tzutc()),
         'temperature': 260.45,
         'wind_direction': 330.0,
         'wind_speed': 8.75,
         'precipitation': 0.1,
         'sunshine': None,
-        'pressure': 99000.0,
+        'pressure_sea_level': 99000.0,
     }
     assert records[-1] == {
         'type': 'forecast',
@@ -34,13 +35,14 @@ def test_mosmix_parser(data_dir):
         'station_id': '01028',
         'lat': 19.02,
         'lon': 74.52,
+        'height': 16.,
         'timestamp': datetime.datetime(2020, 3, 23, 9, 0, tzinfo=tzutc()),
         'temperature': 267.15,
         'wind_direction': 49.0,
         'wind_speed': 7.72,
         'precipitation': None,
         'sunshine': None,
-        'pressure': 100630.0,
+        'pressure_sea_level': 100630.0,
     }
 
 
