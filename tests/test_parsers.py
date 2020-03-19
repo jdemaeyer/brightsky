@@ -67,6 +67,16 @@ def test_observations_parser_handles_missing_values(data_dir):
     assert records[5]['wind_speed'] is None
 
 
+def test_observations_parser_handles_location_changes(data_dir):
+    p = WindObservationsParser(
+        path=data_dir / 'observations_recent_FF_location_change.zip')
+    records = list(p.parse())
+    assert is_subset(
+        {'lat': 12.5597, 'lon': 48.8275, 'height': 350.5}, records[0])
+    assert is_subset(
+        {'lat': 13.0, 'lon': 50.0, 'height': 345.0}, records[-1])
+
+
 def _test_parser(cls, path, first, last, count=10, first_idx=0, last_idx=-1):
     p = cls(path=path)
     records = list(p.parse())
