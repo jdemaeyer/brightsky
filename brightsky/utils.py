@@ -31,5 +31,12 @@ def download(url, path):
             return
     resp = requests.get(url)
     resp.raise_for_status()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'wb') as f:
         f.write(resp.content)
+
+
+def cache_path(url):
+    dirname = os.path.join(os.getcwd(), '.brightsky_cache')
+    filename = os.path.basename(url)
+    return os.path.join(dirname, filename)
