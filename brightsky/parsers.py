@@ -219,11 +219,9 @@ class SunshineObservationsParser(ObservationsParser):
 class PressureObservationsParser(ObservationsParser):
 
     elements = {
-        'pressure': '   P',
         'pressure_sea_level': '  P0',
     }
     conversion_factors = {
         # hPa to Pa
-        'pressure': 100,
         'pressure_sea_level': 100,
     }

@@ -134,8 +134,6 @@ def test_pressure_observations_parser(data_dir):
     _test_parser(
         PressureObservationsParser,
         data_dir / 'observations_recent_P0.zip',
-        {'timestamp': '2018-09-15 00:00',
-         'pressure': 102120., 'pressure_sea_level': 98090.},
-        {'timestamp': '2020-03-17 23:00',
-         'pressure': 103190., 'pressure_sea_level': 98980.},
+        {'timestamp': '2018-09-15 00:00', 'pressure_sea_level': 98090.},
+        {'timestamp': '2020-03-17 23:00', 'pressure_sea_level': 98980.},
     )
