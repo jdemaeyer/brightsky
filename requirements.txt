@@ -12,6 +12,7 @@ humanfriendly==8.1        # via coloredlogs
 idna==2.9                 # via requests
 lxml==4.5.0               # via parsel
 parsel==1.5.2             # via brightsky (setup.py)
+psycopg2-binary==2.8.4    # via brightsky (setup.py)
 python-dateutil==2.8.1    # via brightsky (setup.py)
 requests==2.23.0          # via brightsky (setup.py)
 six==1.14.0               # via parsel, python-dateutil, w3lib

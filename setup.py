@@ -10,6 +10,7 @@ setup(
     install_requires=[
         'coloredlogs',
         'parsel',
+        'psycopg2-binary',
         'python-dateutil',
         'requests',
     ],
