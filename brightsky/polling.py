@@ -1,8 +1,12 @@
 import logging
 import re
 
+import dateutil.parser
 import requests
+from dateutil.tz import tzutc
 from parsel import Selector
+
+from brightsky.db import get_connection
 
 
 logger = logging.getLogger(__name__)
@@ -29,8 +33,19 @@ class DWDPoller:
     }
 
     def poll(self):
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute('SELECT * FROM parsed_files')
+                parsed_files = {
+                    row['url']: (row['last_modified'], row['file_size'])
+                    for row in cur.fetchall()
+                }
         for url in self.urls:
-            yield from self.poll_url(url)
+            for file_info in self.poll_url(url):
+                fingerprint = (
+                    file_info['last_modified'], file_info['file_size'])
+                if parsed_files.get(file_info['url']) != fingerprint:
+                    yield file_info
 
     def poll_url(self, url):
         logger.debug("Loading %s", url)
@@ -42,18 +57,28 @@ class DWDPoller:
         sel = Selector(resp_text)
         directories = []
         files = []
-        for link in sel.css('a::attr(href)').extract():
+        for anchor_sel in sel.css('a'):
+            link = anchor_sel.css('::attr(href)').extract_first()
             if link.startswith('.'):
                 continue
             link_url = f'{url}{link}'
             if link.endswith('/'):
                 directories.append(link_url)
             else:
+                fingerprint = anchor_sel.xpath(
+                    './following-sibling::text()[1]').extract_first()
+                match = re.match(
+                    r'\s*(\d+-\w+-\d+ \d+:\d+)\s+(\d+)', fingerprint)
+                last_modified = dateutil.parser.parse(
+                    match.group(1)).replace(tzinfo=tzutc())
+                file_size = int(match.group(2))
                 parser = self.get_parser(link)
                 if parser:
                     files.append({
                         'url': link_url,
                         'parser': parser,
+                        'last_modified': last_modified,
+                        'file_size': file_size,
                     })
         logger.info(
             "Found %d directories and %d files at %s",

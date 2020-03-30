@@ -4,6 +4,7 @@ import os
 import re
 
 import psycopg2
+from psycopg2.extras import DictCursor
 
 
 logger = logging.getLogger(__name__)
@@ -13,7 +14,7 @@ def get_connection():
     db_url = os.getenv('DATABASE_URL')
     if not db_url:
         raise ValueError("Please set the DATABASE_URL environment variable")
-    return psycopg2.connect(db_url)
+    return psycopg2.connect(db_url, cursor_factory=DictCursor)
 
 
 def migrate():
