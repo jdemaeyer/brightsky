@@ -8,6 +8,7 @@ setup(
     author_email='jakob@naboa.de',
     packages=['brightsky'],
     install_requires=[
+        'click',
         'coloredlogs',
         'parsel',
         'psycopg2-binary',

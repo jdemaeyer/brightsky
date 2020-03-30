@@ -1,17 +1,15 @@
-import argparse
 import json
 import logging
+import os
+from contextlib import suppress
 
+import click
 import coloredlogs
 
-from brightsky.parsers import MOSMIXParser
+from brightsky import db, parsers, polling
 
 
 logger = logging.getLogger('brightsky')
-
-
-parser = argparse.ArgumentParser('brightsky')
-parser.add_argument('--mosmix-path', help='Path to MOSMIX kmz file')
 
 
 def configure_logging():
@@ -21,17 +19,51 @@ def configure_logging():
     logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 
-def main(mosmix_path):
-    p = MOSMIXParser(path=mosmix_path)
-    if mosmix_path is None:
-        logger.info('Downloading MOSMIX data from DWD')
-        p.download()
-    logger.info('Parsing MOSMIX records')
-    for record in p.parse():
+def load_dotenv(path='.env'):
+    with suppress(FileNotFoundError):
+        with open(path) as f:
+            for line in f:
+                if line.strip() and not line.strip().startswith('#'):
+                    key, val = line.strip().split('=', 1)
+                    os.environ.setdefault(key, val)
+
+
+def dump_records(it):
+    for record in it:
         print(json.dumps(record, default=str))
 
 
+@click.group()
+def cli():
+    pass
+
+
+@cli.command(help='Apply all pending database migrations')
+def migrate():
+    db.migrate()
+
+
+@cli.command(help='Parse a forecast or observations file')
+@click.option('--path')
+@click.option('--url')
+def parse(path, url):
+    if not path and not url:
+        raise click.ClickException('Please provide either --path or --url')
+    parser_name = polling.DWDPoller().get_parser(os.path.basename(path or url))
+    parser = getattr(parsers, parser_name)(path=path, url=url)
+    if url:
+        parser.download()
+    logger.info("Parsing %s with %s", path or url, parser_name)
+    dump_records(parser.parse())
+
+
+@cli.command(help='Detect updated files on DWD Open Data Server')
+def poll():
+    logger.info("Polling DWD Open Data Server for updated files")
+    dump_records(polling.DWDPoller().poll())
+
+
 if __name__ == '__main__':
+    load_dotenv()
     configure_logging()
-    args = parser.parse_args()
-    main(args.mosmix_path)
+    cli(prog_name='python -m brightsky')

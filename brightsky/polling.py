@@ -49,15 +49,20 @@ class DWDPoller:
             if link.endswith('/'):
                 directories.append(link_url)
             else:
-                for pattern, parser in self.parsers.items():
-                    if re.match(pattern, link):
-                        files.append({
-                            'url': link_url,
-                            'parser': parser,
-                        })
+                parser = self.get_parser(link)
+                if parser:
+                    files.append({
+                        'url': link_url,
+                        'parser': parser,
+                    })
         logger.info(
             "Found %d directories and %d files at %s",
             len(directories), len(files), url)
         yield from files
         for dir_url in directories:
             yield from self.poll_url(dir_url)
+
+    def get_parser(self, filename):
+        for pattern, parser in self.parsers.items():
+            if re.match(pattern, filename):
+                return parser

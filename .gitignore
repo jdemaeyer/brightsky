@@ -1,5 +1,6 @@
 .brightsky_cache
 .cache
+.env
 .tox
 .venv
 *.egg-info
