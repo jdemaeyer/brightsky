@@ -36,7 +36,7 @@ class DWDPoller:
         logger.debug("Loading %s", url)
         resp = requests.get(url)
         resp.raise_for_status()
-        return self.parse(resp.text)
+        return self.parse(url, resp.text)
 
     def parse(self, url, resp_text):
         sel = Selector(resp_text)
