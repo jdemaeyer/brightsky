@@ -1,4 +1,4 @@
-CREATE EXTENSION postgis;
+CREATE EXTENSION IF NOT EXISTS postgis;
 
 CREATE TYPE observation_type AS ENUM ('historical', 'recent', 'current', 'forecast');
 
