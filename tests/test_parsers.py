@@ -15,7 +15,7 @@ def test_mosmix_parser(data_dir):
     records = list(p.parse())
     assert len(records) == 240
     assert records[0] == {
-        'type': 'forecast',
+        'observation_type': 'forecast',
         'source': 'MOSMIX:2020-03-13T09:00:00.000Z',
         'station_id': '01028',
         'lat': 19.02,
@@ -27,10 +27,10 @@ def test_mosmix_parser(data_dir):
         'wind_speed': 8.75,
         'precipitation': 0.1,
         'sunshine': None,
-        'pressure_sea_level': 99000.0,
+        'pressure_msl': 99000.0,
     }
     assert records[-1] == {
-        'type': 'forecast',
+        'observation_type': 'forecast',
         'source': 'MOSMIX:2020-03-13T09:00:00.000Z',
         'station_id': '01028',
         'lat': 19.02,
@@ -42,14 +42,14 @@ def test_mosmix_parser(data_dir):
         'wind_speed': 7.72,
         'precipitation': None,
         'sunshine': None,
-        'pressure_sea_level': 100630.0,
+        'pressure_msl': 100630.0,
     }
 
 
 def test_observations_parser_parses_metadata(data_dir):
     p = WindObservationsParser(path=data_dir / 'observations_recent_FF.zip')
     metadata = {
-        'type': 'observation',
+        'observation_type': 'recent',
         'source': (
             'Observations:Recent:produkt_ff_stunde_20180915_20200317_04911.txt'
         ),
@@ -134,6 +134,6 @@ def test_pressure_observations_parser(data_dir):
     _test_parser(
         PressureObservationsParser,
         data_dir / 'observations_recent_P0.zip',
-        {'timestamp': '2018-09-15 00:00', 'pressure_sea_level': 98090.},
-        {'timestamp': '2020-03-17 23:00', 'pressure_sea_level': 98980.},
+        {'timestamp': '2018-09-15 00:00', 'pressure_msl': 98090.},
+        {'timestamp': '2020-03-17 23:00', 'pressure_msl': 98980.},
     )

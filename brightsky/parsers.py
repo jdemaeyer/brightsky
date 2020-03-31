@@ -41,7 +41,7 @@ class MOSMIXParser(Parser):
         'FF': 'wind_speed',
         'RR1c': 'precipitation',
         'SunD1': 'sunshine',
-        'PPPP': 'pressure_sea_level',
+        'PPPP': 'pressure_msl',
     }
 
     def parse(self):
@@ -89,7 +89,7 @@ class MOSMIXParser(Parser):
             ]
             assert len(records[column]) == len(timestamps)
         base_record = {
-            'type': 'forecast',
+            'observation_type': 'forecast',
             'source': source,
             'station_id': station_id,
             'lat': float(lat),
@@ -153,7 +153,7 @@ class ObservationsParser(Parser):
                         break
                     lat, lon, height = lat_lon_height
                 yield {
-                    'type': 'observation',
+                    'observation_type': 'recent',
                     'source': f'Observations:Recent:{filename}',
                     'station_id': station_id,
                     'lat': lat,
@@ -219,9 +219,9 @@ class SunshineObservationsParser(ObservationsParser):
 class PressureObservationsParser(ObservationsParser):
 
     elements = {
-        'pressure_sea_level': '  P0',
+        'pressure_msl': '  P0',
     }
     conversion_factors = {
         # hPa to Pa
-        'pressure_sea_level': 100,
+        'pressure_msl': 100,
     }
