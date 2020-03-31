@@ -30,7 +30,7 @@ def migrate():
                 latest_migration = cur.fetchone()[0]
 
             migration_paths = [
-                f for f in glob.glob('migrations/*.sql')
+                f for f in sorted(glob.glob('migrations/*.sql'))
                 if (m := re.match(r'(\d+)_', os.path.basename(f)))
                 and int(m.group(1)) > latest_migration
             ]
