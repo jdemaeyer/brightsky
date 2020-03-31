@@ -6,7 +6,9 @@ from contextlib import suppress
 import click
 import coloredlogs
 
-from brightsky import db, parsers, polling
+from brightsky import db, parsers
+from brightsky.export import DBExporter
+from brightsky.polling import DWDPoller
 
 
 logger = logging.getLogger('brightsky')
@@ -46,21 +48,27 @@ def migrate():
 @cli.command(help='Parse a forecast or observations file')
 @click.option('--path')
 @click.option('--url')
-def parse(path, url):
+@click.option('--export/--no-export', default=False)
+def parse(path, url, export):
     if not path and not url:
         raise click.ClickException('Please provide either --path or --url')
-    parser_name = polling.DWDPoller().get_parser(os.path.basename(path or url))
+    parser_name = DWDPoller().get_parser(os.path.basename(path or url))
     parser = getattr(parsers, parser_name)(path=path, url=url)
     if url:
         parser.download()
     logger.info("Parsing %s with %s", path or url, parser_name)
-    dump_records(parser.parse())
+    records = parser.parse()
+    if export:
+        exporter = DBExporter()
+        exporter.export(records)
+    else:
+        dump_records()
 
 
 @cli.command(help='Detect updated files on DWD Open Data Server')
 def poll():
     logger.info("Polling DWD Open Data Server for updated files")
-    dump_records(polling.DWDPoller().poll())
+    dump_records(DWDPoller().poll())
 
 
 if __name__ == '__main__':
