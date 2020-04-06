@@ -81,7 +81,8 @@ def test_current_observation_parser(data_dir):
 
 
 def test_observations_parser_parses_metadata(data_dir):
-    p = WindObservationsParser(path=data_dir / 'observations_recent_FF.zip')
+    p = WindObservationsParser(
+        path=data_dir / 'observations_recent_FF_akt.zip')
     metadata = {
         'observation_type': 'recent',
         'source': (
@@ -96,8 +97,16 @@ def test_observations_parser_parses_metadata(data_dir):
         assert is_subset(metadata, record)
 
 
+def test_observations_parser_parses_historical_observation_type(data_dir):
+    p = PressureObservationsParser(
+        path=data_dir / 'observations_recent_P0_hist.zip')
+    for record in p.parse():
+        assert record['observation_type'] == 'historical'
+
+
 def test_observations_parser_handles_missing_values(data_dir):
-    p = WindObservationsParser(path=data_dir / 'observations_recent_FF.zip')
+    p = WindObservationsParser(
+        path=data_dir / 'observations_recent_FF_akt.zip')
     records = list(p.parse())
     assert records[5]['wind_direction'] == 90
     assert records[5]['wind_speed'] is None
@@ -105,7 +114,7 @@ def test_observations_parser_handles_missing_values(data_dir):
 
 def test_observations_parser_handles_location_changes(data_dir):
     p = WindObservationsParser(
-        path=data_dir / 'observations_recent_FF_location_change.zip')
+        path=data_dir / 'observations_recent_FF_location_change_akt.zip')
     records = list(p.parse())
     assert is_subset(
         {'lat': 12.5597, 'lon': 48.8275, 'height': 350.5}, records[0])
@@ -128,7 +137,7 @@ def _test_parser(cls, path, first, last, count=10, first_idx=0, last_idx=-1):
 def test_temperature_observations_parser(data_dir):
     _test_parser(
         TemperatureObservationsParser,
-        data_dir / 'observations_recent_TU.zip',
+        data_dir / 'observations_recent_TU_akt.zip',
         {'timestamp': '2018-09-15 00:00', 'temperature': 286.85},
         {'timestamp': '2020-03-17 23:00', 'temperature': 275.75},
     )
@@ -137,7 +146,7 @@ def test_temperature_observations_parser(data_dir):
 def test_precipitation_observations_parser(data_dir):
     _test_parser(
         PrecipitationObservationsParser,
-        data_dir / 'observations_recent_RR.zip',
+        data_dir / 'observations_recent_RR_akt.zip',
         {'timestamp': '2018-09-22 20:00', 'precipitation': 0.0},
         {'timestamp': '2020-02-11 02:00', 'precipitation': 0.3},
     )
@@ -146,7 +155,7 @@ def test_precipitation_observations_parser(data_dir):
 def test_wind_observations_parser(data_dir):
     _test_parser(
         WindObservationsParser,
-        data_dir / 'observations_recent_FF.zip',
+        data_dir / 'observations_recent_FF_akt.zip',
         {'timestamp': '2018-09-15 00:00',
          'wind_speed': 1.6, 'wind_direction': 80.0},
         {'timestamp': '2020-03-17 23:00',
@@ -157,7 +166,7 @@ def test_wind_observations_parser(data_dir):
 def test_sunshine_observations_parser(data_dir):
     _test_parser(
         SunshineObservationsParser,
-        data_dir / 'observations_recent_SD.zip',
+        data_dir / 'observations_recent_SD_akt.zip',
         {'timestamp': '2018-09-15 11:00', 'sunshine': 600.},
         {'timestamp': '2020-03-17 16:00', 'sunshine': 0.},
         first_idx=2,
@@ -167,7 +176,7 @@ def test_sunshine_observations_parser(data_dir):
 def test_pressure_observations_parser(data_dir):
     _test_parser(
         PressureObservationsParser,
-        data_dir / 'observations_recent_P0.zip',
+        data_dir / 'observations_recent_P0_hist.zip',
         {'timestamp': '2018-09-15 00:00', 'pressure_msl': 98090.},
         {'timestamp': '2020-03-17 23:00', 'pressure_msl': 98980.},
     )

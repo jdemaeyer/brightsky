@@ -2,6 +2,7 @@ import csv
 import datetime
 import io
 import logging
+import os
 import re
 import zipfile
 
@@ -172,14 +173,29 @@ class ObservationsParser(Parser):
     def parse(self):
         with zipfile.ZipFile(self.path) as zf:
             station_id = self.parse_station_id(zf)
+            observation_type = self.parse_observation_type()
             lat_lon_history = self.parse_lat_lon_history(zf, station_id)
-            yield from self.parse_records(zf, station_id, lat_lon_history)
+            for record in self.parse_records(zf, lat_lon_history):
+                yield {
+                    'observation_type': observation_type,
+                    'station_id': station_id,
+                    **record
+                }
 
     def parse_station_id(self, zf):
         for filename in zf.namelist():
             if (m := re.match(r'Metadaten_Geographie_(\d+)\.txt', filename)):
                 return m.group(1)
         raise ValueError(f"Unable to parse station ID for {self.path}")
+
+    def parse_observation_type(self):
+        filename = os.path.basename(self.path)
+        if filename.endswith('_akt.zip'):
+            return 'recent'
+        elif filename.endswith('_hist.zip'):
+            return 'historical'
+        raise ValueError(
+            f'Unable to determine observation type from path "{self.path}"')
 
     def parse_lat_lon_history(self, zf, station_id):
         with zf.open(f'Metadaten_Geographie_{station_id}.txt') as f:
@@ -197,7 +213,7 @@ class ObservationsParser(Parser):
                     float(row['Stationshoehe']))
             return history
 
-    def parse_records(self, zf, station_id, lat_lon_history):
+    def parse_records(self, zf, lat_lon_history):
         product_filenames = [
             fn for fn in zf.namelist() if fn.startswith('produkt_')]
         assert len(product_filenames) == 1, "Unexpected product count"
@@ -214,9 +230,7 @@ class ObservationsParser(Parser):
                         break
                     lat, lon, height = lat_lon_height
                 yield {
-                    'observation_type': 'recent',
                     'source': f'Observations:Recent:{filename}',
-                    'station_id': station_id,
                     'lat': lat,
                     'lon': lon,
                     'height': height,
