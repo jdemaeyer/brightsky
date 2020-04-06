@@ -23,6 +23,8 @@ def test_dwdpoller_parse(data_dir):
             'TemperatureObservationsParser', '2020-03-29 09:00', 70165),
         '/dir/MOSMIX_S_LATEST_240.kmz': (
             'MOSMIXParser', '2020-03-29 10:21', 38067304),
+        '/dir/K611_-BEOB.csv': (
+            'CurrentObservationsParser', '2020-04-06 10:38', 7343),
     }
     assert list(DWDPoller().parse('/dir/', resp_text)) == [
         {

@@ -26,6 +26,7 @@ class DWDPoller:
     ]
     parsers = {
         r'MOSMIX_S_LATEST_240\.kmz$': 'MOSMIXParser',
+        r'\w{5}-BEOB\.csv$': 'CurrentObservationsParser',
         'stundenwerte_FF_': 'WindObservationsParser',
         'stundenwerte_P0_': 'PressureObservationsParser',
         'stundenwerte_RR_': 'PrecipitationObservationsParser',
