@@ -3,9 +3,9 @@ import datetime
 from dateutil.tz import tzutc
 
 from brightsky.parsers import (
-    MOSMIXParser, PrecipitationObservationsParser, PressureObservationsParser,
-    SunshineObservationsParser, TemperatureObservationsParser,
-    WindObservationsParser)
+    CurrentObservationsParser, MOSMIXParser, PrecipitationObservationsParser,
+    PressureObservationsParser, SunshineObservationsParser,
+    TemperatureObservationsParser, WindObservationsParser)
 
 from .utils import is_subset
 
@@ -43,6 +43,40 @@ def test_mosmix_parser(data_dir):
         'precipitation': None,
         'sunshine': None,
         'pressure_msl': 100630.0,
+    }
+
+
+def test_current_observation_parser(data_dir):
+    p = CurrentObservationsParser(path=data_dir / 'observations_current.csv')
+    records = list(p.parse(10.1, 20.2, 30.3))
+    assert len(records) == 25
+    assert records[0] == {
+        'observation_type': 'current',
+        'station_id': '01049',
+        'lat': 10.1,
+        'lon': 20.2,
+        'height': 30.3,
+        'timestamp': datetime.datetime(2020, 4, 6, 8, 0, tzinfo=tzutc()),
+        'temperature': 270.05,
+        'wind_direction': 140,
+        'wind_speed': 3.9,
+        'precipitation': 0,
+        'pressure_msl': 102310.,
+        'sunshine': None,
+    }
+    assert records[15] == {
+        'observation_type': 'current',
+        'station_id': '01049',
+        'lat': 10.1,
+        'lon': 20.2,
+        'height': 30.3,
+        'timestamp': datetime.datetime(2020, 4, 5, 17, 0, tzinfo=tzutc()),
+        'temperature': 270.95,
+        'wind_direction': 230,
+        'wind_speed': 3.9,
+        'precipitation': 0.6,
+        'pressure_msl': 101910.,
+        'sunshine': None,
     }
 
 

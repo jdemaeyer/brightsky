@@ -40,3 +40,13 @@ def cache_path(url):
     dirname = os.path.join(os.getcwd(), '.brightsky_cache')
     filename = os.path.basename(url)
     return os.path.join(dirname, filename)
+
+
+def celsius_to_kelvin(temperature):
+    if temperature is not None:
+        return round(temperature + 273.15, 2)
+
+
+def kmh_to_ms(speed):
+    if speed is not None:
+        return round(speed / 3.6, 1)

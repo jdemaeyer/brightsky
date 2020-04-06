@@ -17,6 +17,7 @@ class DWDPoller:
     urls = [
         'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/'
         'all_stations/kml/',
+        'https://opendata.dwd.de/weather/weather_reports/poi/',
     ] + [
         'https://opendata.dwd.de/climate_environment/CDC/observations_germany/'
         f'climate/hourly/{subfolder}/'

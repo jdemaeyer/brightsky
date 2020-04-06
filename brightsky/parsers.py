@@ -9,7 +9,7 @@ import dateutil.parser
 from dateutil.tz import tzutc
 from parsel import Selector
 
-from brightsky.utils import cache_path, download
+from brightsky.utils import cache_path, celsius_to_kelvin, download, kmh_to_ms
 
 
 logger = logging.getLogger(__name__)
@@ -103,6 +103,67 @@ class MOSMIXParser(Parser):
         )
 
 
+class CurrentObservationsParser(Parser):
+
+    ELEMENTS = {
+        'dry_bulb_temperature_at_2_meter_above_ground': 'temperature',
+        'mean_wind_direction_during_last_10 min_at_10_meters_above_ground': (
+            'wind_direction'),
+        'mean_wind_speed_during last_10_min_at_10_meters_above_ground': (
+            'wind_speed'),
+        'precipitation_amount_last_hour': 'precipitation',
+        'pressure_reduced_to_mean_sea_level': 'pressure_msl',
+        'total_time_of_sunshine_during_last_hour': 'sunshine',
+    }
+    DATE_COLUMN = 'surface observations'
+    HOUR_COLUMN = 'Parameter description'
+
+    CONVERSION_FACTORS = {
+        # hPa to Pa
+        'pressure_msl': 100,
+        # minutes to seconds
+        'sunshine': 60,
+    }
+
+    def parse(self, lat, lon, height):
+        with open(self.path) as f:
+            reader = csv.DictReader(f, delimiter=';')
+            station_id = next(reader)[self.DATE_COLUMN]
+            # Skip row with German header titles
+            next(reader)
+            for row in reader:
+                yield {
+                    'observation_type': 'current',
+                    'station_id': station_id,
+                    'lat': lat,
+                    'lon': lon,
+                    'height': height,
+                    **self.parse_row(row)
+                }
+
+    def parse_row(self, row):
+        record = {
+            element: (
+                None
+                if row[column] == '---'
+                else float(row[column].replace(',', '.')))
+            for column, element in self.ELEMENTS.items()
+        }
+        record['timestamp'] = datetime.datetime.strptime(
+            f'{row[self.DATE_COLUMN]} {row[self.HOUR_COLUMN]}',
+            '%d.%m.%y %H:%M'
+        ).replace(tzinfo=tzutc())
+        self.convert_units(record)
+        return record
+
+    def convert_units(self, record):
+        for element, factor in self.CONVERSION_FACTORS.items():
+            if record[element] is not None:
+                record[element] *= factor
+        record['temperature'] = celsius_to_kelvin(record['temperature'])
+        record['wind_speed'] = kmh_to_ms(record['wind_speed'])
+
+
 class ObservationsParser(Parser):
 
     elements = {}
@@ -185,8 +246,7 @@ class TemperatureObservationsParser(ObservationsParser):
 
     def parse_elements(self, row):
         elements = super().parse_elements(row)
-        # Convert °C to K
-        elements['temperature'] = round(elements['temperature'] + 273.15, 2)
+        elements['temperature'] = celsius_to_kelvin(elements['temperature'])
         return elements
 
 
