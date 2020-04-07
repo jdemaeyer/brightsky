@@ -10,6 +10,7 @@ import dateutil.parser
 from dateutil.tz import tzutc
 from parsel import Selector
 
+from brightsky.db import get_connection
 from brightsky.utils import cache_path, celsius_to_kelvin, download, kmh_to_ms
 
 
@@ -126,10 +127,12 @@ class CurrentObservationsParser(Parser):
         'sunshine': 60,
     }
 
-    def parse(self, lat, lon, height):
+    def parse(self, lat=None, lon=None, height=None):
         with open(self.path) as f:
             reader = csv.DictReader(f, delimiter=';')
             station_id = next(reader)[self.DATE_COLUMN]
+            if lat is None or lon is None or height is None:
+                lat, lon, height = self.load_location(station_id)
             # Skip row with German header titles
             next(reader)
             for row in reader:
@@ -163,6 +166,28 @@ class CurrentObservationsParser(Parser):
                 record[element] *= factor
         record['temperature'] = celsius_to_kelvin(record['temperature'])
         record['wind_speed'] = kmh_to_ms(record['wind_speed'])
+
+    def load_location(self, station_id):
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        ST_Y(location::geometry) AS lat,
+                        ST_X(location::geometry) AS lon,
+                        height
+                    FROM weather
+                    WHERE observation_type = %s AND station_id = %s
+                    ORDER BY timestamp DESC
+                    LIMIT 1
+                    """,
+                    ('forecast', station_id),
+                )
+                row = cur.fetchone()
+                if not row:
+                    raise ValueError(
+                        f'Unable to find location for station {station_id}')
+                return row
 
 
 class ObservationsParser(Parser):
