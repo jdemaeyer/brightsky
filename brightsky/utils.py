@@ -1,7 +1,9 @@
 import datetime
 import logging
 import os
+from contextlib import suppress
 
+import coloredlogs
 import dateutil.parser
 from dateutil.tz import tzlocal, tzutc
 
@@ -9,6 +11,23 @@ import requests
 
 
 logger = logging.getLogger(__name__)
+
+
+def configure_logging():
+    log_fmt = '%(asctime)s %(name)s %(levelname)s  %(message)s'
+    coloredlogs.install(level=logging.DEBUG, fmt=log_fmt)
+    # Disable some third-party noise
+    logging.getLogger('huey').setLevel(logging.INFO)
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+
+
+def load_dotenv(path='.env'):
+    with suppress(FileNotFoundError):
+        with open(path) as f:
+            for line in f:
+                if line.strip() and not line.strip().startswith('#'):
+                    key, val = line.strip().split('=', 1)
+                    os.environ.setdefault(key, val)
 
 
 def download(url, path):
