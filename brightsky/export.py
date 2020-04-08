@@ -29,7 +29,7 @@ class DBExporter:
         'precipitation', 'pressure_msl', 'sunshine', 'temperature',
         'wind_direction', 'wind_speed']
 
-    def export(self, records):
+    def export(self, records, fingerprint=None):
         records = list(records)
         self.prepare_records(records)
         with get_connection() as conn:
@@ -50,6 +50,24 @@ class DBExporter:
                 )
                 with conn.cursor() as cur:
                     execute_batch(cur, stmt, records)
+            if fingerprint:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        INSERT INTO parsed_files (
+                            url, last_modified, file_size, parsed_at
+                        )
+                        VALUES (
+                            %(url)s, %(last_modified)s, %(file_size)s,
+                            current_timestamp
+                        )
+                        ON CONFLICT
+                            ON CONSTRAINT parsed_files_pkey DO UPDATE SET
+                                last_modified = %(last_modified)s,
+                                file_size = %(file_size)s,
+                                parsed_at = current_timestamp;
+                        """,
+                        fingerprint)
             conn.commit()
 
     def prepare_records(self, records):

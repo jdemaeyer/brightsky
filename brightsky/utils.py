@@ -3,7 +3,7 @@ import logging
 import os
 
 import dateutil.parser
-from dateutil.tz import tzutc
+from dateutil.tz import tzlocal, tzutc
 
 import requests
 
@@ -34,12 +34,29 @@ def download(url, path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'wb') as f:
         f.write(resp.content)
+    last_modified = dateutil.parser.parse(
+        resp.headers['Last-Modified']).timestamp()
+    os.utime(path, (last_modified, last_modified))
 
 
 def cache_path(url):
     dirname = os.path.join(os.getcwd(), '.brightsky_cache')
     filename = os.path.basename(url)
     return os.path.join(dirname, filename)
+
+
+def dwd_fingerprint(path):
+    """Return file attributes in same format as DWD server index pages"""
+    last_modified = datetime.datetime.fromtimestamp(
+        os.path.getmtime(path)
+    ).replace(
+        second=0,
+        tzinfo=tzlocal()
+    ).astimezone(tzutc())
+    return {
+        'last_modified': last_modified,
+        'file_size': os.path.getsize(path),
+    }
 
 
 def celsius_to_kelvin(temperature):
