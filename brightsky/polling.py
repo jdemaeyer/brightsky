@@ -78,7 +78,7 @@ class DWDPoller:
                         'last_modified': last_modified,
                         'file_size': file_size,
                     })
-        self.logger.info(
+        self.logger.debug(
             "Found %d directories and %d files at %s",
             len(directories), len(files), url)
         yield from files

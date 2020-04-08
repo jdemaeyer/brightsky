@@ -36,6 +36,7 @@ def poll(enqueue=False):
         from brightsky.worker import huey, process
         pending_urls = [
             t.args[0] for t in huey.pending() if t.name == 'process']
+        enqueued = 0
         for updated_file in updated_files:
             url = updated_file['url']
             if url in pending_urls:
@@ -46,4 +47,6 @@ def poll(enqueue=False):
                 continue
             logger.debug('Enqueueing "%s"', url)
             process(url)
+            enqueued += 1
+        logger.info('Enqueued %d updated files for processing', enqueued)
     return updated_files
