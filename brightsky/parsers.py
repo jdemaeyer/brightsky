@@ -61,7 +61,8 @@ class MOSMIXParser(Parser):
         for i, station_sel in enumerate(station_selectors):
             self.logger.debug(
                 'Parsing station %d / %d', i+1, len(station_selectors))
-            yield from self.parse_station(station_sel, timestamps, source)
+            records = self.parse_station(station_sel, timestamps, source)
+            yield from self.sanitize_records(records)
 
     def get_selector(self):
         with zipfile.ZipFile(self.path) as zf:
@@ -104,10 +105,18 @@ class MOSMIXParser(Parser):
             'height': float(height),
         }
         # Turn dict of lists into list of dicts
-        yield from (
+        return (
             {**base_record, **dict(zip(records, row))}
             for row in zip(*records.values())
         )
+
+    def sanitize_records(self, records):
+        for r in records:
+            if r['precipitation'] and r['precipitation'] < 0:
+                self.logger.warning(
+                    "Ignoring negative precipitation value: %s", r)
+                r['precipitation'] = None
+            yield r
 
 
 class CurrentObservationsParser(Parser):
