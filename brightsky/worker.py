@@ -21,6 +21,6 @@ def process(url):
         tasks.parse(url=url, export=True)
 
 
-@huey.periodic_task(crontab(minute='*'))
+@huey.periodic_task(crontab(minute='*/5'))
 def poll():
     tasks.poll(enqueue=True)
