@@ -16,7 +16,6 @@ def parse(path=None, url=None, export=False):
     parser = parser_cls(path=path, url=url)
     if url:
         parser.download()
-    logger.info("Parsing %s with %s", path or url, parser_cls.__name__)
     records = parser.parse()
     if export:
         exporter = DBExporter()
@@ -25,5 +24,4 @@ def parse(path=None, url=None, export=False):
 
 
 def poll():
-    logger.info("Polling DWD Open Data Server for updated files")
     return DWDPoller().poll()

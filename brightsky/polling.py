@@ -10,9 +10,6 @@ from brightsky.db import get_connection
 from brightsky.parsers import get_parser
 
 
-logger = logging.getLogger(__name__)
-
-
 class DWDPoller:
 
     urls = [
@@ -26,7 +23,14 @@ class DWDPoller:
             'air_temperature', 'precipitation', 'pressure', 'sun', 'wind']
     ]
 
+    @property
+    def logger(self):
+        if not hasattr(self, '_logger'):
+            self._logger = logging.getLogger(self.__class__.__name__)
+        return self._logger
+
     def poll(self):
+        self.logger.info("Polling for updated files")
         with get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute('SELECT * FROM parsed_files')
@@ -42,7 +46,7 @@ class DWDPoller:
                     yield file_info
 
     def poll_url(self, url):
-        logger.debug("Loading %s", url)
+        self.logger.debug("Loading %s", url)
         resp = requests.get(url)
         resp.raise_for_status()
         return self.parse(url, resp.text)
@@ -74,7 +78,7 @@ class DWDPoller:
                         'last_modified': last_modified,
                         'file_size': file_size,
                     })
-        logger.info(
+        self.logger.info(
             "Found %d directories and %d files at %s",
             len(directories), len(files), url)
         yield from files

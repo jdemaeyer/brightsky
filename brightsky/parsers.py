@@ -14,12 +14,15 @@ from brightsky.db import get_connection
 from brightsky.utils import cache_path, celsius_to_kelvin, download, kmh_to_ms
 
 
-logger = logging.getLogger(__name__)
-
-
 class Parser:
 
     DEFAULT_URL = None
+
+    @property
+    def logger(self):
+        if not hasattr(self, '_logger'):
+            self._logger = logging.getLogger(self.__class__.__name__)
+        return self._logger
 
     def __init__(self, path=None, url=None):
         self.url = url or self.DEFAULT_URL
@@ -28,6 +31,7 @@ class Parser:
             self.path = cache_path(self.url)
 
     def download(self):
+        self.logger.info('Downloading "%s" to "%s"', self.url, self.path)
         download(self.url, self.path)
 
 
@@ -47,14 +51,15 @@ class MOSMIXParser(Parser):
     }
 
     def parse(self):
+        self.logger.info("Parsing %s", self.path)
         sel = self.get_selector()
         timestamps = self.parse_timestamps(sel)
         source = self.parse_source(sel)
-        logger.debug(
+        self.logger.debug(
             'Got %d timestamps for source %s', len(timestamps), source)
         station_selectors = sel.css('Placemark')
         for i, station_sel in enumerate(station_selectors):
-            logger.debug(
+            self.logger.debug(
                 'Parsing station %d / %d', i+1, len(station_selectors))
             yield from self.parse_station(station_sel, timestamps, source)
 
