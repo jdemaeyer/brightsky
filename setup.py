@@ -10,6 +10,7 @@ setup(
     install_requires=[
         'click',
         'coloredlogs',
+        'huey[redis]',
         'parsel',
         'psycopg2-binary',
         'python-dateutil',

@@ -1,6 +1,8 @@
 import json
+from multiprocessing import cpu_count
 
 import click
+from huey.consumer_options import ConsumerConfig
 
 from brightsky import db, tasks
 
@@ -33,5 +35,17 @@ def parse(path, url, export):
 
 
 @cli.command(help='Detect updated files on DWD Open Data Server')
-def poll():
-    dump_records(tasks.poll())
+@click.option('--enqueue/--no-enqueue', default=False)
+def poll(enqueue):
+    files = tasks.poll(enqueue=enqueue)
+    if not enqueue:
+        dump_records(files)
+
+
+@cli.command(help='Start brightsky worker')
+def work():
+    from brightsky.worker import huey
+    config = ConsumerConfig(worker_type='thread', workers=2*cpu_count()+1)
+    config.validate()
+    consumer = huey.create_consumer(**config.values)
+    consumer.run()

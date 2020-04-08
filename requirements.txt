@@ -9,12 +9,14 @@ chardet==3.0.4            # via requests
 click==7.1.1              # via brightsky (setup.py)
 coloredlogs==14.0         # via brightsky (setup.py)
 cssselect==1.1.0          # via parsel
+huey[redis]==2.2.0        # via brightsky (setup.py)
 humanfriendly==8.1        # via coloredlogs
 idna==2.9                 # via requests
 lxml==4.5.0               # via parsel
 parsel==1.5.2             # via brightsky (setup.py)
 psycopg2-binary==2.8.4    # via brightsky (setup.py)
 python-dateutil==2.8.1    # via brightsky (setup.py)
+redis==3.4.1              # via huey
 requests==2.23.0          # via brightsky (setup.py)
 six==1.14.0               # via parsel, python-dateutil, w3lib
 urllib3==1.25.8           # via requests
