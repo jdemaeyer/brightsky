@@ -135,7 +135,7 @@ class CurrentObservationsParser(Parser):
     def parse(self, lat=None, lon=None, height=None):
         with open(self.path) as f:
             reader = csv.DictReader(f, delimiter=';')
-            station_id = next(reader)[self.DATE_COLUMN]
+            station_id = next(reader)[self.DATE_COLUMN].rstrip('_')
             if lat is None or lon is None or height is None:
                 lat, lon, height = self.load_location(station_id)
             # Skip row with German header titles
