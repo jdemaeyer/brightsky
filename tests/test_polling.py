@@ -8,7 +8,7 @@ from brightsky.polling import DWDPoller
 def test_dwdpoller_parse(data_dir):
     with open(data_dir / 'dwd_opendata_index.html') as f:
         resp_text = f.read()
-    expected_parsers = {
+    expected = {
         '/dir/stundenwerte_FF_00011_akt.zip': (
             'WindObservationsParser', '2020-03-29 08:55', 70523),
         '/dir/stundenwerte_FF_00090_akt.zip': (
@@ -34,4 +34,4 @@ def test_dwdpoller_parse(data_dir):
                 v[1], '%Y-%m-%d %H:%M').replace(tzinfo=tzutc()),
             'file_size': v[2],
         }
-        for k, v in expected_parsers.items()]
+        for k, v in expected.items()]

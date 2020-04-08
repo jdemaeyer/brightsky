@@ -12,11 +12,11 @@ logger = logging.getLogger('brightsky')
 def parse(path=None, url=None, export=False):
     if not path and not url:
         raise ValueError('Please provide either path or url')
-    parser_name = DWDPoller().get_parser(os.path.basename(path or url))
-    parser = getattr(parsers, parser_name)(path=path, url=url)
+    parser_cls = parsers.get_parser(os.path.basename(path or url))
+    parser = parser_cls(path=path, url=url)
     if url:
         parser.download()
-    logger.info("Parsing %s with %s", path or url, parser_name)
+    logger.info("Parsing %s with %s", path or url, parser_cls.__name__)
     records = parser.parse()
     if export:
         exporter = DBExporter()

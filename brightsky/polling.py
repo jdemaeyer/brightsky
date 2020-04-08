@@ -7,6 +7,7 @@ from dateutil.tz import tzutc
 from parsel import Selector
 
 from brightsky.db import get_connection
+from brightsky.parsers import get_parser
 
 
 logger = logging.getLogger(__name__)
@@ -24,15 +25,6 @@ class DWDPoller:
         for subfolder in [
             'air_temperature', 'precipitation', 'pressure', 'sun', 'wind']
     ]
-    parsers = {
-        r'MOSMIX_S_LATEST_240\.kmz$': 'MOSMIXParser',
-        r'\w{5}-BEOB\.csv$': 'CurrentObservationsParser',
-        'stundenwerte_FF_': 'WindObservationsParser',
-        'stundenwerte_P0_': 'PressureObservationsParser',
-        'stundenwerte_RR_': 'PrecipitationObservationsParser',
-        'stundenwerte_SD_': 'SunshineObservationsParser',
-        'stundenwerte_TU_': 'TemperatureObservationsParser',
-    }
 
     def poll(self):
         with get_connection() as conn:
@@ -74,11 +66,11 @@ class DWDPoller:
                 last_modified = dateutil.parser.parse(
                     match.group(1)).replace(tzinfo=tzutc())
                 file_size = int(match.group(2))
-                parser = self.get_parser(link)
+                parser = get_parser(link)
                 if parser:
                     files.append({
                         'url': link_url,
-                        'parser': parser,
+                        'parser': parser.__name__,
                         'last_modified': last_modified,
                         'file_size': file_size,
                     })
@@ -88,8 +80,3 @@ class DWDPoller:
         yield from files
         for dir_url in directories:
             yield from self.poll_url(dir_url)
-
-    def get_parser(self, filename):
-        for pattern, parser in self.parsers.items():
-            if re.match(pattern, filename):
-                return parser

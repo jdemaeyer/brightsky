@@ -324,3 +324,18 @@ class PressureObservationsParser(ObservationsParser):
         # hPa to Pa
         'pressure_msl': 100,
     }
+
+
+def get_parser(filename):
+    parsers = {
+        r'MOSMIX_S_LATEST_240\.kmz$': MOSMIXParser,
+        r'\w{5}-BEOB\.csv$': CurrentObservationsParser,
+        'stundenwerte_FF_': WindObservationsParser,
+        'stundenwerte_P0_': PressureObservationsParser,
+        'stundenwerte_RR_': PrecipitationObservationsParser,
+        'stundenwerte_SD_': SunshineObservationsParser,
+        'stundenwerte_TU_': TemperatureObservationsParser,
+    }
+    for pattern, parser in parsers.items():
+        if re.match(pattern, filename):
+            return parser

@@ -3,9 +3,10 @@ import datetime
 from dateutil.tz import tzutc
 
 from brightsky.parsers import (
-    CurrentObservationsParser, MOSMIXParser, PrecipitationObservationsParser,
-    PressureObservationsParser, SunshineObservationsParser,
-    TemperatureObservationsParser, WindObservationsParser)
+    CurrentObservationsParser, get_parser, MOSMIXParser,
+    PrecipitationObservationsParser, PressureObservationsParser,
+    SunshineObservationsParser, TemperatureObservationsParser,
+    WindObservationsParser)
 
 from .utils import is_subset
 
@@ -180,3 +181,18 @@ def test_pressure_observations_parser(data_dir):
         {'timestamp': '2018-09-15 00:00', 'pressure_msl': 98090.},
         {'timestamp': '2020-03-17 23:00', 'pressure_msl': 98980.},
     )
+
+
+def test_get_parser():
+    expected = {
+        'stundenwerte_FF_00011_akt.zip': WindObservationsParser,
+        'stundenwerte_FF_00090_akt.zip': WindObservationsParser,
+        'stundenwerte_P0_00096_akt.zip': PressureObservationsParser,
+        'stundenwerte_RR_00102_akt.zip': PrecipitationObservationsParser,
+        'stundenwerte_SD_00125_akt.zip': SunshineObservationsParser,
+        'stundenwerte_TU_00161_akt.zip': TemperatureObservationsParser,
+        'MOSMIX_S_LATEST_240.kmz': MOSMIXParser,
+        'K611_-BEOB.csv': CurrentObservationsParser,
+    }
+    for filename, expected_parser in expected.items():
+        assert get_parser(filename) is expected_parser
