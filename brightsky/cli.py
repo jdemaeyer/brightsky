@@ -45,6 +45,7 @@ def poll(enqueue):
 @cli.command(help='Start brightsky worker')
 def work():
     from brightsky.worker import huey
+    huey.flush()
     config = ConsumerConfig(worker_type='thread', workers=2*cpu_count()+1)
     config.validate()
     consumer = huey.create_consumer(**config.values)
