@@ -34,6 +34,9 @@ def poll(enqueue=False):
     updated_files = DWDPoller().poll()
     if enqueue:
         from brightsky.worker import huey, process
+        if (expired_locks := huey.expire_locks(1800)):
+            logger.warning(
+                'Removed expired locks: %s', ', '.join(expired_locks))
         pending_urls = [
             t.args[0] for t in huey.pending() if t.name == 'process']
         enqueued = 0
@@ -42,7 +45,7 @@ def poll(enqueue=False):
             if url in pending_urls:
                 logger.debug('Skipping "%s": already queued', url)
                 continue
-            elif f'brightsky.lock.{url}' in huey._locks:
+            elif huey.is_locked(url):
                 logger.debug('Skipping "%s": already running', url)
                 continue
             logger.debug('Enqueueing "%s"', url)
