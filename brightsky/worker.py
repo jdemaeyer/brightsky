@@ -1,4 +1,3 @@
-import os
 import time
 
 from huey import crontab, RedisHuey
@@ -6,6 +5,7 @@ from huey.api import TaskLock as TaskLock_
 from huey.exceptions import TaskLockedException
 
 from brightsky import tasks
+from brightsky.settings import settings
 
 
 class ExpiringLocksHuey(RedisHuey):
@@ -40,7 +40,7 @@ class TaskLock(TaskLock_):
 huey = ExpiringLocksHuey(
     'brightsky',
     results=False,
-    url=os.getenv('REDIS_URL'),
+    url=settings.REDIS_URL,
 )
 
 
