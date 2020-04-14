@@ -42,6 +42,11 @@ def poll(enqueue):
         dump_records(files)
 
 
+@cli.command(help='Clean expired forecast and observations from database')
+def clean():
+    tasks.clean()
+
+
 @cli.command(help='Start brightsky worker')
 def work():
     from brightsky.worker import huey

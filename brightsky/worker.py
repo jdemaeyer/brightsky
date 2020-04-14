@@ -53,3 +53,8 @@ def process(url):
 @huey.periodic_task(crontab(minute='*/5'))
 def poll():
     tasks.poll(enqueue=True)
+
+
+@huey.periodic_task(crontab(minute='23'))
+def clean():
+    tasks.clean()

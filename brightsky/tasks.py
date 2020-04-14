@@ -1,6 +1,7 @@
 import logging
 import os
 
+from brightsky.db import get_connection
 from brightsky.export import DBExporter
 from brightsky.parsers import get_parser
 from brightsky.polling import DWDPoller
@@ -53,3 +54,27 @@ def poll(enqueue=False):
             enqueued += 1
         logger.info('Enqueued %d updated files for processing', enqueued)
     return updated_files
+
+
+def clean():
+    expiry_intervals = {
+        'forecast': '3 hours',
+        'current': '36 hours',
+    }
+    logger.info('Deleting expired weather records: %s', expiry_intervals)
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            for observation_type, expiry_interval in expiry_intervals.items():
+                cur.execute(
+                    """
+                    DELETE FROM weather WHERE
+                        observation_type = %s AND
+                        timestamp < current_timestamp - %s::interval;
+                    """,
+                    (observation_type, expiry_interval),
+                )
+                conn.commit()
+                if cur.rowcount:
+                    logger.info(
+                        'Deleted %d outdated %s weather records',
+                        cur.rowcount, observation_type)
