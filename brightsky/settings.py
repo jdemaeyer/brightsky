@@ -1,12 +1,22 @@
+import datetime
 import os
+
+from dateutil.tz import tzutc
 
 
 DATABASE_URL = 'postgres://localhost'
 REDIS_URL = 'redis://localhost'
 
+DATE_CUTOFF = datetime.datetime(2010, 1, 1, tzinfo=tzutc())
 
-_SETTING_PARSERS = {}
 
+def _make_date(date_str):
+    return datetime.datetime.fromisoformat(date_str).replace(tzinfo=tzutc())
+
+
+_SETTING_PARSERS = {
+    'DATE_CUTOFF': _make_date,
+}
 
 
 class Settings(dict):

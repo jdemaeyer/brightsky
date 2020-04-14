@@ -8,7 +8,7 @@ from brightsky.parsers import (
     SunshineObservationsParser, TemperatureObservationsParser,
     WindObservationsParser)
 
-from .utils import is_subset
+from .utils import is_subset, overridden_settings
 
 
 def test_mosmix_parser(data_dir):
@@ -121,6 +121,22 @@ def test_observations_parser_handles_location_changes(data_dir):
         {'lat': 12.5597, 'lon': 48.8275, 'height': 350.5}, records[0])
     assert is_subset(
         {'lat': 13.0, 'lon': 50.0, 'height': 345.0}, records[-1])
+
+
+def test_observations_parser_skips_file_if_ends_before_cutoff(data_dir):
+    p = PressureObservationsParser(
+        path=data_dir / 'observations_19950901_20050817_hist.zip')
+    assert p.should_skip()
+
+
+def test_observations_parser_skips_rows_if_before_cutoff(data_dir):
+    p = WindObservationsParser(
+        path=data_dir / 'observations_recent_FF_akt.zip')
+    with overridden_settings(
+        DATE_CUTOFF=datetime.datetime(2019, 1, 1, tzinfo=tzutc()),
+    ):
+        records = list(p.parse())
+        assert len(records) == 5
 
 
 def _test_parser(cls, path, first, last, count=10, first_idx=0, last_idx=-1):

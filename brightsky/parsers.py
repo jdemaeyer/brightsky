@@ -11,6 +11,7 @@ from dateutil.tz import tzutc
 from parsel import Selector
 
 from brightsky.db import get_connection
+from brightsky.settings import settings
 from brightsky.utils import cache_path, celsius_to_kelvin, download, kmh_to_ms
 
 
@@ -33,6 +34,12 @@ class Parser:
     def download(self):
         self.logger.info('Downloading "%s" to "%s"', self.url, self.path)
         download(self.url, self.path)
+
+    def should_skip(self):
+        return False
+
+    def parse(self):
+        raise NotImplementedError
 
 
 class MOSMIXParser(Parser):
@@ -209,6 +216,14 @@ class ObservationsParser(Parser):
     elements = {}
     conversion_factors = {}
 
+    def should_skip(self):
+        if (m := re.search(r'_\d{8}_(\d{8})_hist\.zip$', str(self.path))):
+            end_date = datetime.datetime.strptime(
+                m.group(1), '%Y%m%d').replace(tzinfo=tzutc())
+            if end_date < settings.DATE_CUTOFF:
+                return True
+        return False
+
     def parse(self):
         with zipfile.ZipFile(self.path) as zf:
             station_id = self.parse_station_id(zf)
@@ -264,6 +279,8 @@ class ObservationsParser(Parser):
             for row in reader:
                 timestamp = datetime.datetime.strptime(
                     row['MESS_DATUM'], '%Y%m%d%H').replace(tzinfo=tzutc())
+                if timestamp < settings.DATE_CUTOFF:
+                    continue
                 for date, lat_lon_height in lat_lon_history.items():
                     if date > timestamp:
                         break

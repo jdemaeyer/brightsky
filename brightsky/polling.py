@@ -70,11 +70,11 @@ class DWDPoller:
                 last_modified = dateutil.parser.parse(
                     match.group(1)).replace(tzinfo=tzutc())
                 file_size = int(match.group(2))
-                parser = get_parser(link)
-                if parser:
+                parser_cls = get_parser(link)
+                if parser_cls and not parser_cls(url=link_url).should_skip():
                     files.append({
                         'url': link_url,
-                        'parser': parser.__name__,
+                        'parser': parser_cls.__name__,
                         'last_modified': last_modified,
                         'file_size': file_size,
                     })
