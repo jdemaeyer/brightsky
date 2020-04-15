@@ -7,7 +7,8 @@ from dateutil.tz import tzutc
 DATABASE_URL = 'postgres://localhost'
 REDIS_URL = 'redis://localhost'
 
-DATE_CUTOFF = datetime.datetime(2010, 1, 1, tzinfo=tzutc())
+MIN_DATE = datetime.datetime(2010, 1, 1, tzinfo=tzutc())
+MAX_DATE = None
 
 
 def _make_date(date_str):
@@ -15,7 +16,8 @@ def _make_date(date_str):
 
 
 _SETTING_PARSERS = {
-    'DATE_CUTOFF': _make_date,
+    'MIN_DATE': _make_date,
+    'MAX_DATE': _make_date,
 }
 
 

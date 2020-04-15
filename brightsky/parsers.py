@@ -215,11 +215,16 @@ class ObservationsParser(Parser):
     conversion_factors = {}
 
     def should_skip(self):
-        if (m := re.search(r'_\d{8}_(\d{8})_hist\.zip$', str(self.path))):
+        if (m := re.search(r'_(\d{8})_(\d{8})_hist\.zip$', str(self.path))):
             end_date = datetime.datetime.strptime(
-                m.group(1), '%Y%m%d').replace(tzinfo=tzutc())
-            if end_date < settings.DATE_CUTOFF:
+                m.group(2), '%Y%m%d').replace(tzinfo=tzutc())
+            if end_date < settings.MIN_DATE:
                 return True
+            if settings.MAX_DATE:
+                start_date = datetime.datetime.strptime(
+                    m.group(1), '%Y%m%d').replace(tzinfo=tzutc())
+                if start_date > settings.MAX_DATE:
+                    return True
         return False
 
     def parse(self):
@@ -277,7 +282,9 @@ class ObservationsParser(Parser):
             for row in reader:
                 timestamp = datetime.datetime.strptime(
                     row['MESS_DATUM'], '%Y%m%d%H').replace(tzinfo=tzutc())
-                if timestamp < settings.DATE_CUTOFF:
+                if timestamp < settings.MIN_DATE:
+                    continue
+                elif settings.MAX_DATE and timestamp > settings.MAX_DATE:
                     continue
                 for date, lat_lon_height in lat_lon_history.items():
                     if date > timestamp:
