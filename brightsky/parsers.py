@@ -66,8 +66,6 @@ class MOSMIXParser(Parser):
             'Got %d timestamps for source %s', len(timestamps), source)
         station_selectors = sel.css('Placemark')
         for i, station_sel in enumerate(station_selectors):
-            self.logger.debug(
-                'Parsing station %d / %d', i+1, len(station_selectors))
             records = self.parse_station(station_sel, timestamps, source)
             yield from self.sanitize_records(records)
 
