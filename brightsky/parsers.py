@@ -303,8 +303,9 @@ class ObservationsParser(Parser):
             for element, element_key in self.elements.items()
         }
         for element, factor in self.conversion_factors.items():
-            elements[element] *= factor
-            elements[element] = round(elements[element], 2)
+            if elements[element] is not None:
+                elements[element] *= factor
+                elements[element] = round(elements[element], 2)
         return elements
 
 
