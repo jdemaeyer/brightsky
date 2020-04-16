@@ -88,7 +88,7 @@ class MOSMIXParser(Parser):
 
     def parse_station(self, station_sel, timestamps, source):
         station_id = station_sel.css('name::text').extract_first()
-        lat, lon, height = station_sel.css(
+        lon, lat, height = station_sel.css(
             'coordinates::text').extract_first().split(',')
         records = {'timestamp': timestamps}
         for element, column in self.ELEMENTS.items():
