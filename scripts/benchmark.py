@@ -2,6 +2,7 @@
 
 import datetime
 import logging
+import random
 import time
 from concurrent.futures import as_completed, ThreadPoolExecutor
 from contextlib import contextmanager
@@ -11,7 +12,7 @@ import click
 import psycopg2
 from dateutil.tz import tzutc
 
-from brightsky import db, tasks
+from brightsky import db, query, tasks
 from brightsky.settings import settings
 from brightsky.utils import configure_logging, load_dotenv
 
@@ -20,14 +21,12 @@ logger = logging.getLogger('benchmark')
 
 
 @contextmanager
-def _time(description):
+def _time(description, precision=0):
     start = time.time()
     yield
+    delta = round(time.time() - start, precision)
     click.echo(
-        '%s: %s h' % (
-            description,
-            datetime.timedelta(seconds=round(time.time() - start)))
-    )
+        '%s: %s h' % (description, datetime.timedelta(seconds=delta)))
 
 
 @click.group()
@@ -94,6 +93,32 @@ def mosmix_parse():
         'all_stations/kml/MOSMIX_S_LATEST_240.kmz')
     with _time('MOSMIX Re-parse'):
         tasks.parse(url=MOSMIX_URL, export=True)
+
+
+@cli.command(help='Query records from database')
+def query_weather():
+    # Generate 50 random locations within Germany's bounding box. Locations
+    # will be the same across different runs since we hard-code the PRNG seed.
+    random.seed(0)
+    locations = [
+        (random.uniform(47.30, 54.98), random.uniform(5.99, 15.02))
+        for _ in range(50)]
+    date = datetime.date(2020, 2, 14)
+    last_date = datetime.date(2020, 2, 21)
+    with _time('50 one-day queries, sequential ', precision=2):
+        for lat, lon in locations:
+            query.weather(lat, lon, date)
+    with _time('50 one-day queries, parallel   ', precision=2):
+        with ThreadPoolExecutor(max_workers=len(locations)) as executor:
+            for lat, lon in locations:
+                executor.submit(query.weather, lat, lon, date)
+    with _time('50 one-week queries, sequential', precision=2):
+        for lat, lon in locations:
+            query.weather(lat, lon, date, last_date)
+    with _time('50 one-week queries, parallel  ', precision=2):
+        with ThreadPoolExecutor(max_workers=len(locations)) as executor:
+            for lat, lon in locations:
+                executor.submit(query.weather, lat, lon, date, last_date)
 
 
 if __name__ == '__main__':
