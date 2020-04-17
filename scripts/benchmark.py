@@ -76,7 +76,7 @@ def db_size():
                 'SELECT pg_database_size(%s)', (db_name,))
             db_size = cur.fetchone()
             table_sizes = {}
-            for table in ['weather']:
+            for table in ['weather', 'sources']:
                 cur.execute('SELECT pg_total_relation_size(%s)', (table,))
                 table_sizes[table] = cur.fetchone()[0]
     click.echo('Total database size:\n%6d MB' % (db_size[0] / 1024 / 1024))

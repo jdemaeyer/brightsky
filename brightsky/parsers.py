@@ -195,9 +195,9 @@ class CurrentObservationsParser(Parser):
                         ST_Y(location::geometry) AS lat,
                         ST_X(location::geometry) AS lon,
                         height
-                    FROM weather
+                    FROM sources
                     WHERE observation_type = %s AND station_id = %s
-                    ORDER BY timestamp DESC
+                    ORDER BY id DESC
                     LIMIT 1
                     """,
                     ('forecast', station_id),
