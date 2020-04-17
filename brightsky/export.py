@@ -2,7 +2,7 @@ import logging
 from threading import Lock
 
 from psycopg2 import sql
-from psycopg2.extras import execute_batch, execute_values
+from psycopg2.extras import execute_values
 
 from brightsky.db import get_connection
 
@@ -25,9 +25,9 @@ class DBExporter:
     UPDATE_SOURCES_CLEANUP = """
         SELECT setval('sources_id_seq', (SELECT max(id) FROM sources));
     """
-    UPDATE_STMT = sql.SQL("""
+    UPDATE_WEATHER_STMT = sql.SQL("""
         INSERT INTO weather (timestamp, source_id, {fields})
-        VALUES (%(timestamp)s, %(source_id)s, {values})
+        VALUES %s
         ON CONFLICT
             ON CONSTRAINT weather_key DO UPDATE SET
                 {conflict_updates};
@@ -79,19 +79,22 @@ class DBExporter:
             logger.info(
                 "Exporting %d records with fields %s",
                 len(records), tuple(fields))
-            stmt = self.UPDATE_STMT.format(
+            stmt = self.UPDATE_WEATHER_STMT.format(
                 fields=sql.SQL(', ').join(
                     sql.Identifier(f) for f in fields),
-                values=sql.SQL(', ').join(
-                    sql.Placeholder(f) for f in fields),
                 conflict_updates=sql.SQL(', ').join(
-                    sql.SQL('{field} = {placeholder}').format(
-                        field=sql.Identifier(f),
-                        placeholder=sql.Placeholder(f))
+                    sql.SQL('{field} = EXCLUDED.{field}').format(
+                        field=sql.Identifier(f))
                     for f in fields),
             )
+            template = sql.SQL(
+                "(%(timestamp)s, %(source_id)s, {values})"
+            ).format(
+                values=sql.SQL(', ').join(
+                    sql.Placeholder(f) for f in fields),
+            )
             with conn.cursor() as cur:
-                execute_batch(cur, stmt, records)
+                execute_values(cur, stmt, records, template, page_size=1000)
 
     def make_batches(self, records):
         batches = {}
