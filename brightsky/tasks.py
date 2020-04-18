@@ -58,8 +58,8 @@ def poll(enqueue=False):
 
 def clean():
     expiry_intervals = {
-        'forecast': '3 hours',
-        'current': '36 hours',
+        'forecast': '12 hours',
+        'current': '48 hours',
     }
     logger.info('Deleting expired weather records: %s', expiry_intervals)
     with get_connection() as conn:
@@ -68,7 +68,9 @@ def clean():
                 cur.execute(
                     """
                     DELETE FROM weather WHERE
-                        observation_type = %s AND
+                        source_id IN (
+                            SELECT id FROM sources
+                            WHERE observation_type = %s) AND
                         timestamp < current_timestamp - %s::interval;
                     """,
                     (observation_type, expiry_interval),
