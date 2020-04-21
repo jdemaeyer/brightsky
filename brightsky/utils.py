@@ -59,7 +59,7 @@ def download(url, path):
 
 
 def cache_path(url):
-    dirname = os.path.join(os.getcwd(), '.brightsky_cache')
+    dirname = os.path.join(os.getcwd(), '.cache/brightsky')
     filename = os.path.basename(url)
     return os.path.join(dirname, filename)
 
