@@ -5,10 +5,9 @@ from dateutil.tz import tzutc
 
 
 DATABASE_URL = 'postgres://localhost'
-REDIS_URL = 'redis://localhost'
-
 MIN_DATE = datetime.datetime(2010, 1, 1, tzinfo=tzutc())
 MAX_DATE = None
+REDIS_URL = 'redis://localhost'
 
 
 def _make_date(date_str):
@@ -16,8 +15,9 @@ def _make_date(date_str):
 
 
 _SETTING_PARSERS = {
-    'MIN_DATE': _make_date,
     'MAX_DATE': _make_date,
+
+    datetime.datetime: _make_date,
 }
 
 
@@ -26,7 +26,7 @@ class Settings(dict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__dict__ = self
+        self.loaded = False
 
     def load(self):
         for k, v in globals().items():
@@ -35,15 +35,18 @@ class Settings(dict):
         for k, v in os.environ.items():
             if k.startswith('BRIGHTSKY_') and k.isupper():
                 setting_name = k.split('_', 1)[1]
-                setting_parser = _SETTING_PARSERS.get(setting_name)
+                setting_type = type(self.get(setting_name))
+                setting_parser = _SETTING_PARSERS.get(
+                    setting_name, _SETTING_PARSERS.get(setting_type))
                 if setting_parser:
                     v = setting_parser(v)
                 self[setting_name] = v
 
-    def __getattribute__(self, name):
-        Settings.__getattribute__ = dict.__getattribute__
-        self.load()
-        return self.__getattribute__(name)
+    def __getattr__(self, name):
+        if not self.loaded:
+            self.load()
+            self.loaded = True
+        return self[name]
 
 
 settings = Settings()

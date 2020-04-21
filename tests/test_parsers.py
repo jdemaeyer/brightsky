@@ -8,7 +8,7 @@ from brightsky.parsers import (
     SunshineObservationsParser, TemperatureObservationsParser,
     WindObservationsParser)
 
-from .utils import is_subset, overridden_settings
+from .utils import is_subset, settings
 
 
 def test_mosmix_parser(data_dir):
@@ -127,11 +127,11 @@ def test_observations_parser_skips_file_if_out_of_range(data_dir):
     p = PressureObservationsParser(
         path=data_dir / 'observations_19950901_20150817_hist.zip')
     assert not p.should_skip()
-    with overridden_settings(
+    with settings(
         MIN_DATE=datetime.datetime(2016, 1, 1, tzinfo=tzutc()),
     ):
         assert p.should_skip()
-    with overridden_settings(
+    with settings(
         MAX_DATE=datetime.datetime(1995, 1, 1, tzinfo=tzutc()),
     ):
         assert p.should_skip()
@@ -140,14 +140,14 @@ def test_observations_parser_skips_file_if_out_of_range(data_dir):
 def test_observations_parser_skips_rows_if_before_cutoff(data_dir):
     p = WindObservationsParser(
         path=data_dir / 'observations_recent_FF_akt.zip')
-    with overridden_settings(
+    with settings(
         MIN_DATE=datetime.datetime(2019, 1, 1, tzinfo=tzutc()),
     ):
         records = list(p.parse())
         assert len(records) == 5
         assert records[0]['timestamp'] == datetime.datetime(
             2019, 4, 20, 21, tzinfo=tzutc())
-    with overridden_settings(
+    with settings(
         MAX_DATE=datetime.datetime(2019, 1, 1, tzinfo=tzutc()),
     ):
         records = list(p.parse())
