@@ -132,6 +132,10 @@ class MOSMIXParser(Parser):
                 self.logger.warning(
                     "Ignoring negative precipitation value: %s", r)
                 r['precipitation'] = None
+            if r['wind_direction'] and r['wind_direction'] > 360:
+                self.logger.warning(
+                    "Fixing out-of-bounds wind direction: %s", r)
+                r['wind_direction'] -= 360
             yield r
 
 
