@@ -7,7 +7,7 @@ CREATE TABLE sources (
   station_id        varchar(5) NOT NULL,
   observation_type  observation_type NOT NULL,
   location          geography(POINT) NOT NULL,
-  height            smallint NOT NULL,
+  height            real NOT NULL,
 
   CONSTRAINT weather_source_key UNIQUE (station_id, observation_type, location, height)
 );
