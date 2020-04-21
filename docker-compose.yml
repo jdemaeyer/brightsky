@@ -1,0 +1,30 @@
+version: "2.4"
+
+x-brightsky:
+  &brightsky
+  build: .
+  depends_on:
+    - postgres
+    - redis
+  environment:
+    BRIGHTSKY_DATABASE_URL: postgres://postgres:pgpass@postgres
+    BRIGHTSKY_REDIS_URL: redis://redis
+
+services:
+  postgres:
+    image: postgis/postgis:12-3.0-alpine
+    environment:
+      POSTGRES_PASSWORD: pgpass
+    volumes:
+      - .data:/var/lib/postgresql/data
+    restart: always
+  redis:
+    image: redis:5-alpine
+    restart: always
+  worker:
+    <<: *brightsky
+    command: --migrate work
+    restart: always
+  brightsky:
+    <<: *brightsky
+    scale: 0

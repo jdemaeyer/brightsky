@@ -12,7 +12,14 @@ def dump_records(it):
         print(json.dumps(record, default=str))
 
 
+def migrate_callback(ctx, param, value):
+    db.migrate()
+
+
 @click.group()
+@click.option(
+    '--migrate', help='Migrate database before running command',
+    is_flag=True, is_eager=True, expose_value=False, callback=migrate_callback)
 def cli():
     pass
 
