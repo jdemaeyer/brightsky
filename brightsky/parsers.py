@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import zipfile
+from contextlib import suppress
 
 import dateutil.parser
 from dateutil.tz import tzutc
@@ -30,16 +31,26 @@ class Parser:
         self.path = path
         if not self.path and self.url:
             self.path = cache_path(self.url)
+        self.downloaded_files = set()
 
     def download(self):
         self.logger.info('Downloading "%s" to "%s"', self.url, self.path)
-        download(self.url, self.path)
+        download_path = download(self.url, self.path)
+        if download_path:
+            self.downloaded_files.add(download_path)
 
     def should_skip(self):
         return False
 
     def parse(self):
         raise NotImplementedError
+
+    def cleanup(self):
+        if not settings.KEEP_DOWNLOADS:
+            for path in self.downloaded_files:
+                self.logger.debug("Removing '%s'", path)
+                with suppress(FileNotFoundError):
+                    os.remove(path)
 
 
 class MOSMIXParser(Parser):

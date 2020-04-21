@@ -12,6 +12,14 @@ def test_settings_loads_environment():
         assert Settings().TEST == 'value'
 
 
+def test_settings_parses_environment_bool():
+    assert isinstance(Settings().KEEP_DOWNLOADS, bool)
+    with environ(BRIGHTSKY_KEEP_DOWNLOADS='0'):
+        assert Settings().KEEP_DOWNLOADS is False
+    with environ(BRIGHTSKY_KEEP_DOWNLOADS='1'):
+        assert Settings().KEEP_DOWNLOADS is True
+
+
 def test_settings_parses_environment_date():
     expected = datetime.datetime(2000, 1, 2, tzinfo=tzutc())
     assert isinstance(Settings().MIN_DATE, datetime.datetime)

@@ -5,9 +5,14 @@ from dateutil.tz import tzutc
 
 
 DATABASE_URL = 'postgres://localhost'
+KEEP_DOWNLOADS = False
 MIN_DATE = datetime.datetime(2010, 1, 1, tzinfo=tzutc())
 MAX_DATE = None
 REDIS_URL = 'redis://localhost'
+
+
+def _make_bool(bool_str):
+    return bool_str == '1'
 
 
 def _make_date(date_str):
@@ -17,6 +22,7 @@ def _make_date(date_str):
 _SETTING_PARSERS = {
     'MAX_DATE': _make_date,
 
+    bool: _make_bool,
     datetime.datetime: _make_date,
 }
 

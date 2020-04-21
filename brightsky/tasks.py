@@ -24,7 +24,8 @@ def parse(path=None, url=None, export=False):
         }
     else:
         fingerprint = None
-    records = parser.parse()
+    records = list(parser.parse())
+    parser.cleanup()
     if export:
         exporter = DBExporter()
         exporter.export(records, fingerprint=fingerprint)

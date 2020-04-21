@@ -56,6 +56,7 @@ def download(url, path):
     last_modified = dateutil.parser.parse(
         resp.headers['Last-Modified']).timestamp()
     os.utime(path, (last_modified, last_modified))
+    return path
 
 
 def cache_path(url):

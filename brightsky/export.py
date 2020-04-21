@@ -40,7 +40,6 @@ class DBExporter:
     sources_update_lock = Lock()
 
     def export(self, records, fingerprint=None):
-        records = list(records)
         sources = self.prepare_sources(records)
         with get_connection() as conn:
             source_map = self.update_sources(conn, sources)
