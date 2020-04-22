@@ -13,7 +13,8 @@ def dump_records(it):
 
 
 def migrate_callback(ctx, param, value):
-    db.migrate()
+    if value:
+        db.migrate()
 
 
 @click.group()
