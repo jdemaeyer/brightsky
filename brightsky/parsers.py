@@ -280,8 +280,8 @@ class ObservationsParser(Parser):
                     row['von_datum'].strip(), '%Y%m%d'
                 ).replace(tzinfo=tzutc())
                 history[date_from] = (
-                    float(row['Geogr.Laenge']),
                     float(row['Geogr.Breite']),
+                    float(row['Geogr.Laenge']),
                     float(row['Stationshoehe']))
             return history
 

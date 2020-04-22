@@ -90,8 +90,8 @@ def test_observations_parser_parses_metadata(data_dir):
             'Observations:Recent:produkt_ff_stunde_20180915_20200317_04911.txt'
         ),
         'station_id': '04911',
-        'lat': 12.5597,
-        'lon': 48.8275,
+        'lat': 48.8275,
+        'lon': 12.5597,
         'height': 350.5,
     }
     for record in p.parse():
@@ -118,9 +118,9 @@ def test_observations_parser_handles_location_changes(data_dir):
         path=data_dir / 'observations_recent_FF_location_change_akt.zip')
     records = list(p.parse())
     assert is_subset(
-        {'lat': 12.5597, 'lon': 48.8275, 'height': 350.5}, records[0])
+        {'lat': 48.8275, 'lon': 12.5597, 'height': 350.5}, records[0])
     assert is_subset(
-        {'lat': 13.0, 'lon': 50.0, 'height': 345.0}, records[-1])
+        {'lat': 50.0, 'lon': 13.0, 'height': 345.0}, records[-1])
 
 
 def test_observations_parser_skips_file_if_out_of_range(data_dir):
