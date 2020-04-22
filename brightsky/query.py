@@ -17,9 +17,12 @@ def weather(lat, lon, date, last_date=None, max_dist=50000):
             cur.execute(
                 """
                 SELECT DISTINCT ON (timestamp)
-                    *,
+                    weather.*,
+                    sources.observation_type,
+                    sources.station_id,
                     ST_Y(location::geometry) AS lat,
                     ST_X(location::geometry) AS lon,
+                    sources.height,
                     ST_Distance(
                         location, ST_MakePoint%(location)s::geography
                     ) AS distance
