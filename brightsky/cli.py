@@ -1,10 +1,13 @@
+import datetime
 import json
 from multiprocessing import cpu_count
 
 import click
+import dateutil.parser
+from dateutil.tz import tzutc
 from huey.consumer_options import ConsumerConfig
 
-from brightsky import db, tasks
+from brightsky import db, tasks, query
 
 
 def dump_records(it):
@@ -15,6 +18,15 @@ def dump_records(it):
 def migrate_callback(ctx, param, value):
     if value:
         db.migrate()
+
+
+def parse_date(ctx, param, value):
+    if not value:
+        return
+    d = dateutil.parser.parse(value)
+    if not d.tzinfo:
+        d.replace(tzinfo=tzutc())
+    return d
 
 
 @click.group()
@@ -63,3 +75,18 @@ def work():
     config.validate()
     consumer = huey.create_consumer(**config.values)
     consumer.run()
+
+
+@cli.command('query', help='Retrieve weather records')
+@click.argument('lat', type=float)
+@click.argument('lon', type=float)
+@click.argument('date', required=False, callback=parse_date)
+@click.argument('last-date', required=False, callback=parse_date)
+@click.option('--max-dist', type=int, default=50000)
+def query_weather(lat, lon, date, last_date, max_dist):
+    if not date:
+        date = datetime.datetime.now(tzutc()).replace(
+            hour=0, minute=0, second=0, microsecond=0)
+    records = query.weather(
+        lat, lon, date, last_date=last_date, max_dist=max_dist)
+    dump_records(dict(r) for r in records)
