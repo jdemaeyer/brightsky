@@ -43,9 +43,11 @@ def migrate():
 
 
 @cli.command(help='Parse a forecast or observations file')
-@click.option('--path')
-@click.option('--url')
-@click.option('--export/--no-export', default=False)
+@click.option('--path', help='Local file path to observations file')
+@click.option('--url', help='URL of observations file')
+@click.option(
+    '--export/--no-export', default=False,
+    help='Export parsed records to database')
 def parse(path, url, export):
     if not path and not url:
         raise click.ClickException('Please provide either --path or --url')
@@ -55,7 +57,9 @@ def parse(path, url, export):
 
 
 @cli.command(help='Detect updated files on DWD Open Data Server')
-@click.option('--enqueue/--no-enqueue', default=False)
+@click.option(
+    '--enqueue/--no-enqueue', default=False,
+    help='Enqueue updated files for processing by the worker')
 def poll(enqueue):
     files = tasks.poll(enqueue=enqueue)
     if not enqueue:
@@ -82,7 +86,9 @@ def work():
 @click.argument('lon', type=float)
 @click.argument('date', required=False, callback=parse_date)
 @click.argument('last-date', required=False, callback=parse_date)
-@click.option('--max-dist', type=int, default=50000)
+@click.option(
+    '--max-dist', type=int, default=50000,
+    help='Maximum distance to observation location, in meters')
 def query_weather(lat, lon, date, last_date, max_dist):
     if not date:
         date = datetime.datetime.now(tzutc()).replace(
