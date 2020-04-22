@@ -3,11 +3,11 @@ import json
 from multiprocessing import cpu_count
 
 import click
-import dateutil.parser
 from dateutil.tz import tzutc
 from huey.consumer_options import ConsumerConfig
 
 from brightsky import db, tasks, query
+from brightsky.utils import parse_date
 
 
 def dump_records(it):
@@ -20,13 +20,10 @@ def migrate_callback(ctx, param, value):
         db.migrate()
 
 
-def parse_date(ctx, param, value):
+def parse_date_arg(ctx, param, value):
     if not value:
         return
-    d = dateutil.parser.parse(value)
-    if not d.tzinfo:
-        d.replace(tzinfo=tzutc())
-    return d
+    return parse_date(value)
 
 
 @click.group()
@@ -81,11 +78,23 @@ def work():
     consumer.run()
 
 
+@cli.command(help='Start brightsky API webserver')
+@click.option('--bind', default='127.0.0.1:5000', help='Bind address')
+@click.option(
+    '--reload/--no-reload', default=False,
+    help='Reload server on source code changes')
+def serve(bind, reload):
+    from brightsky.web import app, StandaloneApplication
+    StandaloneApplication(
+        app, bind=bind, workers=2*cpu_count()+1, reload=reload
+    ).run()
+
+
 @cli.command('query', help='Retrieve weather records')
 @click.argument('lat', type=float)
 @click.argument('lon', type=float)
-@click.argument('date', required=False, callback=parse_date)
-@click.argument('last-date', required=False, callback=parse_date)
+@click.argument('date', required=False, callback=parse_date_arg)
+@click.argument('last-date', required=False, callback=parse_date_arg)
 @click.option(
     '--max-dist', type=int, default=50000,
     help='Maximum distance to observation location, in meters')

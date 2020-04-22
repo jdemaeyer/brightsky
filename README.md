@@ -8,8 +8,9 @@ Wetterdienst.
 
 Just run `docker-compose up` and you should be good to go. This will set up a
 PostgreSQL database (with persistent storage in `.data`), run a Redis server,
-and start the Bright Sky worker. The latter periodically polls the DWD Open
-Data Server for updates, parses them, and stores them in the database.
+and start the Bright Sky worker and webserver. The worker periodically polls
+the DWD Open Data Server for updates, parses them, and stores them in the
+database. The webserver will be listening to API requests on port 5000.
 
 
 ## Overview
@@ -21,9 +22,8 @@ Bright Sky is a rather simple project consisting of four components:
    parse them, and store them in a database. It will periodically poll the DWD
    servers for new data.
 
- * (Still to be developed:) The `brightsky` webserver, which serves as gate to
-   our database and processes all queries for weather records coming from the
-   outside world.
+ * The `brightsky` webserver, which serves as gate to our database and
+   processes all queries for weather records coming from the outside world.
 
  * A PostgreSQL database consisting of two relevant tables:
 

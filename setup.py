@@ -10,6 +10,8 @@ setup(
     install_requires=[
         'click',
         'coloredlogs',
+        'falcon',
+        'gunicorn',
         'huey[redis]',
         'parsel',
         'psycopg2-binary',
