@@ -54,9 +54,11 @@ class SourcesResource(BrightskyResource):
         lat, lon = self.parse_location(req)
         max_dist = self.parse_max_dist(req)
         station_id = req.get_param('station_id')
+        source_id = req.get_param_as_int('source_id')
         try:
             rows = query.sources(
-                lat=lat, lon=lon, station_id=station_id, max_dist=max_dist)
+                lat=lat, lon=lon, station_id=station_id, source_id=source_id,
+                max_dist=max_dist)
         except ValueError as e:
             raise falcon.HTTPBadRequest(description=str(e))
         result = [dict(r) for r in rows]
