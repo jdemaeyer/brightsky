@@ -35,11 +35,17 @@ class BrightskyResource:
 class WeatherResource(BrightskyResource):
 
     def on_get(self, req, resp):
-        lat, lon = self.parse_location(req, required=True)
         date, last_date = self.parse_date_range(req)
+        lat, lon = self.parse_location(req)
+        station_id = req.get_param('station_id')
+        source_id = req.get_param_as_int('source_id')
         max_dist = self.parse_max_dist(req)
-        rows = query.weather(
-            lat, lon, date, last_date=last_date, max_dist=max_dist)
+        try:
+            rows = query.weather(
+                date, last_date=last_date, lat=lat, lon=lon,
+                station_id=station_id, source_id=source_id, max_dist=max_dist)
+        except ValueError as e:
+            raise falcon.HTTPBadRequest(description=str(e))
         result = [dict(r) for r in rows]
         for row in result:
             row['timestamp'] = row['timestamp'].isoformat()
