@@ -7,7 +7,7 @@ from dateutil.tz import tzutc
 from huey.consumer_options import ConsumerConfig
 
 from brightsky import db, tasks, query
-from brightsky.utils import parse_date
+from brightsky.utils import parse_date, StandaloneApplication
 
 
 def dump_records(it):
@@ -84,9 +84,8 @@ def work():
     '--reload/--no-reload', default=False,
     help='Reload server on source code changes')
 def serve(bind, reload):
-    from brightsky.web import app, StandaloneApplication
     StandaloneApplication(
-        app, bind=bind, workers=2*cpu_count()+1, reload=reload
+        'brightsky.web:app', bind=bind, workers=2*cpu_count()+1, reload=reload
     ).run()
 
 

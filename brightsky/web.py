@@ -1,5 +1,4 @@
 import falcon
-from gunicorn.app.base import BaseApplication
 
 from brightsky import query
 from brightsky.utils import parse_date
@@ -37,18 +36,3 @@ class WeatherResource:
 
 app = falcon.API()
 app.add_route('/weather', WeatherResource())
-
-
-class StandaloneApplication(BaseApplication):
-
-    def __init__(self, app, **options):
-        self.app = app
-        self.options = options
-        super().__init__()
-
-    def load_config(self):
-        for k, v in self.options.items():
-            self.cfg.set(k.lower(), v)
-
-    def load(self):
-        return self.app

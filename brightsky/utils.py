@@ -6,6 +6,8 @@ from contextlib import suppress
 import coloredlogs
 import dateutil.parser
 from dateutil.tz import tzlocal, tzutc
+from gunicorn.app.base import BaseApplication
+from gunicorn.util import import_app
 
 import requests
 
@@ -94,3 +96,18 @@ def parse_date(date_str):
     if not d.tzinfo:
         d.replace(tzinfo=tzutc())
     return d
+
+
+class StandaloneApplication(BaseApplication):
+
+    def __init__(self, app_uri, **options):
+        self.app_uri = app_uri
+        self.options = options
+        super().__init__()
+
+    def load_config(self):
+        for k, v in self.options.items():
+            self.cfg.set(k.lower(), v)
+
+    def load(self):
+        return import_app(self.app_uri)
