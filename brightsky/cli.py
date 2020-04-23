@@ -104,3 +104,16 @@ def query_weather(lat, lon, date, last_date, max_dist):
     records = query.weather(
         lat, lon, date, last_date=last_date, max_dist=max_dist)
     dump_records(dict(r) for r in records)
+
+
+@cli.command('sources', help='Retrieve observation sources')
+@click.argument('lat', required=False, type=float)
+@click.argument('lon', required=False, type=float)
+@click.option('--station-id', help='Query by station ID instead of lat/lon')
+@click.option(
+    '--max-dist', type=int, default=50000,
+    help='Maximum distance to observation location, in meters')
+def query_sources(lat, lon, station_id, max_dist):
+    records = query.sources(
+        lat=lat, lon=lon, station_id=station_id, max_dist=max_dist)
+    dump_records(dict(r) for r in records)

@@ -37,3 +37,46 @@ def weather(lat, lon, date, last_date=None, max_dist=50000):
                 """,
                 params)
             return cur.fetchall()
+
+
+def sources(lat=None, lon=None, station_id=None, max_dist=50000):
+    select = """
+        sources.id AS source_id,
+        station_id,
+        observation_type,
+        ST_Y(location::geometry) AS lat,
+        ST_X(location::geometry) AS lon,
+        height
+    """
+    order_by = "observation_type"
+    if station_id is not None:
+        where = "station_id = %(station_id)s"
+    elif (lat is not None and lon is not None):
+        select += """,
+            ST_Distance(
+                location, ST_MakePoint%(location)s::geography
+            ) AS distance
+        """
+        where = """
+            ST_Distance(
+                location, ST_MakePoint%(location)s::geography
+            ) < %(max_dist)s
+        """
+        order_by += ", distance"
+    else:
+        raise ValueError("Please supply lat/lon or station_id")
+    sql = f"""
+        SELECT {select}
+        FROM sources
+        WHERE {where}
+        ORDER BY {order_by}
+        """
+    params = {
+        'location': (lon, lat),
+        'station_id': station_id,
+        'max_dist': max_dist,
+    }
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            return cur.fetchall()
