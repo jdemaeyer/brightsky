@@ -1,4 +1,9 @@
+import importlib
+import sys
+
 import falcon
+from gunicorn.app.base import BaseApplication
+from gunicorn.util import import_app
 
 from brightsky import query
 from brightsky.utils import parse_date
@@ -76,3 +81,23 @@ class SourcesResource(BrightskyResource):
 app = falcon.API()
 app.add_route('/weather', WeatherResource())
 app.add_route('/sources', SourcesResource())
+
+
+class StandaloneApplication(BaseApplication):
+
+    def __init__(self, app_uri, **options):
+        self.app_uri = app_uri
+        self.options = options
+        super().__init__()
+
+    def load_config(self):
+        for k, v in self.options.items():
+            self.cfg.set(k.lower(), v)
+
+    def load(self):
+        brightsky_mods = [
+            mod for name, mod in sys.modules.items()
+            if name.startswith('brightsky.')]
+        for mod in brightsky_mods:
+            importlib.reload(mod)
+        return import_app(self.app_uri)

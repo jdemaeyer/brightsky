@@ -7,7 +7,8 @@ from dateutil.tz import tzutc
 from huey.consumer_options import ConsumerConfig
 
 from brightsky import db, tasks, query
-from brightsky.utils import parse_date, StandaloneApplication
+from brightsky.utils import parse_date
+from brightsky.web import StandaloneApplication
 
 
 def dump_records(it):
