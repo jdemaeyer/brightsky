@@ -17,5 +17,6 @@ setup(
         'psycopg2-binary',
         'python-dateutil',
         'requests',
+        'sentry-sdk',
     ],
 )
