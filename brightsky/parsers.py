@@ -11,7 +11,7 @@ import dateutil.parser
 from dateutil.tz import tzutc
 from parsel import Selector
 
-from brightsky.db import get_connection
+from brightsky.db import fetch
 from brightsky.settings import settings
 from brightsky.utils import cache_path, celsius_to_kelvin, download, kmh_to_ms
 
@@ -202,26 +202,23 @@ class CurrentObservationsParser(Parser):
         record['wind_speed'] = kmh_to_ms(record['wind_speed'])
 
     def load_location(self, station_id):
-        with get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT
-                        ST_Y(location::geometry) AS lat,
-                        ST_X(location::geometry) AS lon,
-                        height
-                    FROM sources
-                    WHERE observation_type = %s AND station_id = %s
-                    ORDER BY id DESC
-                    LIMIT 1
-                    """,
-                    ('forecast', station_id),
-                )
-                row = cur.fetchone()
-                if not row:
-                    raise ValueError(
-                        f'Unable to find location for station {station_id}')
-                return row
+        rows = fetch(
+            """
+            SELECT
+                ST_Y(location::geometry) AS lat,
+                ST_X(location::geometry) AS lon,
+                height
+            FROM sources
+            WHERE observation_type = %s AND station_id = %s
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            ('forecast', station_id),
+        )
+        if not rows:
+            raise ValueError(
+                f'Unable to find location for station {station_id}')
+        return rows[0]
 
 
 class ObservationsParser(Parser):

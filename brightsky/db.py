@@ -16,6 +16,13 @@ def get_connection():
     return psycopg2.connect(settings.DATABASE_URL, cursor_factory=DictCursor)
 
 
+def fetch(*args, **kwargs):
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(*args, **kwargs)
+            return cur.fetchall()
+
+
 def migrate():
     logger.info("Migrating database")
     with get_connection() as conn:

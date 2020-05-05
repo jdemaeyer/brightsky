@@ -6,7 +6,7 @@ import requests
 from dateutil.tz import tzutc
 from parsel import Selector
 
-from brightsky.db import get_connection
+from brightsky.db import fetch
 from brightsky.parsers import get_parser
 
 
@@ -31,13 +31,10 @@ class DWDPoller:
 
     def poll(self):
         self.logger.info("Polling for updated files")
-        with get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute('SELECT * FROM parsed_files')
-                parsed_files = {
-                    row['url']: (row['last_modified'], row['file_size'])
-                    for row in cur.fetchall()
-                }
+        parsed_files = {
+            row['url']: (row['last_modified'], row['file_size'])
+            for row in fetch('SELECT * FROM parsed_files')
+        }
         for url in self.urls:
             for file_info in self.poll_url(url):
                 fingerprint = (

@@ -1,6 +1,6 @@
 import datetime
 
-from brightsky.db import get_connection
+from brightsky.db import fetch
 
 
 def weather(
@@ -51,10 +51,7 @@ def weather(
         'source_id': source_id,
         'station_id': station_id,
     }
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(sql, params)
-            return cur.fetchall()
+    return fetch(sql, params)
 
 
 def sources(
@@ -98,7 +95,4 @@ def sources(
         'station_id': station_id,
         'source_id': source_id,
     }
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(sql, params)
-            return cur.fetchall()
+    return fetch(sql, params)
