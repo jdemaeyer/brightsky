@@ -108,18 +108,19 @@ def query_weather():
     last_date = datetime.date(2020, 2, 21)
     with _time('50 one-day queries, sequential ', precision=2):
         for lat, lon in locations:
-            query.weather(lat, lon, date)
+            query.weather(date, lat=lat, lon=lon)
     with _time('50 one-day queries, parallel   ', precision=2):
         with ThreadPoolExecutor(max_workers=len(locations)) as executor:
             for lat, lon in locations:
-                executor.submit(query.weather, lat, lon, date)
+                executor.submit(query.weather, date, lat=lat, lon=lon)
     with _time('50 one-week queries, sequential', precision=2):
         for lat, lon in locations:
-            query.weather(lat, lon, date, last_date)
+            query.weather(date, last_date=last_date, lat=lat, lon=lon)
     with _time('50 one-week queries, parallel  ', precision=2):
         with ThreadPoolExecutor(max_workers=len(locations)) as executor:
             for lat, lon in locations:
-                executor.submit(query.weather, lat, lon, date, last_date)
+                executor.submit(
+                    query.weather, date, last_date=last_date, lat=lat, lon=lon)
 
 
 if __name__ == '__main__':
