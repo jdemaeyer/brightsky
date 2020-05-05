@@ -99,28 +99,51 @@ def mosmix_parse():
 @cli.command(help='Query records from database')
 def query_weather():
     # Generate 50 random locations within Germany's bounding box. Locations
-    # will be the same across different runs since we hard-code the PRNG seed.
+    # and sources will be the same across different runs since we hard-code the
+    # PRNG seed.
     random.seed(0)
-    locations = [
-        (random.uniform(47.30, 54.98), random.uniform(5.99, 15.02))
+    location_kwargs = [
+        {
+            'lat': random.uniform(47.30, 54.98),
+            'lon': random.uniform(5.99, 15.02),
+        }
         for _ in range(50)]
+    with db.get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT station_id, id
+                FROM sources
+                WHERE observation_type = %s
+                """,
+                ('recent',))
+            rows = random.choices(cur.fetchall(), k=50)
+            station_kwargs = [
+                {'station_id': row['station_id']} for row in rows]
+            source_kwargs = [{'source_id': row['id']} for row in rows]
     date = datetime.date(2020, 2, 14)
     last_date = datetime.date(2020, 2, 21)
-    with _time('50 one-day queries, sequential ', precision=2):
-        for lat, lon in locations:
-            query.weather(date, lat=lat, lon=lon)
-    with _time('50 one-day queries, parallel   ', precision=2):
-        with ThreadPoolExecutor(max_workers=len(locations)) as executor:
-            for lat, lon in locations:
-                executor.submit(query.weather, date, lat=lat, lon=lon)
-    with _time('50 one-week queries, sequential', precision=2):
-        for lat, lon in locations:
-            query.weather(date, last_date=last_date, lat=lat, lon=lon)
-    with _time('50 one-week queries, parallel  ', precision=2):
-        with ThreadPoolExecutor(max_workers=len(locations)) as executor:
-            for lat, lon in locations:
-                executor.submit(
-                    query.weather, date, last_date=last_date, lat=lat, lon=lon)
+
+    def _test_with_kwargs(desc, kwargs_list):
+        with _time(f'50 one-day queries,  {desc} sequential', precision=2):
+            for kwargs in kwargs_list:
+                query.weather(date, **kwargs)
+        with _time(f'50 one-day queries,  {desc} parallel  ', precision=2):
+            with ThreadPoolExecutor(max_workers=len(kwargs_list)) as executor:
+                for kwargs in kwargs_list:
+                    executor.submit(query.weather, date, **kwargs)
+        with _time(f'50 one-week queries, {desc} sequential', precision=2):
+            for kwargs in kwargs_list:
+                query.weather(date, last_date=last_date, **kwargs)
+        with _time(f'50 one-week queries, {desc} parallel  ', precision=2):
+            with ThreadPoolExecutor(max_workers=len(kwargs_list)) as executor:
+                for kwargs in kwargs_list:
+                    executor.submit(
+                        query.weather, date, last_date=last_date, **kwargs)
+
+    _test_with_kwargs('by lat/lon,', location_kwargs)
+    _test_with_kwargs('by station,', station_kwargs)
+    _test_with_kwargs('by source, ', source_kwargs)
 
 
 if __name__ == '__main__':
