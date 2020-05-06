@@ -21,12 +21,15 @@ logger = logging.getLogger('benchmark')
 
 
 @contextmanager
-def _time(description, precision=0):
+def _time(description, precision=0, unit='s'):
     start = time.time()
     yield
     delta = round(time.time() - start, precision)
-    click.echo(
-        '%s: %s h' % (description, datetime.timedelta(seconds=delta)))
+    if unit == 'h':
+        delta_str = str(datetime.timedelta(seconds=delta))
+    else:
+        delta_str = '{:{}.{}f} s'.format(delta, precision+4, precision)
+    click.echo(f'{description}: {delta_str}')
 
 
 @click.group()
@@ -58,7 +61,7 @@ def build():
     # observations depend on it
     tasks.parse(url=next(file_infos)['url'], export=True)
     with ThreadPoolExecutor(max_workers=2*cpu_count()+1) as executor:
-        with _time('Database creation time'):
+        with _time('Database creation time', unit='h'):
             futures = [
                 executor.submit(tasks.parse, url=file_info['url'], export=True)
                 for file_info in file_infos]
@@ -92,16 +95,16 @@ def mosmix_parse():
     MOSMIX_URL = (
         'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/'
         'all_stations/kml/MOSMIX_S_LATEST_240.kmz')
-    with _time('MOSMIX Re-parse'):
+    with _time('MOSMIX Re-parse', unit='h'):
         tasks.parse(url=MOSMIX_URL, export=True)
 
 
-@cli.command(help='Query records from database')
-def query_weather():
+@cli.command('query', help='Query records from database')
+def query_():
     # Generate 50 random locations within Germany's bounding box. Locations
     # and sources will be the same across different runs since we hard-code the
     # PRNG seed.
-    random.seed(0)
+    random.seed(1)
     location_kwargs = [
         {
             'lat': random.uniform(47.30, 54.98),
