@@ -105,10 +105,10 @@ def query_weather(date, lat, lon, last_date, station_id, source_id, max_dist):
     if not date:
         date = datetime.datetime.now(tzutc()).replace(
             hour=0, minute=0, second=0, microsecond=0)
-    records = query.weather(
+    result = query.weather(
         date, last_date=last_date, lat=lat, lon=lon, station_id=station_id,
         source_id=source_id, max_dist=max_dist)
-    dump_records(dict(r) for r in records)
+    print(json.dumps(result, default=str))
 
 
 @cli.command('sources', help='Retrieve observation sources')
@@ -121,7 +121,7 @@ def query_weather(date, lat, lon, last_date, station_id, source_id, max_dist):
     '--max-dist', type=int, default=50000,
     help='Maximum distance to observation location, in meters')
 def query_sources(lat, lon, station_id, source_id, max_dist):
-    records = query.sources(
+    result = query.sources(
         lat=lat, lon=lon, station_id=station_id, source_id=source_id,
         max_dist=max_dist)
-    dump_records(dict(r) for r in records)
+    print(json.dumps(result, default=str))

@@ -46,17 +46,14 @@ class WeatherResource(BrightskyResource):
         source_id = req.get_param_as_int('source_id')
         max_dist = self.parse_max_dist(req)
         try:
-            rows = query.weather(
+            result = query.weather(
                 date, last_date=last_date, lat=lat, lon=lon,
                 station_id=station_id, source_id=source_id, max_dist=max_dist)
         except ValueError as e:
             raise falcon.HTTPBadRequest(description=str(e))
-        result = [dict(r) for r in rows]
-        for row in result:
+        for row in result['weather']:
             row['timestamp'] = row['timestamp'].isoformat()
-        resp.media = {
-            'result': result,
-        }
+        resp.media = result
 
 
 class SourcesResource(BrightskyResource):
@@ -67,15 +64,12 @@ class SourcesResource(BrightskyResource):
         station_id = req.get_param('station_id')
         source_id = req.get_param_as_int('source_id')
         try:
-            rows = query.sources(
+            result = query.sources(
                 lat=lat, lon=lon, station_id=station_id, source_id=source_id,
                 max_dist=max_dist)
         except ValueError as e:
             raise falcon.HTTPBadRequest(description=str(e))
-        result = [dict(r) for r in rows]
-        resp.media = {
-            'result': result,
-        }
+        resp.media = result
 
 
 app = falcon.API()
