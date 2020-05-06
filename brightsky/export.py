@@ -15,7 +15,7 @@ class DBExporter:
     # The ON CONFLICT clause does not actually change anything, but it ensures
     # that the row is returned.
     UPDATE_SOURCES_STMT = """
-        INSERT INTO sources (station_id, observation_type, location, height)
+        INSERT INTO sources (station_id, observation_type, lat, lon, height)
         VALUES %s
         ON CONFLICT
             ON CONSTRAINT weather_source_key DO UPDATE SET
@@ -57,8 +57,8 @@ class DBExporter:
 
     def update_sources(self, conn, sources):
         template = (
-            '(%(station_id)s, %(observation_type)s, ST_MakePoint(%(lon)s, '
-            '%(lat)s), %(height)s)')
+            '(%(station_id)s, %(observation_type)s, %(lat)s, %(lon)s, '
+            '%(height)s)')
         with self.sources_update_lock:
             with conn.cursor() as cur:
                 rows = execute_values(

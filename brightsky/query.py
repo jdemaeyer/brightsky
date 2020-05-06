@@ -56,8 +56,8 @@ def sources(
         id,
         station_id,
         observation_type,
-        ST_Y(location::geometry) AS lat,
-        ST_X(location::geometry) AS lon,
+        lat,
+        lon,
         height
     """
     order_by = "observation_type"
@@ -66,15 +66,19 @@ def sources(
     elif station_id is not None:
         where = "station_id = %(station_id)s"
     elif (lat is not None and lon is not None):
-        select += """,
-            ST_Distance(
-                location, ST_MakePoint%(location)s::geography
-            ) AS distance
+        distance = """
+            earth_distance(
+                ll_to_earth(%(lat)s, %(lon)s),
+                ll_to_earth(lat, lon)
+            )
         """
-        where = """
-            ST_Distance(
-                location, ST_MakePoint%(location)s::geography
-            ) < %(max_dist)s
+        select += f", {distance} AS distance"
+        where = f"""
+            earth_box(
+                ll_to_earth(%(lat)s, %(lon)s),
+                %(max_dist)s
+            ) @> ll_to_earth(lat, lon) AND
+            {distance} < %(max_dist)s
         """
         order_by += ", distance"
     else:
@@ -86,7 +90,8 @@ def sources(
         ORDER BY {order_by}
         """
     params = {
-        'location': (lon, lat),
+        'lat': lat,
+        'lon': lon,
         'max_dist': max_dist,
         'station_id': station_id,
         'source_id': source_id,

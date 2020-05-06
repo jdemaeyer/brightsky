@@ -1,4 +1,4 @@
-CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS earthdistance CASCADE;
 
 CREATE TYPE observation_type AS ENUM ('historical', 'recent', 'current', 'forecast');
 
@@ -6,11 +6,14 @@ CREATE TABLE sources (
   id                serial PRIMARY KEY,
   station_id        varchar(5) NOT NULL,
   observation_type  observation_type NOT NULL,
-  location          geography(POINT) NOT NULL,
+  lat               real NOT NULL,
+  lon               real NOT NULL,
   height            real NOT NULL,
 
-  CONSTRAINT weather_source_key UNIQUE (station_id, observation_type, location, height)
+  CONSTRAINT weather_source_key UNIQUE (station_id, observation_type, lat, lon, height)
 );
+
+CREATE INDEX weather_source_location ON sources USING gist(ll_to_earth(lat, lon));
 
 CREATE TABLE weather (
   timestamp       timestamptz NOT NULL,

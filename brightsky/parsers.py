@@ -204,10 +204,7 @@ class CurrentObservationsParser(Parser):
     def load_location(self, station_id):
         rows = fetch(
             """
-            SELECT
-                ST_Y(location::geometry) AS lat,
-                ST_X(location::geometry) AS lon,
-                height
+            SELECT lat, lon, height
             FROM sources
             WHERE observation_type = %s AND station_id = %s
             ORDER BY id DESC

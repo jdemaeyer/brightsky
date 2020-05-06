@@ -12,7 +12,7 @@ x-brightsky:
 
 services:
   postgres:
-    image: postgis/postgis:12-3.0-alpine
+    image: postgres:12-alpine
     environment:
       POSTGRES_PASSWORD: pgpass
     volumes:
