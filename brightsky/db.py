@@ -2,9 +2,12 @@ import glob
 import logging
 import os
 import re
+from contextlib import contextmanager
+from multiprocessing import cpu_count
 
 import psycopg2
 from psycopg2.extras import DictCursor
+from psycopg2.pool import ThreadedConnectionPool
 
 from brightsky.settings import settings
 
@@ -12,8 +15,23 @@ from brightsky.settings import settings
 logger = logging.getLogger(__name__)
 
 
+@contextmanager
 def get_connection():
-    return psycopg2.connect(settings.DATABASE_URL, cursor_factory=DictCursor)
+    if not hasattr(get_connection, '_pool'):
+        if 'gunicorn' in os.getenv('SERVER_SOFTWARE', ''):
+            # gunicorn sync workers are single-threaded
+            minconn = 1
+        else:
+            minconn = 2*cpu_count()+1
+        get_connection._pool = ThreadedConnectionPool(
+            minconn, minconn, settings.DATABASE_URL, cursor_factory=DictCursor)
+    pool = get_connection._pool
+    conn = pool.getconn()
+    try:
+        with conn:
+            yield conn
+    finally:
+        pool.putconn(conn)
 
 
 def fetch(*args, **kwargs):

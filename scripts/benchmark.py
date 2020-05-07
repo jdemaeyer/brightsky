@@ -21,7 +21,7 @@ logger = logging.getLogger('benchmark')
 
 
 @contextmanager
-def _time(description, spacing=0, precision=0, unit='s'):
+def _time(description, precision=0, unit='s'):
     start = time.time()
     yield
     delta = round(time.time() - start, precision)
@@ -29,8 +29,9 @@ def _time(description, spacing=0, precision=0, unit='s'):
         delta_str = str(datetime.timedelta(seconds=delta))
     else:
         delta_str = '{:{}.{}f} s'.format(delta, precision+4, precision)
-    spaces = ' ' * spacing
-    click.echo(f'{description}:{spaces} {delta_str}')
+    if not description.rstrip().endswith(':'):
+        description += ':'
+    click.echo(f'{description} {delta_str}')
 
 
 @click.group()
@@ -111,7 +112,7 @@ def query_():
             'lat': random.uniform(47.30, 54.98),
             'lon': random.uniform(5.99, 15.02),
         }
-        for _ in range(50)]
+        for _ in range(100)]
     with db.get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -121,7 +122,7 @@ def query_():
                 WHERE observation_type = %s
                 """,
                 ('recent',))
-            rows = random.choices(cur.fetchall(), k=50)
+            rows = random.choices(cur.fetchall(), k=100)
             station_kwargs = [
                 {'station_id': row['station_id']} for row in rows]
             source_kwargs = [{'source_id': row['id']} for row in rows]
@@ -129,20 +130,20 @@ def query_():
     last_date = datetime.date(2020, 2, 21)
 
     def _test_with_kwargs(desc, kwargs_list, **extra_kwargs):
-        with _time('  50 one-day queries,  sequential', precision=2):
+        with _time('  100  one-day queries, sequential', precision=2):
             for kwargs in kwargs_list:
                 query.weather(date, **kwargs, **extra_kwargs)
-        with _time('  50 one-day queries,  parallel', spacing=2, precision=2):
-            with ThreadPoolExecutor(max_workers=len(kwargs_list)) as executor:
+        with _time('  100  one-day queries, parallel:  ', precision=2):
+            with ThreadPoolExecutor(max_workers=2*cpu_count()+1) as executor:
                 for kwargs in kwargs_list:
                     executor.submit(
                         query.weather, date, **kwargs, **extra_kwargs)
-        with _time('  50 one-week queries, sequential', precision=2):
+        with _time('  100 one-week queries, sequential', precision=2):
             for kwargs in kwargs_list:
                 query.weather(
                     date, last_date=last_date, **kwargs, **extra_kwargs)
-        with _time('  50 one-week queries, parallel', spacing=2, precision=2):
-            with ThreadPoolExecutor(max_workers=len(kwargs_list)) as executor:
+        with _time('  100 one-week queries, parallel:  ', precision=2):
+            with ThreadPoolExecutor(max_workers=2*cpu_count()+1) as executor:
                 for kwargs in kwargs_list:
                     executor.submit(
                         query.weather,
