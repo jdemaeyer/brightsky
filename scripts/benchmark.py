@@ -151,6 +151,9 @@ def query_():
 
     click.echo('By lat/lon:')
     _test_with_kwargs('by lat/lon,', location_kwargs)
+    click.echo('\nBy lat/lon, no fallback:')
+    _test_with_kwargs(
+        'by lat/lon, no fallback,', location_kwargs, fallback=False)
     click.echo('\nBy station:')
     _test_with_kwargs('by station,', station_kwargs)
     click.echo('\nBy source:')
