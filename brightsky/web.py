@@ -6,6 +6,7 @@ from gunicorn.app.base import BaseApplication
 from gunicorn.util import import_app
 
 from brightsky import query
+from brightsky.units import convert_record, CONVERTERS
 from brightsky.utils import parse_date
 
 
@@ -39,12 +40,18 @@ class BrightskyResource:
 
 class WeatherResource(BrightskyResource):
 
+    ALLOWED_UNITS = ['si'] + list(CONVERTERS)
+
     def on_get(self, req, resp):
         date, last_date = self.parse_date_range(req)
         lat, lon = self.parse_location(req)
         station_id = req.get_param('station_id')
         source_id = req.get_param_as_int('source_id')
         max_dist = self.parse_max_dist(req)
+        units = req.get_param('units', default='dwd').lower()
+        if units not in self.ALLOWED_UNITS:
+            raise falcon.HTTPBadRequest(
+                description="'units' must be in %s" % (self.ALLOWED_UNITS,))
         try:
             result = query.weather(
                 date, last_date=last_date, lat=lat, lon=lon,
@@ -52,8 +59,13 @@ class WeatherResource(BrightskyResource):
         except ValueError as e:
             raise falcon.HTTPBadRequest(description=str(e))
         for row in result['weather']:
-            row['timestamp'] = row['timestamp'].isoformat()
+            self.process_row(row, units)
         resp.media = result
+
+    def process_row(self, row, units):
+        row['timestamp'] = row['timestamp'].isoformat()
+        if units != 'si':
+            convert_record(row, units)
 
 
 class SourcesResource(BrightskyResource):
