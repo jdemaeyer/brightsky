@@ -13,7 +13,9 @@ from parsel import Selector
 
 from brightsky.db import fetch
 from brightsky.settings import settings
-from brightsky.utils import cache_path, celsius_to_kelvin, download, kmh_to_ms
+from brightsky.units import (
+    celsius_to_kelvin, hpa_to_pa, kmh_to_ms, minutes_to_seconds)
+from brightsky.utils import cache_path, download
 
 
 class Parser:
@@ -154,11 +156,11 @@ class CurrentObservationsParser(Parser):
     DATE_COLUMN = 'surface observations'
     HOUR_COLUMN = 'Parameter description'
 
-    CONVERSION_FACTORS = {
-        # hPa to Pa
-        'pressure_msl': 100,
-        # minutes to seconds
-        'sunshine': 60,
+    CONVERTERS = {
+        'pressure_msl': hpa_to_pa,
+        'sunshine': minutes_to_seconds,
+        'temperature': celsius_to_kelvin,
+        'wind_speed': kmh_to_ms,
     }
 
     def parse(self, lat=None, lon=None, height=None):
@@ -195,11 +197,9 @@ class CurrentObservationsParser(Parser):
         return record
 
     def convert_units(self, record):
-        for element, factor in self.CONVERSION_FACTORS.items():
+        for element, converter in self.CONVERTERS.items():
             if record[element] is not None:
-                record[element] *= factor
-        record['temperature'] = celsius_to_kelvin(record['temperature'])
-        record['wind_speed'] = kmh_to_ms(record['wind_speed'])
+                record[element] = converter(record[element])
 
     def load_location(self, station_id):
         rows = fetch(
@@ -221,7 +221,7 @@ class CurrentObservationsParser(Parser):
 class ObservationsParser(Parser):
 
     elements = {}
-    conversion_factors = {}
+    converters = {}
 
     def should_skip(self):
         if (m := re.search(r'_(\d{8})_(\d{8})_hist\.zip$', str(self.path))):
@@ -316,10 +316,9 @@ class ObservationsParser(Parser):
                 else None)
             for element, element_key in self.elements.items()
         }
-        for element, factor in self.conversion_factors.items():
+        for element, converter in self.converters.items():
             if elements[element] is not None:
-                elements[element] *= factor
-                elements[element] = round(elements[element], 2)
+                elements[element] = converter(elements[element])
         return elements
 
 
@@ -355,9 +354,8 @@ class SunshineObservationsParser(ObservationsParser):
     elements = {
         'sunshine': 'SD_SO',
     }
-    conversion_factors = {
-        # Minutes to seconds
-        'sunshine': 60,
+    converters = {
+        'sunshine': minutes_to_seconds,
     }
 
 
@@ -366,9 +364,8 @@ class PressureObservationsParser(ObservationsParser):
     elements = {
         'pressure_msl': '  P0',
     }
-    conversion_factors = {
-        # hPa to Pa
-        'pressure_msl': 100,
+    converters = {
+        'pressure_msl': hpa_to_pa,
     }
 
 

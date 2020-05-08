@@ -79,16 +79,6 @@ def dwd_fingerprint(path):
     }
 
 
-def celsius_to_kelvin(temperature):
-    if temperature is not None:
-        return round(temperature + 273.15, 2)
-
-
-def kmh_to_ms(speed):
-    if speed is not None:
-        return round(speed / 3.6, 1)
-
-
 def parse_date(date_str):
     d = dateutil.parser.parse(date_str)
     if not d.tzinfo:
