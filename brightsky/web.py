@@ -2,6 +2,7 @@ import importlib
 import sys
 
 import falcon
+from dateutil.tz import gettz
 from gunicorn.app.base import BaseApplication
 from gunicorn.util import import_app
 
@@ -37,6 +38,16 @@ class BrightskyResource:
                 description='Please supply dates in ISO 8601 format')
         return date, last_date
 
+    def parse_timezone(self, req):
+        tz_str = req.get_param('tz')
+        if not tz_str:
+            return
+        tz = gettz(tz_str)
+        if not tz:
+            raise falcon.HTTPBadRequest(
+                description='Unknown timezone: %s' % tz_str)
+        return tz
+
 
 class WeatherResource(BrightskyResource):
 
@@ -52,6 +63,14 @@ class WeatherResource(BrightskyResource):
         if units not in self.ALLOWED_UNITS:
             raise falcon.HTTPBadRequest(
                 description="'units' must be in %s" % (self.ALLOWED_UNITS,))
+        timezone = self.parse_timezone(req)
+        if timezone:
+            if not date.tzinfo:
+                date = date.replace(tzinfo=timezone)
+            if last_date and not last_date.tzinfo:
+                last_date = last_date.replace(tzinfo=timezone)
+        elif date.tzinfo:
+            timezone = date.tzinfo
         try:
             result = query.weather(
                 date, last_date=last_date, lat=lat, lon=lon,
@@ -59,10 +78,12 @@ class WeatherResource(BrightskyResource):
         except ValueError as e:
             raise falcon.HTTPBadRequest(description=str(e))
         for row in result['weather']:
-            self.process_row(row, units)
+            self.process_row(row, units, timezone)
         resp.media = result
 
-    def process_row(self, row, units):
+    def process_row(self, row, units, timezone):
+        if timezone:
+            row['timestamp'] = row['timestamp'].astimezone(timezone)
         row['timestamp'] = row['timestamp'].isoformat()
         if units != 'si':
             convert_record(row, units)
