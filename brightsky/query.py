@@ -13,7 +13,11 @@ def weather(
     if not last_date:
         last_date = date + datetime.timedelta(days=1)
     if source_id is not None:
-        return {'weather': _weather(date, last_date, source_id)}
+        weather = _weather(date, last_date, source_id)
+        if not weather:
+            # Make sure we throw a LookupError if the source id does not exist
+            sources(source_id=source_id)
+        return {'weather': weather}
     else:
         sources_rows = sources(
             lat=lat, lon=lon, station_id=station_id, max_dist=max_dist
@@ -134,4 +138,7 @@ def sources(
         'station_id': station_id,
         'source_id': source_id,
     }
-    return {'sources': _make_dicts(fetch(sql, params))}
+    rows = fetch(sql, params)
+    if not rows:
+        raise LookupError("No sources match your criteria")
+    return {'sources': _make_dicts(rows)}

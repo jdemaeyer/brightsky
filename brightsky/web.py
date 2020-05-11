@@ -1,5 +1,6 @@
 import importlib
 import sys
+from contextlib import contextmanager
 
 import falcon
 from dateutil.tz import gettz
@@ -9,6 +10,16 @@ from gunicorn.util import import_app
 from brightsky import query
 from brightsky.units import convert_record, CONVERTERS
 from brightsky.utils import parse_date
+
+
+@contextmanager
+def convert_exceptions():
+    try:
+        yield
+    except ValueError as e:
+        raise falcon.HTTPBadRequest(description=str(e))
+    except LookupError as e:
+        raise falcon.HTTPNotFound(description=str(e))
 
 
 class BrightskyResource:
@@ -71,12 +82,10 @@ class WeatherResource(BrightskyResource):
                 last_date = last_date.replace(tzinfo=timezone)
         elif date.tzinfo:
             timezone = date.tzinfo
-        try:
+        with convert_exceptions():
             result = query.weather(
                 date, last_date=last_date, lat=lat, lon=lon,
                 station_id=station_id, source_id=source_id, max_dist=max_dist)
-        except ValueError as e:
-            raise falcon.HTTPBadRequest(description=str(e))
         for row in result['weather']:
             self.process_row(row, units, timezone)
         resp.media = result
@@ -96,12 +105,10 @@ class SourcesResource(BrightskyResource):
         max_dist = self.parse_max_dist(req)
         station_id = req.get_param('station_id')
         source_id = req.get_param_as_int('source_id')
-        try:
+        with convert_exceptions():
             result = query.sources(
                 lat=lat, lon=lon, station_id=station_id, source_id=source_id,
                 max_dist=max_dist)
-        except ValueError as e:
-            raise falcon.HTTPBadRequest(description=str(e))
         resp.media = result
 
 
