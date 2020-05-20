@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Bright Sky</title>
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,700;1,400;1,700&display=swap">
+  <link rel="stylesheet" href="https://unpkg.com/browse/normalize.css@8.0.1/normalize.css" type="text/css">
+  <link rel="stylesheet" href="https://unpkg.com/sakura.css@1.2.0/css/sakura.css" type="text/css">
+
+  <style>
+    h1, h2, h3, h4, h5, h6 {
+      margin-bottom: .75em; }
+
+    pre {
+      margin: 2em 0;
+      font-size: .8em;
+      padding-left: 3em; }
+
+    pre em {
+      font-style: normal;
+      color: #52b788; }
+
+    li > ul {
+      margin: .5em; }
+
+    .subtitle {
+      margin-top: -.75em;
+      font-weight: 400; }
+
+    .centered {
+      text-align: center; }
+
+    .logos {
+      margin: 40px 0 20px;
+      display: flex;
+      justify-content: space-between; }
+
+    .logos img {
+      height: 100px; }
+  </style>
+</head>
+
+<body>
+  <div class="centered">
+    <h1>Bright Sky</h1>
+    <h5 class="subtitle">JSON API for DWD's open weather data.</h5>
+  </div>
+
+  <pre>
+$ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21">https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21</a>
+
+{
+  <em>"weather"</em>: [
+    {
+      <em>"timestamp"</em>: "2020-04-21T00:00:00+00:00",
+      <em>"source_id"</em>: 6007,
+      <em>"precipitation"</em>: 0,
+      <em>"pressure_msl"</em>: 1015.1,
+      <em>"sunshine"</em>: 0,
+      <em>"temperature"</em>: 10.6,
+      <em>"wind_direction"</em>: 70,
+      <em>"wind_speed"</em>: 12.6
+    },
+    ...
+  ],
+  <em>"sources"</em>: [
+    {
+      <em>"id"</em>: 6007,
+      <em>"station_id"</em>: "01766",
+      <em>"observation_type"</em>: "recent",
+      <em>"lat"</em>: 52.1344,
+      <em>"lon"</em>: 7.6969,
+      <em>"height"</em>: 47.8,
+      <em>"distance"</em>: 16365
+    }
+  ]
+}</pre>
+
+  <h4>Hello! :)</h4>
+  <p>
+    The DWD (<a href="https://www.dwd.de/">Deutscher Wetterdienst</a>), as Germany's meteorological service, publishes a myriad of meteorological observations and calculations as part of their <a href="https://www.dwd.de/DE/leistungen/opendata/opendata.html">Open Data program</a>. <strong>Bright Sky</strong> is an <a href="https://github.com/na-boa/brightsky">open-source project</a> aiming to make some of the more popular data — in particular <em>weather observations from the DWD station network</em> and <em>weather forecasts from the MOSMIX model</em> — available in a free, simple JSON API.
+  </p>
+
+  <h4>API</h4>
+  <p>
+    Bright Sky's main API endpoint is at <code>https://api.brightsky.dev/weather</code>. It expects a <code>GET</code> request with all parameters supplied in the query string. As bare minimum, you will need to supply a location (e.g. via <code>lat</code> and <code>lon</code>) and <code>date</code>. The following paragraphs describe the available parameters.
+  </p>
+
+  <h6>Location</h6>
+  <p>
+    To define the location for which you want to retrieve weather records (or forecasts), you will need to supply <em>either</em> <code>lat</code> and <code>lon</code>, <em>or</em> <code>station_id</code>, <em>or</em> <code>source_id</code>.
+  </p>
+
+  <dl>
+    <dt><code>lat</code></dt>
+    <dd>
+      Latitude in decimal degrees. e.g. <code>51.58</code>.</dd>
+
+    <dt><code>lon</code></dt>
+    <dd>Longitude in decimal degrees, e.g. <code>7.38</code>.</dd>
+
+    <dt><code>station_id</code></dt>
+    <dd>DWD station ID, typically five alphanumeric characters, e.g. <code>P0036</code>.</dd>
+
+    <dt><code>source_id</code></dt>
+    <dd>Bright Sky source ID, as retrieved from the <code>sources</code> endpoint, e.g. <code>1234</code>.</dd>
+
+    <dt><code>max_dist</code></dt>
+    <dd>Maximum distance of record location from the location given by <code>lat</code> and <code>lon</code>, in meters. Defaults to <code>50000</code>. Has no effect when using <code>station_id</code> or <code>source_id</code>.</dd>
+  </dl>
+
+  <h6>Date Range and Timezone</h6>
+
+  <dl>
+    <dt><code>date</code></dt>
+    <dd>Timestamp of first weather record (or forecast) to retrieve, in ISO 8601 format, e.g. <code>2020-04-21</code> or <code>2019-08-04T12:00+02:00</code>. May contain time and/or UTC offset. If you do not supply a time, midnight will be assumed.</dd>
+
+    <dt><code>last_date</code></dt>
+    <dd>Timestamp of last weather record (or forecast) to retrieve, in ISO 8601 format. Will default to <code>date + 1 day</code>. (Also see explanation for <code>date</code>.)</dd>
+
+    <dt><code>tz</code></dt>
+    <dd>Timezone in which record timestamps will be presented, as <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">tz database name</a>, e.g. <code>Europe/Berlin</code>. Will also be used as timezone when parsing <code>date</code> and <code>last_date</code>, unless these have explicit UTC offsets. If omitted but <code>date</code> has an explicit UTC offset, that offset will be used as timezone. Otherwise will default to UTC.</dd>
+  </dl>
+
+  <h6>Record Representation</h6>
+
+  <dl>
+    <dt><code>units</code></dt>
+    <dd>
+      Physical units in which meteorological parameters will be returned. Set to <code>si</code> to use <a href="https://en.wikipedia.org/wiki/International_System_of_Units">SI units</a>. The default <code>dwd</code> option uses a set of units that is more common in meteorological applications and civil use:
+      <table class="centered">
+        <tr><td width="250"></td><td><code>dwd</code></td><td><code>si</code></td></tr>
+        <tr><td><code>temperature</code></td><td>°C</td><td>K</td></tr>
+        <tr><td><code>precipitation</code></td><td>mm</td><td>kg / m²</td></tr>
+        <tr><td><code>wind_speed</code></td><td>km / h</td><td>m / s</td></tr>
+        <tr><td><code>wind_direction</code></td><td>°</td><td>°</td></tr>
+        <tr><td><code>pressure_msl</code></td><td>hPa</td><td>Pa</td></tr>
+        <tr><td><code>sunshine</code></td><td>min</td><td>s</td></tr>
+      </table>
+    </dd>
+  </dl>
+
+  <h4>Response</h4>
+  <p>
+    The <code>weather</code> endpoint will return an array of weather records (or forecasts) and an array of the sources from which these records were collected.
+  </p>
+
+  <h5>Weather</h5>
+  <p>
+    Each weather record contains the following properties:
+  </p>
+  <table>
+    <tr><th width="225">Property</th><th>Description</th></tr>
+    <tr><td><code>timestamp</code></td><td>ISO 8601-formatted timestamp of this weather record (or forecast)</td></tr>
+    <tr><td><code>source_id</code></td><td>Main source ID for this record</td></tr>
+    <tr><td><code>temperature</code></td><td>Temperature at timestamp, 2 m above the ground</td></tr>
+    <tr><td><code>precipitation</code></td><td>Total precipitation during <em>previous 60 minutes</em></td></tr>
+    <tr><td><code>wind_speed</code></td><td>Mean wind speed during <em>previous 10 minutes</em>, 10 m above the ground</td></tr>
+    <tr><td><code>wind_direction</code></td><td>Mean wind direction, as above</td></tr>
+    <tr><td><code>pressure_msl</code></td><td>Atmospheric pressure at timestamp, reduced to mean sea level</td></tr>
+    <tr><td><code>sunshine</code></td><td>Sunshine duration during <em>previous 60 minutes</em></td></tr>
+  </table>
+
+  <p>
+    Additionally, each weather record <em>may</em> contain the following properties:
+  </p>
+
+  <table>
+    <tr><th width="225">Property</th><th>Description</th></tr>
+    <tr><td><code>fallback_source_ids</code></td><td>Object mapping meteorological parameters to the source IDs of alternative sources that were used to fill up missing values in the main source</td></tr>
+  </table>
+
+  <h5>Sources</h5>
+  <p>
+    Each source record contains the following properties:
+  </p>
+  <table>
+    <tr><th width="225">Property</th><th>Description</th></tr>
+    <tr><td><code>id</code></td><td>Source ID</td></tr>
+    <tr><td><code>station_id</code></td><td>DWD weather station ID</td></tr>
+    <tr><td><code>observation_type</code></td><td>One of <code>forecast</code>, <code>current</code>, <code>recent</code>, or <code>historical</code> (see "Data Origin and License")</td></tr>
+    <tr><td><code>lat</code></td><td>Station latitude, in decimal degrees</td></tr>
+    <tr><td><code>lon</code></td><td>Station longitude, in decimal degreees</td></tr>
+    <tr><td><code>height</code></td><td>Station height, in meters</td></tr>
+  </table>
+
+  <p>
+    Additionally, each source record <em>may</em> contain the following properties:
+  </p>
+
+  <table>
+    <tr><th width="225">Property</th><th>Description</th></tr>
+    <tr><td><code>distance</code></td><td>Distance of station to the requested <code>lat</code> and <code>lon</code>, in meters</td></tr>
+  </table>
+
+  <h4>On Stations and Sources...</h4>
+  <p>
+    The DWD provides data from an extensive network of own and third-party meteorological observation stations, located mainly but not exclusively in Germany. Each of these is identified by a station ID. In an ideal world, these stations would provide an endless stream of one record of "historical weather" and one record of "forecasted weather" per hour. Sadly (and I am sure to much nuisance for the DWD), in the real world, stations have outages and measurement errors, and sometimes even move. Moreover, the weather forecasts come from a model that is not tied to any physical observation station locations, and predicts the meteorological parameters at a whole bunch of additional locations (which each get their own station ID).
+  </p>
+  <p>
+    To accomodate these real-world complications, Bright Sky internally uses a concept of <em>sources</em>. Each source is a unique combination of station ID, location and observation type. Hence, each physical observation station (with a single station ID) will typically correspond to three sources in Bright Sky: one for each of the three observation types <code>current</code>, <code>recent</code>, and <code>historical</code>. If the station has moved during its lifetime, you may even find more than one source for the same station ID and observation type.
+  </p>
+  <p>
+    Bright Sky's <em>source IDs</em> have no meaning in the real world. They should be treated as the technical artifact they are, and not even relied on to stay constant (although they likely will within each major release of Bright Sky). You can query information on the sources at the <code>https://api.brightsky.dev/sources</code> endpoint, which accepts all the "Location" parameters of the main API.
+  </p>
+
+  <h4>Data Origin and License</h4>
+  <p>
+    Data with the observation types <code>current</code>, <code>recent</code>, and <code>historical</code> is published by <a href="https://www.dwd.de/DE/leistungen/klimadatendeutschland/stationsliste.html">DWD's extensive network of observation stations</a>. The difference between these three types lies only in the level of quality assurance that the DWD has provided (see the <a href="https://opendata.dwd.de/climate_environment/CDC/Readme_intro_CDC_ftp.txt">DWD's Climate Data Center README</a>). Data with observation type <code>forecast</code> comes from <a href="https://www.dwd.de/EN/research/weatherforecasting/met_applications/nwp_applications/mosmix_application.html">MOSMIX</a>.
+  </p>
+  <p>
+    All data can be found on DWD's <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html">Open Data Server</a>:
+  </p>
+  <table>
+    <tr><th width="225">Observation Type</th><th>Location</th></tr>
+    <tr><td><code>historical</code> / <code>recent</code></td><td><a href="https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/">https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/</a></td></tr>
+    <tr><td><code>current</code></td><td><a href="https://opendata.dwd.de/weather/weather_reports/poi/">https://opendata.dwd.de/weather/weather_reports/poi/</a></td></tr>
+    <tr><td><code>forecast</code></td><td><a href="https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/all_stations/kml/">https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/all_stations/kml/</a></td></tr>
+  </table>
+  <p>
+    Bright Sky solely provides an additional method to access the DWD's meteorological data, and hence the <a href="https://www.dwd.de/EN/service/copyright/copyright_artikel.html">DWD's Terms of Use</a> apply to all data you retrieve through the API.
+  </p>
+
+  <h4>Good to Know</h4>
+
+  <h6>Geographical Data Coverage</h6>
+  <p>
+    Due to its nature as German meteorological service, the observations published by the DWD have a strong focus on Germany. While there is data for some locations outside of Germany, mainly in the rest of Europe, it is currently not a priority for us. Your mileage may vary.
+  </p>
+
+  <h6>Historical Data Coverage</h6>
+  <p>
+    Bright Sky currently only serves data going back to January 1st, 2010. We plan to extend this to the whole set of historical data published by the DWD in the future.
+  </p>
+
+  <h6>Performance</h6>
+  <p>
+    The main bottleneck when querying our database is selecting the closest available station for a given <code>lat</code> and <code>lon</code>. If you want to improve API latency and know that you will often be querying for the same location, try providing a station ID instead of geographical coordinates. You can retrieve nearby stations for a given location by querying the <code>/sources</code> endpoint (see "On Stations and Sources..."). If you are collecting historical data, note that you are not required to submit one query per day like with other weather services. Simply set the <code>date</code> and <code>last date</code> parameters to the complete date range you are looking to retrieve.
+  </p>
+
+  <h6>Open Source</h6>
+  <p>
+    Bright Sky is an MIT-licensed open source project <a href="https://github.com/na-boa/brightsky">hosted on GitHub</a>, and contributions of any kind — including feature requests — are very welcome. It is also easy to set up your own instance of Bright Sky!
+  </p>
+
+
+  <h4>Useful Links</h4>
+  <ul>
+    <li><a href="https://github.com/na-boa/brightsky/">Bright Sky source code</a></li>
+    <li><a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html">DWD Open Data landing page</a></li>
+    <li>
+      <a href="https://www.dwd.de/DE/leistungen/opendata/hilfe.html?nn=495490&lsbId=627548">Additional explanation files for DWD Open Data</a>, including:
+      <ul>
+        <li><a href="https://www.dwd.de/DE/leistungen/opendata/help/stationen/ha_messnetz.xls?__blob=publicationFile&v=1">List of main observation stations</a></li>
+        <li><a href="https://www.dwd.de/DE/leistungen/opendata/help/stationen/na_messnetz.xlsx?__blob=publicationFile&v=10">List of additional observation stations</a></li>
+        <li><a href="https://www.dwd.de/DE/leistungen/met_verfahren_mosmix/mosmix_stationskatalog.cfg?view=nasPublication&nn=495490">List of MOSMIX stations</a></li>
+        <li><a href="https://www.dwd.de/DE/leistungen/opendata/help/schluessel_datenformate/kml/mosmix_elemente_pdf.pdf?__blob=publicationFile&v=2">List of meteorological parameters</a></li>
+      </ul>
+    </li>
+    <li><a href="https://www.dwd.de/DE/leistungen/opendata/faqs_opendata.html">DWD Open Data FAQ (German)</a></li>
+    <li><a href="https://www.dwd.de/EN/service/copyright/copyright_artikel.html">DWD Copyright information</a></li>
+  </ul>
+
+  <h4>Acknowledgements</h4>
+  <p>
+    Bright Sky's development is boosted by the priceless guidance and support of the <a href="https://www.okfn.de/">Open Knowledge Foundation</a>'s <a href="https://prototypefund.de/">Prototype Fund</a> program, and is generously funded by Germany's <a href="https://www.bmbf.de/">Federal Ministry of Education and Research</a>. Obvious as it may be, it should be mentioned that none of this would be possible without the painstaking, never-ending effort of the <a href="https://www.dwd.de/">Deutscher Wetterdienst</a>.
+  </p>
+
+  <div class="logos">
+    <a href="https://prototypefund.de/">
+      <img src="img/pf.svg">
+    </a>
+    <a href="https://okfn.de/">
+      <img src="img/okfde.svg">
+    </a>
+    <a href="https://www.bmbf.de/">
+      <img src="img/bmbf.svg">
+    </a>
+    <a href="https://www.dwd.de/">
+      <img src="img/dwd.svg">
+    </a>
+  </div>
+
+</body>
+</html>
