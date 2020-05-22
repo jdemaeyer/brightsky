@@ -111,7 +111,7 @@ $ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21
     <dd>Maximum distance of record location from the location given by <code>lat</code> and <code>lon</code>, in meters. Defaults to <code>50000</code>. Has no effect when using <code>station_id</code> or <code>source_id</code>.</dd>
   </dl>
 
-  <h6>Date Range and Timezone</h6>
+  <h6>Date Range</h6>
 
   <dl>
     <dt><code>date</code></dt>
@@ -119,14 +119,14 @@ $ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21
 
     <dt><code>last_date</code></dt>
     <dd>Timestamp of last weather record (or forecast) to retrieve, in ISO 8601 format. Will default to <code>date + 1 day</code>. (Also see explanation for <code>date</code>.)</dd>
-
-    <dt><code>tz</code></dt>
-    <dd>Timezone in which record timestamps will be presented, as <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">tz database name</a>, e.g. <code>Europe/Berlin</code>. Will also be used as timezone when parsing <code>date</code> and <code>last_date</code>, unless these have explicit UTC offsets. If omitted but <code>date</code> has an explicit UTC offset, that offset will be used as timezone. Otherwise will default to UTC.</dd>
   </dl>
 
   <h6>Record Representation</h6>
 
   <dl>
+    <dt><code>tz</code></dt>
+    <dd>Timezone in which record timestamps will be presented, as <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">tz database name</a>, e.g. <code>Europe/Berlin</code>. Will also be used as timezone when parsing <code>date</code> and <code>last_date</code>, unless these have explicit UTC offsets. If omitted but <code>date</code> has an explicit UTC offset, that offset will be used as timezone. Otherwise will default to UTC.</dd>
+
     <dt><code>units</code></dt>
     <dd>
       Physical units in which meteorological parameters will be returned. Set to <code>si</code> to use <a href="https://en.wikipedia.org/wiki/International_System_of_Units">SI units</a>. The default <code>dwd</code> option uses a set of units that is more common in meteorological applications and civil use:
