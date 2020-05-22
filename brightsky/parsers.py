@@ -327,11 +327,9 @@ class TemperatureObservationsParser(ObservationsParser):
     elements = {
         'temperature': 'TT_TU',
     }
-
-    def parse_elements(self, row):
-        elements = super().parse_elements(row)
-        elements['temperature'] = celsius_to_kelvin(elements['temperature'])
-        return elements
+    converters = {
+        'temperature': celsius_to_kelvin,
+    }
 
 
 class PrecipitationObservationsParser(ObservationsParser):
