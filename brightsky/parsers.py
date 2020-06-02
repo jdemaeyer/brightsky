@@ -101,6 +101,7 @@ class MOSMIXParser(Parser):
 
     def parse_station(self, station_sel, timestamps, source):
         station_id = station_sel.css('name::text').extract_first()
+        station_name = station_sel.css('description::text').extract_first()
         lon, lat, height = station_sel.css(
             'coordinates::text').extract_first().split(',')
         records = {'timestamp': timestamps}
@@ -118,6 +119,7 @@ class MOSMIXParser(Parser):
             'observation_type': 'forecast',
             'source': source,
             'station_id': station_id,
+            'station_name': station_name,
             'lat': float(lat),
             'lon': float(lon),
             'height': float(height),
@@ -163,18 +165,19 @@ class CurrentObservationsParser(Parser):
         'wind_speed': kmh_to_ms,
     }
 
-    def parse(self, lat=None, lon=None, height=None):
+    def parse(self, lat=None, lon=None, height=None, station_name=None):
         with open(self.path) as f:
             reader = csv.DictReader(f, delimiter=';')
             station_id = next(reader)[self.DATE_COLUMN].rstrip('_')
-            if lat is None or lon is None or height is None:
-                lat, lon, height = self.load_location(station_id)
+            if any(x is None for x in (lat, lon, height, station_name)):
+                lat, lon, height, station_name = self.load_location(station_id)
             # Skip row with German header titles
             next(reader)
             for row in reader:
                 yield {
                     'observation_type': 'current',
                     'station_id': station_id,
+                    'station_name': station_name,
                     'lat': lat,
                     'lon': lon,
                     'height': height,
@@ -204,7 +207,7 @@ class CurrentObservationsParser(Parser):
     def load_location(self, station_id):
         rows = fetch(
             """
-            SELECT lat, lon, height
+            SELECT lat, lon, height, station_name
             FROM sources
             WHERE observation_type = %s AND station_id = %s
             ORDER BY id DESC
@@ -276,7 +279,8 @@ class ObservationsParser(Parser):
                 history[date_from] = (
                     float(row['Geogr.Breite']),
                     float(row['Geogr.Laenge']),
-                    float(row['Stationshoehe']))
+                    float(row['Stationshoehe']),
+                    row['Stationsname'])
             return history
 
     def parse_records(self, zf, lat_lon_history):
@@ -295,15 +299,16 @@ class ObservationsParser(Parser):
                     continue
                 elif settings.MAX_DATE and timestamp > settings.MAX_DATE:
                     continue
-                for date, lat_lon_height in lat_lon_history.items():
+                for date, lat_lon_height_name in lat_lon_history.items():
                     if date > timestamp:
                         break
-                    lat, lon, height = lat_lon_height
+                    lat, lon, height, station_name = lat_lon_height_name
                 yield {
                     'source': f'Observations:Recent:{filename}',
                     'lat': lat,
                     'lon': lon,
                     'height': height,
+                    'station_name': station_name,
                     'timestamp': timestamp,
                     **self.parse_elements(row),
                 }

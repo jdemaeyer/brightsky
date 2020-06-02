@@ -12,14 +12,16 @@ logger = logging.getLogger(__name__)
 
 class DBExporter:
 
-    # The ON CONFLICT clause does not actually change anything, but it ensures
-    # that the row is returned.
+    # The ON CONFLICT clause won't change anything in most cases, but it
+    # ensures that the row is always returned (so that we can build the source
+    # map).
     UPDATE_SOURCES_STMT = """
-        INSERT INTO sources (station_id, observation_type, lat, lon, height)
+        INSERT INTO sources (
+            station_id, station_name, observation_type, lat, lon, height)
         VALUES %s
         ON CONFLICT
             ON CONSTRAINT weather_source_key DO UPDATE SET
-                station_id = sources.station_id
+                station_name = EXCLUDED.station_name
         RETURNING id;
     """
     UPDATE_SOURCES_CLEANUP = """
@@ -35,7 +37,9 @@ class DBExporter:
     ELEMENT_FIELDS = [
         'precipitation', 'pressure_msl', 'sunshine', 'temperature',
         'wind_direction', 'wind_speed']
-    SOURCE_FIELDS = ['station_id', 'observation_type', 'lat', 'lon', 'height']
+    SOURCE_FIELDS = [
+        'station_id', 'station_name', 'observation_type', 'lat', 'lon',
+        'height']
 
     sources_update_lock = Lock()
 
@@ -56,14 +60,12 @@ class DBExporter:
         return sources
 
     def update_sources(self, conn, sources):
-        template = (
-            '(%(station_id)s, %(observation_type)s, %(lat)s, %(lon)s, '
-            '%(height)s)')
+        fields = ', '.join(f'%({field})s' for field in self.SOURCE_FIELDS)
         with self.sources_update_lock:
             with conn.cursor() as cur:
                 rows = execute_values(
-                    cur, self.UPDATE_SOURCES_STMT, sources.values(), template,
-                    fetch=True)
+                    cur, self.UPDATE_SOURCES_STMT, sources.values(),
+                    template=f'({fields})', fetch=True)
                 cur.execute(self.UPDATE_SOURCES_CLEANUP)
                 conn.commit()
         return {

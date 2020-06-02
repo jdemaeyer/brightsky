@@ -19,6 +19,7 @@ def test_mosmix_parser(data_dir):
         'observation_type': 'forecast',
         'source': 'MOSMIX:2020-03-13T09:00:00.000Z',
         'station_id': '01028',
+        'station_name': 'BJORNOYA',
         'lat': 74.52,
         'lon': 19.02,
         'height': 16.,
@@ -34,6 +35,7 @@ def test_mosmix_parser(data_dir):
         'observation_type': 'forecast',
         'source': 'MOSMIX:2020-03-13T09:00:00.000Z',
         'station_id': '01028',
+        'station_name': 'BJORNOYA',
         'lat': 74.52,
         'lon': 19.02,
         'height': 16.,
@@ -49,11 +51,12 @@ def test_mosmix_parser(data_dir):
 
 def test_current_observation_parser(data_dir):
     p = CurrentObservationsParser(path=data_dir / 'observations_current.csv')
-    records = list(p.parse(10.1, 20.2, 30.3))
+    records = list(p.parse(10.1, 20.2, 30.3, 'Muenster'))
     assert len(records) == 25
     assert records[0] == {
         'observation_type': 'current',
         'station_id': '01049',
+        'station_name': 'Muenster',
         'lat': 10.1,
         'lon': 20.2,
         'height': 30.3,
@@ -68,6 +71,7 @@ def test_current_observation_parser(data_dir):
     assert records[15] == {
         'observation_type': 'current',
         'station_id': '01049',
+        'station_name': 'Muenster',
         'lat': 10.1,
         'lon': 20.2,
         'height': 30.3,
@@ -90,6 +94,7 @@ def test_observations_parser_parses_metadata(data_dir):
             'Observations:Recent:produkt_ff_stunde_20180915_20200317_04911.txt'
         ),
         'station_id': '04911',
+        'station_name': 'Straubing',
         'lat': 48.8275,
         'lon': 12.5597,
         'height': 350.5,

@@ -97,6 +97,7 @@ def sources(
     select = """
         id,
         station_id,
+        station_name,
         observation_type,
         lat,
         lon,
