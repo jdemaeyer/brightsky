@@ -118,6 +118,15 @@ def test_observations_parser_handles_missing_values(data_dir):
     assert records[5]['wind_speed'] is None
 
 
+def test_observations_parser_handles_ignored_values(data_dir):
+    p = WindObservationsParser(
+        path=data_dir / 'observations_recent_FF_akt.zip')
+    p.ignored_values = {'wind_direction': ['80']}
+    records = list(p.parse())
+    assert records[0]['wind_direction'] is None
+    assert records[0]['wind_speed'] == 1.6
+
+
 def test_observations_parser_handles_location_changes(data_dir):
     p = WindObservationsParser(
         path=data_dir / 'observations_recent_FF_location_change_akt.zip')

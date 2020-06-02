@@ -225,6 +225,7 @@ class ObservationsParser(Parser):
 
     elements = {}
     converters = {}
+    ignored_values = {}
 
     def should_skip(self):
         if (m := re.search(r'_(\d{8})_(\d{8})_hist\.zip$', str(self.path))):
@@ -318,6 +319,8 @@ class ObservationsParser(Parser):
             element: (
                 float(row[element_key])
                 if row[element_key].strip() != '-999'
+                and row[element_key].strip() not in self.ignored_values.get(
+                    element, [])
                 else None)
             for element, element_key in self.elements.items()
         }
@@ -349,6 +352,9 @@ class WindObservationsParser(ObservationsParser):
     elements = {
         'wind_speed': '   F',
         'wind_direction': '   D',
+    }
+    ignored_values = {
+        'wind_direction': ['990'],
     }
 
 
