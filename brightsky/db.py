@@ -2,7 +2,7 @@ import glob
 import logging
 import os
 import re
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from multiprocessing import cpu_count
 
 import psycopg2
@@ -30,15 +30,23 @@ def get_connection():
     try:
         with conn:
             yield conn
+    except psycopg2.InterfaceError:
+        logger.warning('Discarding dead connection pool')
+        pool.closeall()
+        del get_connection._pool
+        raise
     finally:
-        pool.putconn(conn)
+        if not pool.closed:
+            pool.putconn(conn)
 
 
 def fetch(*args, **kwargs):
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(*args, **kwargs)
-            return cur.fetchall()
+    for retry in range(5):
+        with suppress(psycopg2.InterfaceError):
+            with get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(*args, **kwargs)
+                    return cur.fetchall()
 
 
 def migrate():
