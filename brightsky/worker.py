@@ -16,7 +16,7 @@ class ExpiringLocksHuey(RedisHuey):
     def expire_locks(self, timeout):
         expired = set()
         threshold = time.time() - timeout
-        for key in self._locks:
+        for key in list(self._locks):
             value = self.get(key, peek=True)
             if value and float(value) < threshold:
                 self.delete(key)
