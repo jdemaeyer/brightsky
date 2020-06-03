@@ -205,9 +205,9 @@ def test_wind_observations_parser(data_dir):
         WindObservationsParser,
         data_dir / 'observations_recent_FF_akt.zip',
         {'timestamp': '2018-09-15 00:00',
-         'wind_speed': 1.6, 'wind_direction': 80.0},
+         'wind_speed': 1.6, 'wind_direction': 80},
         {'timestamp': '2020-03-17 23:00',
-         'wind_speed': 1.5, 'wind_direction': 130.0},
+         'wind_speed': 1.5, 'wind_direction': 130},
     )
 
 

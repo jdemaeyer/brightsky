@@ -3,7 +3,7 @@ def celsius_to_kelvin(temperature):
 
 
 def hpa_to_pa(pressure):
-    return pressure * 100
+    return int(pressure * 100)
 
 
 def kelvin_to_celsius(temperature):
@@ -15,7 +15,7 @@ def kmh_to_ms(speed):
 
 
 def minutes_to_seconds(duration):
-    return duration * 60
+    return int(duration * 60)
 
 
 def ms_to_kmh(speed):

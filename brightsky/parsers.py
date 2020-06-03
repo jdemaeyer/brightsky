@@ -353,6 +353,9 @@ class WindObservationsParser(ObservationsParser):
         'wind_speed': '   F',
         'wind_direction': '   D',
     }
+    converters = {
+        'wind_direction': int,
+    }
     ignored_values = {
         'wind_direction': ['990'],
     }
