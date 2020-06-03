@@ -225,9 +225,18 @@ def test_pressure_observations_parser(data_dir):
     _test_parser(
         PressureObservationsParser,
         data_dir / 'observations_recent_P0_hist.zip',
-        {'timestamp': '2018-09-15 00:00', 'pressure_msl': 98090.},
-        {'timestamp': '2020-03-17 23:00', 'pressure_msl': 98980.},
+        {'timestamp': '2018-09-15 00:00', 'pressure_msl': 102120},
+        {'timestamp': '2020-03-17 23:00', 'pressure_msl': 103190},
     )
+
+
+def test_pressure_observations_parser_approximates_pressure_msl(data_dir):
+    p = PressureObservationsParser(
+        path=data_dir / 'observations_recent_P0_hist.zip')
+    records = list(p.parse())
+    # The actual reduced pressure deleted from the test observation file was
+    # 1023.0 hPa
+    assert records[4]['pressure_msl'] == 102260
 
 
 def test_get_parser():

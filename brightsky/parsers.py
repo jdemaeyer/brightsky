@@ -311,10 +311,10 @@ class ObservationsParser(Parser):
                     'height': height,
                     'station_name': station_name,
                     'timestamp': timestamp,
-                    **self.parse_elements(row),
+                    **self.parse_elements(row, lat, lon, height),
                 }
 
-    def parse_elements(self, row):
+    def parse_elements(self, row, lat, lon, height):
         elements = {
             element: (
                 float(row[element_key])
@@ -374,11 +374,27 @@ class SunshineObservationsParser(ObservationsParser):
 class PressureObservationsParser(ObservationsParser):
 
     elements = {
-        'pressure_msl': '  P0',
+        'pressure_msl': '   P',
+        'pressure_station': '  P0',
     }
     converters = {
         'pressure_msl': hpa_to_pa,
+        'pressure_station': hpa_to_pa,
     }
+
+    def parse_elements(self, row, lat, lon, height):
+        elements = super().parse_elements(row, lat, lon, height)
+        if not elements['pressure_msl'] and elements['pressure_station']:
+            # Some stations do not record reduced pressure, but do record
+            # pressure at station height. We can approximate the pressure at
+            # mean sea level through the barometric formula. The error of this
+            # approximation could be reduced if we had the current temperature.
+            elements['pressure_msl'] = int(round(
+                elements['pressure_station']
+                * (1 - .0065 * height / 288.15) ** -5.255,
+                -1))
+        del elements['pressure_station']
+        return elements
 
 
 def get_parser(filename):
