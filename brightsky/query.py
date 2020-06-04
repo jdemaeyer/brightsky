@@ -93,7 +93,8 @@ def _fill_missing_fields(weather_rows, date, last_date, source_ids):
 
 
 def sources(
-        lat=None, lon=None, station_id=None, source_id=None, max_dist=50000):
+        lat=None, lon=None, station_id=None, source_id=None, max_dist=50000,
+        ignore_type=False):
     select = """
         id,
         station_id,
@@ -123,7 +124,10 @@ def sources(
             ) @> ll_to_earth(lat, lon) AND
             {distance} < %(max_dist)s
         """
-        order_by += ", distance"
+        if ignore_type:
+            order_by = "distance"
+        else:
+            order_by += ", distance"
     else:
         raise ValueError("Please supply lat/lon or station_id or source_id")
     sql = f"""

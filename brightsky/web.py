@@ -108,7 +108,7 @@ class SourcesResource(BrightskyResource):
         with convert_exceptions():
             result = query.sources(
                 lat=lat, lon=lon, station_id=station_id, source_id=source_id,
-                max_dist=max_dist)
+                max_dist=max_dist, ignore_type=True)
         resp.media = result
 
 
