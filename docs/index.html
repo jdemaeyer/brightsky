@@ -56,12 +56,18 @@ $ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21
     {
       <em>"timestamp"</em>: "2020-04-21T00:00:00+00:00",
       <em>"source_id"</em>: 6007,
+      <em>"cloud_cover"</em>: 0,
+      <em>"dew_point"</em>: -2.5,
       <em>"precipitation"</em>: 0,
       <em>"pressure_msl"</em>: 1015.1,
+      <em>"relative_humidity"</em>: 40,
       <em>"sunshine"</em>: 0,
       <em>"temperature"</em>: 10.6,
+      <em>"visibility"</em>: 50000,
       <em>"wind_direction"</em>: 70,
-      <em>"wind_speed"</em>: 12.6
+      <em>"wind_speed"</em>: 12.6,
+      <em>"wind_gust_direction"</em>: 50,
+      <em>"wind_gust_speed"</em>: 33.5
     },
     ...
   ],
@@ -133,12 +139,18 @@ $ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21
       Physical units in which meteorological parameters will be returned. Set to <code>si</code> to use <a href="https://en.wikipedia.org/wiki/International_System_of_Units">SI units</a>. The default <code>dwd</code> option uses a set of units that is more common in meteorological applications and civil use:
       <table class="centered">
         <tr><td width="250"></td><td><code>dwd</code></td><td><code>si</code></td></tr>
-        <tr><td><code>temperature</code></td><td>°C</td><td>K</td></tr>
+        <tr><td><code>cloud_cover</code></td><td>%</td><td>%</td></tr>
+        <tr><td><code>dew_point</code></td><td>°C</td><td>K</td></tr>
         <tr><td><code>precipitation</code></td><td>mm</td><td>kg / m²</td></tr>
-        <tr><td><code>wind_speed</code></td><td>km / h</td><td>m / s</td></tr>
-        <tr><td><code>wind_direction</code></td><td>°</td><td>°</td></tr>
         <tr><td><code>pressure_msl</code></td><td>hPa</td><td>Pa</td></tr>
+        <tr><td><code>relative_humidity</code></td><td>%</td><td>%</td></tr>
         <tr><td><code>sunshine</code></td><td>min</td><td>s</td></tr>
+        <tr><td><code>temperature</code></td><td>°C</td><td>K</td></tr>
+        <tr><td><code>visibility</code></td><td>m</td><td>m</td></tr>
+        <tr><td><code>wind_direction</code></td><td>°</td><td>°</td></tr>
+        <tr><td><code>wind_speed</code></td><td>km / h</td><td>m / s</td></tr>
+        <tr><td><code>wind_gust_direction</code></td><td>°</td><td>°</td></tr>
+        <tr><td><code>wind_gust_speed</code></td><td>km / h</td><td>m / s</td></tr>
       </table>
     </dd>
   </dl>
@@ -156,12 +168,18 @@ $ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21
     <tr><th width="225">Property</th><th>Description</th></tr>
     <tr><td><code>timestamp</code></td><td>ISO 8601-formatted timestamp of this weather record (or forecast)</td></tr>
     <tr><td><code>source_id</code></td><td>Main source ID for this record</td></tr>
-    <tr><td><code>temperature</code></td><td>Temperature at timestamp, 2 m above the ground</td></tr>
+    <tr><td><code>cloud_cover</code></td><td>Total cloud cover <em>at timestamp</em></td></tr>
+    <tr><td><code>dew_point</code></td><td>Dew point <em>at timestamp</em>, 2 m above ground</td></tr>
     <tr><td><code>precipitation</code></td><td>Total precipitation during <em>previous 60 minutes</em></td></tr>
-    <tr><td><code>wind_speed</code></td><td>Mean wind speed during <em>previous 10 minutes</em>, 10 m above the ground</td></tr>
-    <tr><td><code>wind_direction</code></td><td>Mean wind direction, as above</td></tr>
-    <tr><td><code>pressure_msl</code></td><td>Atmospheric pressure at timestamp, reduced to mean sea level</td></tr>
+    <tr><td><code>pressure_msl</code></td><td>Atmospheric pressure <em>at timestamp</em>, reduced to mean sea level</td></tr>
+    <tr><td><code>relative_humidity</code></td><td>Relative humidity <em>at timestamp</em></td></tr>
     <tr><td><code>sunshine</code></td><td>Sunshine duration during <em>previous 60 minutes</em></td></tr>
+    <tr><td><code>temperature</code></td><td>Temperature <em>at timestamp</em>, 2 m above the ground</td></tr>
+    <tr><td><code>visibility</code></td><td>Visibility <em>at timestamp</em></td></tr>
+    <tr><td><code>wind_direction</code></td><td>Mean wind direction during <em>previous hour</em>, 10 m above the ground</td></tr>
+    <tr><td><code>wind_speed</code></td><td>Mean wind speed, as above</td></tr>
+    <tr><td><code>wind_gust_direction</code></td><td>Direction of maximum wind gust during <em>previous hour</em>, 10 m above the ground</td></tr>
+    <tr><td><code>wind_gust_speed</code></td><td>Speed of maximum wind gust, as above</td></tr>
   </table>
 
   <p>

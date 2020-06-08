@@ -14,7 +14,8 @@ from parsel import Selector
 from brightsky.db import fetch
 from brightsky.settings import settings
 from brightsky.units import (
-    celsius_to_kelvin, hpa_to_pa, kmh_to_ms, minutes_to_seconds)
+    celsius_to_kelvin, eighths_to_percent, hpa_to_pa, kmh_to_ms,
+    minutes_to_seconds)
 from brightsky.utils import cache_path, download
 
 
@@ -36,8 +37,11 @@ class Parser:
         self.downloaded_files = set()
 
     def download(self):
-        self.logger.info('Downloading "%s" to "%s"', self.url, self.path)
-        download_path = download(self.url, self.path)
+        self._download(self.url, self.path)
+
+    def _download(self, url, path):
+        self.logger.info('Downloading "%s" to "%s"', url, path)
+        download_path = download(url, path)
         if download_path:
             self.downloaded_files.add(download_path)
 
@@ -62,12 +66,16 @@ class MOSMIXParser(Parser):
         'all_stations/kml/MOSMIX_S_LATEST_240.kmz')
 
     ELEMENTS = {
-        'TTT': 'temperature',
         'DD': 'wind_direction',
         'FF': 'wind_speed',
+        'FX1': 'wind_gust_speed',
+        'N': 'cloud_cover',
+        'PPPP': 'pressure_msl',
         'RR1c': 'precipitation',
         'SunD1': 'sunshine',
-        'PPPP': 'pressure_msl',
+        'Td': 'dew_point',
+        'TTT': 'temperature',
+        'VV': 'visibility',
     }
 
     def parse(self):
@@ -146,23 +154,30 @@ class MOSMIXParser(Parser):
 class CurrentObservationsParser(Parser):
 
     ELEMENTS = {
+        'cloud_cover_total': 'cloud_cover',
+        'dew_point_temperature_at_2_meter_above_ground': 'dew_point',
         'dry_bulb_temperature_at_2_meter_above_ground': 'temperature',
+        'horizontal_visibility': 'visibility',
+        'maximum_wind_speed_last_hour': 'wind_gust_speed',
         'mean_wind_direction_during_last_10 min_at_10_meters_above_ground': (
             'wind_direction'),
         'mean_wind_speed_during last_10_min_at_10_meters_above_ground': (
             'wind_speed'),
         'precipitation_amount_last_hour': 'precipitation',
         'pressure_reduced_to_mean_sea_level': 'pressure_msl',
+        'relative_humidity': 'relative_humidity',
         'total_time_of_sunshine_during_last_hour': 'sunshine',
     }
     DATE_COLUMN = 'surface observations'
     HOUR_COLUMN = 'Parameter description'
 
     CONVERTERS = {
+        'dew_point': celsius_to_kelvin,
         'pressure_msl': hpa_to_pa,
         'sunshine': minutes_to_seconds,
         'temperature': celsius_to_kelvin,
         'wind_speed': kmh_to_ms,
+        'wind_gust_speed': kmh_to_ms,
     }
 
     def parse(self, lat=None, lon=None, height=None, station_name=None):
@@ -293,26 +308,38 @@ class ObservationsParser(Parser):
             reader = csv.DictReader(
                 io.TextIOWrapper(f, encoding='latin1'),
                 delimiter=';')
-            for row in reader:
-                timestamp = datetime.datetime.strptime(
-                    row['MESS_DATUM'], '%Y%m%d%H').replace(tzinfo=tzutc())
-                if timestamp < settings.MIN_DATE:
-                    continue
-                elif settings.MAX_DATE and timestamp > settings.MAX_DATE:
-                    continue
-                for date, lat_lon_height_name in lat_lon_history.items():
-                    if date > timestamp:
-                        break
-                    lat, lon, height, station_name = lat_lon_height_name
-                yield {
-                    'source': f'Observations:Recent:{filename}',
-                    'lat': lat,
-                    'lon': lon,
-                    'height': height,
-                    'station_name': station_name,
-                    'timestamp': timestamp,
-                    **self.parse_elements(row, lat, lon, height),
-                }
+            yield from self.parse_reader(filename, reader, lat_lon_history)
+
+    def parse_reader(self, filename, reader, lat_lon_history):
+        for row in reader:
+            timestamp = datetime.datetime.strptime(
+                row['MESS_DATUM'], '%Y%m%d%H').replace(tzinfo=tzutc())
+            if self._skip_timestamp(timestamp):
+                continue
+            lat, lon, height, station_name = self._station_params(
+                timestamp, lat_lon_history)
+            yield {
+                'source': f'Observations:Recent:{filename}',
+                'lat': lat,
+                'lon': lon,
+                'height': height,
+                'station_name': station_name,
+                'timestamp': timestamp,
+                **self.parse_elements(row, lat, lon, height),
+            }
+
+    def _skip_timestamp(self, timestamp):
+        return (
+            timestamp < settings.MIN_DATE or
+            (settings.MAX_DATE and timestamp > settings.MAX_DATE))
+
+    def _station_params(self, timestamp, lat_lon_history):
+        info = None
+        for date, lat_lon_height_name in lat_lon_history.items():
+            if date > timestamp:
+                break
+            info = lat_lon_height_name
+        return info
 
     def parse_elements(self, row, lat, lon, height):
         elements = {
@@ -330,9 +357,33 @@ class ObservationsParser(Parser):
         return elements
 
 
+class CloudCoverObservationsParser(ObservationsParser):
+
+    elements = {
+        'cloud_cover': ' V_N',
+    }
+    ignored_values = {
+        'cloud_cover': '-1',
+    }
+    converters = {
+        'cloud_cover': eighths_to_percent,
+    }
+
+
+class DewPointObservationsParser(ObservationsParser):
+
+    elements = {
+        'dew_point': '  TD',
+    }
+    converters = {
+        'dew_point': celsius_to_kelvin,
+    }
+
+
 class TemperatureObservationsParser(ObservationsParser):
 
     elements = {
+        'relative_humidity': 'RF_TU',
         'temperature': 'TT_TU',
     }
     converters = {
@@ -344,6 +395,16 @@ class PrecipitationObservationsParser(ObservationsParser):
 
     elements = {
         'precipitation': '  R1',
+    }
+
+
+class VisibilityObservationsParser(ObservationsParser):
+
+    elements = {
+        'visibility': 'V_VV',
+    }
+    converters = {
+        'visibility': int,
     }
 
 
@@ -359,6 +420,89 @@ class WindObservationsParser(ObservationsParser):
     ignored_values = {
         'wind_direction': ['990'],
     }
+
+
+class WindGustsObservationsParser(ObservationsParser):
+
+    META_DATA_URL = (
+        'https://opendata.dwd.de/climate_environment/CDC/observations_germany/'
+        'climate/10_minutes/extreme_wind/meta_data/'
+        'Meta_Daten_zehn_min_fx_{station_id}.zip')
+
+    elements = {
+        'wind_gust_direction': 'DX_10',
+        'wind_gust_speed': 'FX_10',
+    }
+
+    def __init__(self, *args, meta_path=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.meta_path = meta_path
+
+    def download(self):
+        super().download()
+        with zipfile.ZipFile(self.path) as zf:
+            station_id = self.parse_station_id(zf)
+        meta_data_url = self.META_DATA_URL.format(station_id=station_id)
+        if not self.meta_path:
+            self.meta_path = cache_path(meta_data_url)
+        self._download(meta_data_url, self.meta_path)
+
+    def parse_station_id(self, zf):
+        for filename in zf.namelist():
+            if (m := re.match(r'produkt_.*_(\d+)\.txt', filename)):
+                return m.group(1)
+        raise ValueError(f"Unable to parse station ID for {self.path}")
+
+    def parse_lat_lon_history(self, zf, station_id):
+        with zipfile.ZipFile(self.meta_path) as meta_zf:
+            return super().parse_lat_lon_history(meta_zf, station_id)
+
+    def parse_reader(self, filename, reader, lat_lon_history):
+        hour_values = []
+        # First row is at :00, which we will already have filled up with
+        # the last :50 entry of another file (see below)
+        next(reader)
+        for row in reader:
+            timestamp = datetime.datetime.strptime(
+                row['MESS_DATUM'], '%Y%m%d%H%M').replace(tzinfo=tzutc())
+            if self._skip_timestamp(timestamp + datetime.timedelta(hours=1)):
+                continue
+            # Should this be refactored into a base class we will need to
+            # properly parse the station parameters and pass them
+            values = self.parse_elements(row, None, None, None)
+            if values['wind_gust_speed']:
+                hour_values.append(values)
+            if timestamp.minute == 0:
+                yield self._make_record(
+                    timestamp, hour_values, filename, lat_lon_history)
+                hour_values.clear()
+        if timestamp.minute == 50:
+            # Not 100 % accurate but better than taking only the :00 value of
+            # another file
+            yield self._make_record(
+                timestamp + datetime.timedelta(minutes=10),
+                hour_values, filename, lat_lon_history)
+
+    def _make_record(self, timestamp, hour_values, filename, lat_lon_history):
+        lat, lon, height, station_name = self._station_params(
+            timestamp, lat_lon_history)
+        if hour_values:
+            max_value = max(hour_values, key=lambda v: v['wind_gust_speed'])
+            direction = max_value['wind_gust_direction']
+            speed = max_value['wind_gust_speed']
+        else:
+            direction = None
+            speed = None
+        return {
+            'source': f'Observations:Recent:{filename}',
+            'lat': lat,
+            'lon': lon,
+            'height': height,
+            'station_name': station_name,
+            'timestamp': timestamp,
+            'wind_gust_direction': direction,
+            'wind_gust_speed': speed,
+        }
 
 
 class SunshineObservationsParser(ObservationsParser):
@@ -402,10 +546,14 @@ def get_parser(filename):
         r'MOSMIX_S_LATEST_240\.kmz$': MOSMIXParser,
         r'\w{5}-BEOB\.csv$': CurrentObservationsParser,
         'stundenwerte_FF_': WindObservationsParser,
+        'stundenwerte_N_': CloudCoverObservationsParser,
         'stundenwerte_P0_': PressureObservationsParser,
         'stundenwerte_RR_': PrecipitationObservationsParser,
         'stundenwerte_SD_': SunshineObservationsParser,
+        'stundenwerte_TD_': DewPointObservationsParser,
         'stundenwerte_TU_': TemperatureObservationsParser,
+        'stundenwerte_VV_': VisibilityObservationsParser,
+        '10minutenwerte_extrema_wind_': WindGustsObservationsParser,
     }
     for pattern, parser in parsers.items():
         if re.match(pattern, filename):

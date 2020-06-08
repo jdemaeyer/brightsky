@@ -20,7 +20,12 @@ class DWDPoller:
         'https://opendata.dwd.de/climate_environment/CDC/observations_germany/'
         f'climate/hourly/{subfolder}/'
         for subfolder in [
-            'air_temperature', 'precipitation', 'pressure', 'sun', 'wind']
+            'air_temperature', 'cloudiness', 'dew_point', 'visibility',
+            'precipitation', 'pressure', 'sun', 'wind']
+    ] + [
+        'https://opendata.dwd.de/climate_environment/CDC/observations_germany/'
+        f'climate/10_minutes/extreme_wind/{subfolder}'
+        for subfolder in ['recent', 'historical']
     ]
 
     @property

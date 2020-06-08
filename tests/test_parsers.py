@@ -3,9 +3,11 @@ import datetime
 from dateutil.tz import tzutc
 
 from brightsky.parsers import (
-    CurrentObservationsParser, get_parser, MOSMIXParser,
+    CloudCoverObservationsParser, CurrentObservationsParser,
+    DewPointObservationsParser, get_parser, MOSMIXParser,
     PrecipitationObservationsParser, PressureObservationsParser,
     SunshineObservationsParser, TemperatureObservationsParser,
+    VisibilityObservationsParser, WindGustsObservationsParser,
     WindObservationsParser)
 
 from .utils import is_subset, settings
@@ -24,12 +26,16 @@ def test_mosmix_parser(data_dir):
         'lon': 19.02,
         'height': 16.,
         'timestamp': datetime.datetime(2020, 3, 13, 10, 0, tzinfo=tzutc()),
+        'cloud_cover': 93.0,
+        'dew_point': 257.25,
+        'precipitation': 0.1,
+        'pressure_msl': 99000.0,
+        'sunshine': None,
         'temperature': 260.45,
+        'visibility': 1700.0,
         'wind_direction': 330.0,
         'wind_speed': 8.75,
-        'precipitation': 0.1,
-        'sunshine': None,
-        'pressure_msl': 99000.0,
+        'wind_gust_speed': None,
     }
     assert records[-1] == {
         'observation_type': 'forecast',
@@ -40,12 +46,16 @@ def test_mosmix_parser(data_dir):
         'lon': 19.02,
         'height': 16.,
         'timestamp': datetime.datetime(2020, 3, 23, 9, 0, tzinfo=tzutc()),
+        'cloud_cover': 76.,
+        'dew_point': 265.35,
+        'precipitation': None,
+        'pressure_msl': 100630.0,
+        'sunshine': None,
         'temperature': 267.15,
+        'visibility': 11600.0,
         'wind_direction': 49.0,
         'wind_speed': 7.72,
-        'precipitation': None,
-        'sunshine': None,
-        'pressure_msl': 100630.0,
+        'wind_gust_speed': None,
     }
 
 
@@ -61,12 +71,17 @@ def test_current_observation_parser(data_dir):
         'lon': 20.2,
         'height': 30.3,
         'timestamp': datetime.datetime(2020, 4, 6, 8, 0, tzinfo=tzutc()),
-        'temperature': 270.05,
-        'wind_direction': 140,
-        'wind_speed': 3.9,
+        'cloud_cover': None,
+        'dew_point': 263.15,
         'precipitation': 0,
         'pressure_msl': 102310.,
+        'relative_humidity': 59.,
         'sunshine': None,
+        'temperature': 270.05,
+        'visibility': None,
+        'wind_direction': 140,
+        'wind_speed': 3.9,
+        'wind_gust_speed': 5.8,
     }
     assert records[15] == {
         'observation_type': 'current',
@@ -76,12 +91,17 @@ def test_current_observation_parser(data_dir):
         'lon': 20.2,
         'height': 30.3,
         'timestamp': datetime.datetime(2020, 4, 5, 17, 0, tzinfo=tzutc()),
-        'temperature': 270.95,
-        'wind_direction': 230,
-        'wind_speed': 3.9,
+        'cloud_cover': None,
+        'dew_point': 270.05,
         'precipitation': 0.6,
         'pressure_msl': 101910.,
+        'relative_humidity': 94.,
         'sunshine': None,
+        'temperature': 270.95,
+        'visibility': None,
+        'wind_direction': 230,
+        'wind_speed': 3.9,
+        'wind_gust_speed': 7.2,
     }
 
 
@@ -170,8 +190,9 @@ def test_observations_parser_skips_rows_if_before_cutoff(data_dir):
             2018, 9, 15, 4, tzinfo=tzutc())
 
 
-def _test_parser(cls, path, first, last, count=10, first_idx=0, last_idx=-1):
-    p = cls(path=path)
+def _test_parser(
+        cls, path, first, last, count=10, first_idx=0, last_idx=-1, **kwargs):
+    p = cls(path=path, **kwargs)
     records = list(p.parse())
     first['timestamp'] = datetime.datetime.strptime(
         first['timestamp'], '%Y-%m-%d %H:%M').replace(tzinfo=tzutc())
@@ -182,12 +203,32 @@ def _test_parser(cls, path, first, last, count=10, first_idx=0, last_idx=-1):
     assert is_subset(last, records[last_idx])
 
 
+def test_cloud_cover_observations_parser(data_dir):
+    _test_parser(
+        CloudCoverObservationsParser,
+        data_dir / 'observations_recent_N_akt.zip',
+        {'timestamp': '2018-12-03 07:00', 'cloud_cover': 50},
+        {'timestamp': '2019-11-20 00:00', 'cloud_cover': None},
+    )
+
+
+def test_dew_point_observations_parser(data_dir):
+    _test_parser(
+        DewPointObservationsParser,
+        data_dir / 'observations_recent_TD_akt.zip',
+        {'timestamp': '2018-12-03 00:00', 'dew_point': 284.55},
+        {'timestamp': '2020-05-29 15:00', 'dew_point': 271.65},
+    )
+
+
 def test_temperature_observations_parser(data_dir):
     _test_parser(
         TemperatureObservationsParser,
         data_dir / 'observations_recent_TU_akt.zip',
-        {'timestamp': '2018-09-15 00:00', 'temperature': 286.85},
-        {'timestamp': '2020-03-17 23:00', 'temperature': 275.75},
+        {'timestamp': '2018-09-15 00:00',
+         'temperature': 286.85, 'relative_humidity': 96},
+        {'timestamp': '2020-03-17 23:00',
+         'temperature': 275.75, 'relative_humidity': 100},
     )
 
 
@@ -200,6 +241,15 @@ def test_precipitation_observations_parser(data_dir):
     )
 
 
+def test_visibility_observations_parser(data_dir):
+    _test_parser(
+        VisibilityObservationsParser,
+        data_dir / 'observations_recent_VV_akt.zip',
+        {'timestamp': '2018-12-03 00:00', 'visibility': 15000},
+        {'timestamp': '2020-06-04 23:00', 'visibility': 30000},
+    )
+
+
 def test_wind_observations_parser(data_dir):
     _test_parser(
         WindObservationsParser,
@@ -208,6 +258,18 @@ def test_wind_observations_parser(data_dir):
          'wind_speed': 1.6, 'wind_direction': 80},
         {'timestamp': '2020-03-17 23:00',
          'wind_speed': 1.5, 'wind_direction': 130},
+    )
+
+
+def test_wind_gusts_observations_parser(data_dir):
+    _test_parser(
+        WindGustsObservationsParser,
+        data_dir / 'observations_recent_extrema_wind_akt.zip',
+        {'timestamp': '2018-12-03 01:00',
+         'wind_gust_speed': 6.9, 'wind_gust_direction': 210},
+        {'timestamp': '2020-06-05 00:00',
+         'wind_gust_speed': 5.5, 'wind_gust_direction': 260},
+        meta_path=data_dir / 'observations_recent_extrema_wind_akt_meta.zip'
     )
 
 
@@ -241,12 +303,17 @@ def test_pressure_observations_parser_approximates_pressure_msl(data_dir):
 
 def test_get_parser():
     expected = {
+        '10minutenwerte_extrema_wind_00427_akt.zip': (
+            WindGustsObservationsParser),
         'stundenwerte_FF_00011_akt.zip': WindObservationsParser,
         'stundenwerte_FF_00090_akt.zip': WindObservationsParser,
+        'stundenwerte_N_01766_akt.zip': CloudCoverObservationsParser,
         'stundenwerte_P0_00096_akt.zip': PressureObservationsParser,
         'stundenwerte_RR_00102_akt.zip': PrecipitationObservationsParser,
         'stundenwerte_SD_00125_akt.zip': SunshineObservationsParser,
+        'stundenwerte_TD_01766.zip': DewPointObservationsParser,
         'stundenwerte_TU_00161_akt.zip': TemperatureObservationsParser,
+        'stundenwerte_VV_00161_akt.zip': VisibilityObservationsParser,
         'MOSMIX_S_LATEST_240.kmz': MOSMIXParser,
         'K611_-BEOB.csv': CurrentObservationsParser,
     }

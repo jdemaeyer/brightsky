@@ -35,8 +35,10 @@ class DBExporter:
                 {conflict_updates};
     """)
     ELEMENT_FIELDS = [
-        'precipitation', 'pressure_msl', 'sunshine', 'temperature',
-        'wind_direction', 'wind_speed']
+        'cloud_cover', 'dew_point', 'precipitation', 'pressure_msl',
+        'relative_humidity', 'sunshine', 'temperature', 'visibility',
+        'wind_direction', 'wind_speed', 'wind_gust_direction',
+        'wind_gust_speed']
     SOURCE_FIELDS = [
         'station_id', 'station_name', 'observation_type', 'lat', 'lon',
         'height']
