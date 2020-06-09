@@ -24,7 +24,7 @@ class DWDPoller:
             'precipitation', 'pressure', 'sun', 'wind']
     ] + [
         'https://opendata.dwd.de/climate_environment/CDC/observations_germany/'
-        f'climate/10_minutes/extreme_wind/{subfolder}'
+        f'climate/10_minutes/extreme_wind/{subfolder}/'
         for subfolder in ['recent', 'historical']
     ]
 
