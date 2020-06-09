@@ -179,6 +179,10 @@ class CurrentObservationsParser(Parser):
         'wind_speed': kmh_to_ms,
         'wind_gust_speed': kmh_to_ms,
     }
+    IGNORED_VALUES = {
+        'cloud_cover': ['112', '113', '126'],
+        'relative_humidity': ['101'],
+    }
 
     def parse(self, lat=None, lon=None, height=None, station_name=None):
         with open(self.path) as f:
@@ -204,6 +208,7 @@ class CurrentObservationsParser(Parser):
             element: (
                 None
                 if row[column] == '---'
+                or row[column] in self.IGNORED_VALUES.get(element, [])
                 else float(row[column].replace(',', '.')))
             for column, element in self.ELEMENTS.items()
         }
@@ -363,7 +368,7 @@ class CloudCoverObservationsParser(ObservationsParser):
         'cloud_cover': ' V_N',
     }
     ignored_values = {
-        'cloud_cover': '-1',
+        'cloud_cover': ['-1', '112', '113', '126'],
     }
     converters = {
         'cloud_cover': eighths_to_percent,
