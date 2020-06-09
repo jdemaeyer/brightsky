@@ -368,7 +368,7 @@ class CloudCoverObservationsParser(ObservationsParser):
         'cloud_cover': ' V_N',
     }
     ignored_values = {
-        'cloud_cover': ['-1', '112', '113', '126'],
+        'cloud_cover': ['-1', '9'],
     }
     converters = {
         'cloud_cover': eighths_to_percent,
