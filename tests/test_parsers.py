@@ -267,8 +267,9 @@ def test_wind_gusts_observations_parser(data_dir):
         data_dir / 'observations_recent_extrema_wind_akt.zip',
         {'timestamp': '2018-12-03 01:00',
          'wind_gust_speed': 6.9, 'wind_gust_direction': 210},
-        {'timestamp': '2020-06-05 00:00',
-         'wind_gust_speed': 5.5, 'wind_gust_direction': 260},
+        {'timestamp': '2020-06-04 23:00',
+         'wind_gust_speed': 6.2, 'wind_gust_direction': 270},
+        count=9,
         meta_path=data_dir / 'observations_recent_extrema_wind_akt_meta.zip'
     )
 

@@ -481,9 +481,11 @@ class WindGustsObservationsParser(ObservationsParser):
                 yield self._make_record(
                     timestamp, hour_values, filename, lat_lon_history)
                 hour_values.clear()
-        if timestamp.minute == 50:
+        observation_type = self.parse_observation_type()
+        if observation_type == 'historical' and timestamp.minute == 50:
             # Not 100 % accurate but better than taking only the :00 value of
-            # another file
+            # another file. For observation_type 'recent', we'll get a proper
+            # midnight value from the 'current' observation
             yield self._make_record(
                 timestamp + datetime.timedelta(minutes=10),
                 hour_values, filename, lat_lon_history)
