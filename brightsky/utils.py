@@ -13,6 +13,9 @@ import requests
 logger = logging.getLogger(__name__)
 
 
+USER_AGENT = 'Bright Sky / https://brightsky.dev/'
+
+
 def configure_logging():
     log_fmt = '%(asctime)s %(name)s %(levelname)s  %(message)s'
     coloredlogs.install(level=logging.DEBUG, fmt=log_fmt)
@@ -48,7 +51,7 @@ def download(url, path):
                 '%s is already the newest version, skipping download from %s',
                 path, url)
             return
-    resp = requests.get(url)
+    resp = requests.get(url, headers={'User-Agent': USER_AGENT})
     resp.raise_for_status()
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'wb') as f:
