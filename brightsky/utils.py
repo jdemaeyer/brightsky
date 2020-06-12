@@ -1,11 +1,14 @@
 import datetime
 import logging
+import threading
+import time
 import os
 from contextlib import suppress
 
 import coloredlogs
 import dateutil.parser
 from dateutil.tz import tzlocal, tzutc
+from parsel import Selector
 
 import requests
 
@@ -87,3 +90,57 @@ def parse_date(date_str):
     if not d.tzinfo:
         d.replace(tzinfo=tzutc())
     return d
+
+
+class StationIDConverter:
+
+    STATION_LIST_URL = (
+        'https://www.dwd.de/DE/leistungen/klimadatendeutschland/statliste/'
+        'statlex_html.html?view=nasPublication')
+    UPDATE_INTERVAL = 86400
+
+    update_lock = threading.Lock()
+
+    def __init__(self):
+        self.last_update = 0
+        self.dwd_to_wmo = {}
+        self.wmo_to_dwd = {}
+
+    def update(self, force=False):
+        with self.update_lock:
+            is_recent = time.time() - self.last_update < self.UPDATE_INTERVAL
+            if not force and is_recent:
+                return
+            logger.info("Updating station ID maps")
+            resp = requests.get(
+                self.STATION_LIST_URL, headers={'User-Agent': USER_AGENT})
+            resp.raise_for_status()
+            self.parse_station_list(resp.text)
+
+    def parse_station_list(self, html):
+        sel = Selector(html)
+        station_rows = sel.xpath('//tr[td[3][text() = "SY"]]')
+        assert station_rows, "No synoptic stations"
+        self.dwd_to_wmo.clear()
+        self.wmo_to_dwd.clear()
+        for row in station_rows:
+            values = row.css('td::text').extract()
+            dwd_id = values[1].zfill(5)
+            wmo_id = values[3]
+            self.dwd_to_wmo[dwd_id] = wmo_id
+            self.wmo_to_dwd[wmo_id] = dwd_id
+        self.last_update = time.time()
+        logger.info("Parsed %d station ID mappings", len(station_rows))
+
+    def convert_to_wmo(self, dwd_id):
+        self.update()
+        return self.dwd_to_wmo.get(dwd_id)
+
+    def convert_to_dwd(self, wmo_id):
+        self.update()
+        return self.wmo_to_dwd.get(wmo_id)
+
+
+_converter = StationIDConverter()
+dwd_id_to_wmo = _converter.convert_to_wmo
+wmo_id_to_dwd = _converter.convert_to_dwd
