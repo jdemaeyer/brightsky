@@ -8,6 +8,7 @@ DATABASE_URL = 'postgres://localhost'
 KEEP_DOWNLOADS = False
 MIN_DATE = datetime.datetime(2010, 1, 1, tzinfo=tzutc())
 MAX_DATE = None
+POLLING_CRONTAB_MINUTE = '*'
 REDIS_URL = 'redis://localhost'
 
 
