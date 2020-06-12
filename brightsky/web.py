@@ -69,6 +69,9 @@ class WeatherResource(BrightskyResource):
         lat, lon = self.parse_location(req)
         dwd_station_id = req.get_param('dwd_station_id')
         wmo_station_id = req.get_param('wmo_station_id')
+        # TODO: Remove this fallback on 2020-06-13
+        if not wmo_station_id:
+            wmo_station_id = req.get_param('station_id')
         source_id = req.get_param_as_int('source_id')
         max_dist = self.parse_max_dist(req)
         units = req.get_param('units', default='dwd').lower()
