@@ -74,7 +74,8 @@ $ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21
   <em>"sources"</em>: [
     {
       <em>"id"</em>: 6007,
-      <em>"station_id"</em>: "01766",
+      <em>"dwd_station_id"</em>: "01766",
+      <em>"wmo_station_id"</em>: "10315",
       <em>"station_name"</em>: "Münster/Osnabrück",
       <em>"observation_type"</em>: "recent",
       <em>"lat"</em>: 52.1344,
@@ -97,7 +98,7 @@ $ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21
 
   <h6>Location</h6>
   <p>
-    To define the location for which you want to retrieve weather records (or forecasts), you will need to supply <em>either</em> <code>lat</code> and <code>lon</code>, <em>or</em> <code>station_id</code>, <em>or</em> <code>source_id</code>.
+    To define the location for which you want to retrieve weather records (or forecasts), you will need to supply <em>either</em> <code>lat</code> and <code>lon</code>, <em>or</em> <code>dwd_station_id</code>, <em>or</em> <code>wmo_station_id</code>, <em>or</em> <code>source_id</code>.
   </p>
 
   <dl>
@@ -108,14 +109,17 @@ $ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21
     <dt><code>lon</code></dt>
     <dd>Longitude in decimal degrees, e.g. <code>7.38</code>.</dd>
 
-    <dt><code>station_id</code></dt>
+    <dt><code>dwd_station_id</code></dt>
     <dd>DWD station ID, typically five alphanumeric characters, e.g. <code>P0036</code>.</dd>
+
+    <dt><code>wmo_station_id</code></dt>
+    <dd>WMO station ID, typically five digits, e.g. <code>10315</code>.</dd>
 
     <dt><code>source_id</code></dt>
     <dd>Bright Sky source ID, as retrieved from the <code>sources</code> endpoint, e.g. <code>1234</code>.</dd>
 
     <dt><code>max_dist</code></dt>
-    <dd>Maximum distance of record location from the location given by <code>lat</code> and <code>lon</code>, in meters. Defaults to <code>50000</code>. Has no effect when using <code>station_id</code> or <code>source_id</code>.</dd>
+    <dd>Maximum distance of record location from the location given by <code>lat</code> and <code>lon</code>, in meters. Defaults to <code>50000</code>. Has no effect when not using <code>lat</code> and <code>lon</code>.</dd>
   </dl>
 
   <h6>Date Range</h6>
@@ -198,7 +202,8 @@ $ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21
   <table>
     <tr><th width="225">Property</th><th>Description</th></tr>
     <tr><td><code>id</code></td><td>Source ID</td></tr>
-    <tr><td><code>station_id</code></td><td>DWD weather station ID</td></tr>
+    <tr><td><code>dwd_station_id</code></td><td>DWD weather station ID</td></tr>
+    <tr><td><code>wmo_station_id</code></td><td>WMO weather station ID</td></tr>
     <tr><td><code>station_name</code></td><td>DWD weather station name</td></tr>
     <tr><td><code>observation_type</code></td><td>One of <code>forecast</code>, <code>current</code>, <code>recent</code>, or <code>historical</code> (see "Data Origin and License")</td></tr>
     <tr><td><code>lat</code></td><td>Station latitude, in decimal degrees</td></tr>
@@ -220,7 +225,7 @@ $ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21
     The DWD provides data from an extensive network of own and third-party meteorological observation stations, located mainly but not exclusively in Germany. Each of these is identified by a station ID. In an ideal world, these stations would provide an endless stream of one record of "historical weather" and one record of "forecasted weather" per hour. Sadly (and I am sure to much nuisance for the DWD), in the real world, stations have outages and measurement errors, and sometimes even move. Moreover, the weather forecasts come from a model that is not tied to any physical observation station locations, and predicts the meteorological parameters at a whole bunch of additional locations (which each get their own station ID).
   </p>
   <p>
-    To accomodate these real-world complications, Bright Sky internally uses a concept of <em>sources</em>. Each source is a unique combination of station ID, location and observation type. Hence, each physical observation station (with a single station ID) will typically correspond to three sources in Bright Sky: one for each of the three observation types <code>current</code>, <code>recent</code>, and <code>historical</code>. If the station has moved during its lifetime, you may even find more than one source for the same station ID and observation type.
+    To accomodate these real-world complications, Bright Sky internally uses a concept of <em>sources</em>. Each source is a unique combination of location and observation type. Hence, each physical observation station (with a single station ID) will typically correspond to four sources in Bright Sky: one for each of the four observation types <code>forecast</code>, <code>current</code>, <code>recent</code>, and <code>historical</code>. If the station has moved during its lifetime, you may even find more than one source for the same station ID and observation type.
   </p>
   <p>
     Bright Sky's <em>source IDs</em> have no meaning in the real world. They should be treated as the technical artifact they are, and not even relied on to stay constant (although they likely will within each major release of Bright Sky). You can query information on the sources at the <code>https://api.brightsky.dev/sources</code> endpoint, which accepts all the "Location" parameters of the main API.

@@ -20,11 +20,12 @@ def test_mosmix_parser(data_dir):
     assert records[0] == {
         'observation_type': 'forecast',
         'source': 'MOSMIX:2020-03-13T09:00:00.000Z',
-        'station_id': '01028',
-        'station_name': 'BJORNOYA',
         'lat': 74.52,
         'lon': 19.02,
         'height': 16.,
+        'dwd_station_id': 'XXX',
+        'wmo_station_id': '01028',
+        'station_name': 'BJORNOYA',
         'timestamp': datetime.datetime(2020, 3, 13, 10, 0, tzinfo=tzutc()),
         'cloud_cover': 93.0,
         'dew_point': 257.25,
@@ -40,11 +41,12 @@ def test_mosmix_parser(data_dir):
     assert records[-1] == {
         'observation_type': 'forecast',
         'source': 'MOSMIX:2020-03-13T09:00:00.000Z',
-        'station_id': '01028',
-        'station_name': 'BJORNOYA',
         'lat': 74.52,
         'lon': 19.02,
         'height': 16.,
+        'dwd_station_id': 'XXX',
+        'wmo_station_id': '01028',
+        'station_name': 'BJORNOYA',
         'timestamp': datetime.datetime(2020, 3, 23, 9, 0, tzinfo=tzutc()),
         'cloud_cover': 76.,
         'dew_point': 265.35,
@@ -65,11 +67,12 @@ def test_current_observation_parser(data_dir):
     assert len(records) == 25
     assert records[0] == {
         'observation_type': 'current',
-        'station_id': '01049',
-        'station_name': 'Muenster',
         'lat': 10.1,
         'lon': 20.2,
         'height': 30.3,
+        'dwd_station_id': 'YYY',
+        'wmo_station_id': '01049',
+        'station_name': 'Muenster',
         'timestamp': datetime.datetime(2020, 4, 6, 8, 0, tzinfo=tzutc()),
         'cloud_cover': None,
         'dew_point': 263.15,
@@ -85,11 +88,12 @@ def test_current_observation_parser(data_dir):
     }
     assert records[15] == {
         'observation_type': 'current',
-        'station_id': '01049',
-        'station_name': 'Muenster',
         'lat': 10.1,
         'lon': 20.2,
         'height': 30.3,
+        'dwd_station_id': 'YYY',
+        'wmo_station_id': '01049',
+        'station_name': 'Muenster',
         'timestamp': datetime.datetime(2020, 4, 5, 17, 0, tzinfo=tzutc()),
         'cloud_cover': None,
         'dew_point': 270.05,
@@ -113,11 +117,12 @@ def test_observations_parser_parses_metadata(data_dir):
         'source': (
             'Observations:Recent:produkt_ff_stunde_20180915_20200317_04911.txt'
         ),
-        'station_id': '04911',
-        'station_name': 'Straubing',
         'lat': 48.8275,
         'lon': 12.5597,
         'height': 350.5,
+        'dwd_station_id': '04911',
+        'wmo_station_id': '10788',
+        'station_name': 'Straubing',
     }
     for record in p.parse():
         assert is_subset(metadata, record)

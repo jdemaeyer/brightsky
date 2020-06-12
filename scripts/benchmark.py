@@ -117,14 +117,14 @@ def query_():
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT station_id, id
+                SELECT dwd_station_id, id
                 FROM sources
                 WHERE observation_type = %s
                 """,
                 ('recent',))
             rows = random.choices(cur.fetchall(), k=100)
             station_kwargs = [
-                {'station_id': row['station_id']} for row in rows]
+                {'dwd_station_id': row['dwd_station_id']} for row in rows]
             source_kwargs = [{'source_id': row['id']} for row in rows]
     date = datetime.date(2020, 2, 14)
     last_date = datetime.date(2020, 2, 21)

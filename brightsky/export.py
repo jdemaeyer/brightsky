@@ -17,10 +17,13 @@ class DBExporter:
     # map).
     UPDATE_SOURCES_STMT = """
         INSERT INTO sources (
-            station_id, station_name, observation_type, lat, lon, height)
+            observation_type, lat, lon, height, dwd_station_id, wmo_station_id,
+            station_name)
         VALUES %s
         ON CONFLICT
             ON CONSTRAINT weather_source_key DO UPDATE SET
+                dwd_station_id = EXCLUDED.dwd_station_id,
+                wmo_station_id = EXCLUDED.wmo_station_id,
                 station_name = EXCLUDED.station_name
         RETURNING id;
     """
@@ -34,14 +37,14 @@ class DBExporter:
             ON CONSTRAINT weather_key DO UPDATE SET
                 {conflict_updates};
     """)
+    SOURCE_FIELDS = [
+        'observation_type', 'lat', 'lon', 'height', 'dwd_station_id',
+        'wmo_station_id', 'station_name']
     ELEMENT_FIELDS = [
         'cloud_cover', 'dew_point', 'precipitation', 'pressure_msl',
         'relative_humidity', 'sunshine', 'temperature', 'visibility',
         'wind_direction', 'wind_speed', 'wind_gust_direction',
         'wind_gust_speed']
-    SOURCE_FIELDS = [
-        'station_id', 'station_name', 'observation_type', 'lat', 'lon',
-        'height']
 
     sources_update_lock = Lock()
 

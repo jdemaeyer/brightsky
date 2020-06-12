@@ -8,8 +8,8 @@ def _make_dicts(rows):
 
 
 def weather(
-        date, last_date=None, lat=None, lon=None, station_id=None,
-        source_id=None, max_dist=50000, fallback=True):
+        date, last_date=None, lat=None, lon=None, dwd_station_id=None,
+        wmo_station_id=None, source_id=None, max_dist=50000, fallback=True):
     if not last_date:
         last_date = date + datetime.timedelta(days=1)
     if source_id is not None:
@@ -20,7 +20,8 @@ def weather(
         return {'weather': weather}
     else:
         sources_rows = sources(
-            lat=lat, lon=lon, station_id=station_id, max_dist=max_dist
+            lat=lat, lon=lon, dwd_station_id=dwd_station_id,
+            wmo_station_id=wmo_station_id, max_dist=max_dist
         )['sources']
         source_ids = [row['id'] for row in sources_rows]
         weather_rows = _weather(date, last_date, source_ids)
@@ -93,11 +94,12 @@ def _fill_missing_fields(weather_rows, date, last_date, source_ids):
 
 
 def sources(
-        lat=None, lon=None, station_id=None, source_id=None, max_dist=50000,
-        ignore_type=False):
+        lat=None, lon=None, dwd_station_id=None, wmo_station_id=None,
+        source_id=None, max_dist=50000, ignore_type=False):
     select = """
         id,
-        station_id,
+        dwd_station_id,
+        wmo_station_id,
         station_name,
         observation_type,
         lat,
@@ -107,8 +109,10 @@ def sources(
     order_by = "observation_type"
     if source_id is not None:
         where = "id = %(source_id)s"
-    elif station_id is not None:
-        where = "station_id = %(station_id)s"
+    elif dwd_station_id is not None:
+        where = "dwd_station_id = %(dwd_station_id)s"
+    elif wmo_station_id is not None:
+        where = "wmo_station_id = %(wmo_station_id)s"
     elif (lat is not None and lon is not None):
         distance = """
             earth_distance(
@@ -140,7 +144,8 @@ def sources(
         'lat': lat,
         'lon': lon,
         'max_dist': max_dist,
-        'station_id': station_id,
+        'dwd_station_id': dwd_station_id,
+        'wmo_station_id': wmo_station_id,
         'source_id': source_id,
     }
     rows = fetch(sql, params)

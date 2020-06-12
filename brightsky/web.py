@@ -67,7 +67,8 @@ class WeatherResource(BrightskyResource):
     def on_get(self, req, resp):
         date, last_date = self.parse_date_range(req)
         lat, lon = self.parse_location(req)
-        station_id = req.get_param('station_id')
+        dwd_station_id = req.get_param('dwd_station_id')
+        wmo_station_id = req.get_param('wmo_station_id')
         source_id = req.get_param_as_int('source_id')
         max_dist = self.parse_max_dist(req)
         units = req.get_param('units', default='dwd').lower()
@@ -85,7 +86,8 @@ class WeatherResource(BrightskyResource):
         with convert_exceptions():
             result = query.weather(
                 date, last_date=last_date, lat=lat, lon=lon,
-                station_id=station_id, source_id=source_id, max_dist=max_dist)
+                dwd_station_id=dwd_station_id, wmo_station_id=wmo_station_id,
+                source_id=source_id, max_dist=max_dist)
         for row in result['weather']:
             self.process_row(row, units, timezone)
         resp.media = result
@@ -103,11 +105,13 @@ class SourcesResource(BrightskyResource):
     def on_get(self, req, resp):
         lat, lon = self.parse_location(req)
         max_dist = self.parse_max_dist(req)
-        station_id = req.get_param('station_id')
+        dwd_station_id = req.get_param('dwd_station_id')
+        wmo_station_id = req.get_param('wmo_station_id')
         source_id = req.get_param_as_int('source_id')
         with convert_exceptions():
             result = query.sources(
-                lat=lat, lon=lon, station_id=station_id, source_id=source_id,
+                lat=lat, lon=lon, dwd_station_id=dwd_station_id,
+                wmo_station_id=wmo_station_id, source_id=source_id,
                 max_dist=max_dist, ignore_type=True)
         resp.media = result
 

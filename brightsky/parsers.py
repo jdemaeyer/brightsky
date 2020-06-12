@@ -16,7 +16,7 @@ from brightsky.settings import settings
 from brightsky.units import (
     celsius_to_kelvin, eighths_to_percent, hpa_to_pa, kmh_to_ms,
     minutes_to_seconds)
-from brightsky.utils import cache_path, download
+from brightsky.utils import cache_path, download, dwd_id_to_wmo, wmo_id_to_dwd
 
 
 class Parser:
@@ -108,7 +108,8 @@ class MOSMIXParser(Parser):
         return ':'.join(sel.css('ProductID::text, IssueTime::text').extract())
 
     def parse_station(self, station_sel, timestamps, source):
-        station_id = station_sel.css('name::text').extract_first()
+        wmo_station_id = station_sel.css('name::text').extract_first()
+        dwd_station_id = wmo_id_to_dwd(wmo_station_id)
         station_name = station_sel.css('description::text').extract_first()
         lon, lat, height = station_sel.css(
             'coordinates::text').extract_first().split(',')
@@ -126,11 +127,12 @@ class MOSMIXParser(Parser):
         base_record = {
             'observation_type': 'forecast',
             'source': source,
-            'station_id': station_id,
-            'station_name': station_name,
             'lat': float(lat),
             'lon': float(lon),
             'height': float(height),
+            'dwd_station_id': dwd_station_id,
+            'wmo_station_id': wmo_station_id,
+            'station_name': station_name,
         }
         # Turn dict of lists into list of dicts
         return (
@@ -187,19 +189,22 @@ class CurrentObservationsParser(Parser):
     def parse(self, lat=None, lon=None, height=None, station_name=None):
         with open(self.path) as f:
             reader = csv.DictReader(f, delimiter=';')
-            station_id = next(reader)[self.DATE_COLUMN].rstrip('_')
+            wmo_station_id = next(reader)[self.DATE_COLUMN].rstrip('_')
+            dwd_station_id = wmo_id_to_dwd(wmo_station_id)
             if any(x is None for x in (lat, lon, height, station_name)):
-                lat, lon, height, station_name = self.load_location(station_id)
+                lat, lon, height, station_name = self.load_location(
+                    wmo_station_id)
             # Skip row with German header titles
             next(reader)
             for row in reader:
                 yield {
                     'observation_type': 'current',
-                    'station_id': station_id,
-                    'station_name': station_name,
                     'lat': lat,
                     'lon': lon,
                     'height': height,
+                    'dwd_station_id': dwd_station_id,
+                    'wmo_station_id': wmo_station_id,
+                    'station_name': station_name,
                     **self.parse_row(row)
                 }
 
@@ -224,20 +229,20 @@ class CurrentObservationsParser(Parser):
             if record[element] is not None:
                 record[element] = converter(record[element])
 
-    def load_location(self, station_id):
+    def load_location(self, wmo_station_id):
         rows = fetch(
             """
             SELECT lat, lon, height, station_name
             FROM sources
-            WHERE observation_type = %s AND station_id = %s
-            ORDER BY id DESC
+            WHERE wmo_station_id = %s
+            ORDER BY observation_type DESC, id DESC
             LIMIT 1
             """,
-            ('forecast', station_id),
+            (wmo_station_id,),
         )
         if not rows:
             raise ValueError(
-                f'Unable to find location for station {station_id}')
+                f'Unable to find location for WMO station {wmo_station_id}')
         return rows[0]
 
 
@@ -262,13 +267,15 @@ class ObservationsParser(Parser):
 
     def parse(self):
         with zipfile.ZipFile(self.path) as zf:
-            station_id = self.parse_station_id(zf)
+            dwd_station_id = self.parse_station_id(zf)
+            wmo_station_id = dwd_id_to_wmo(dwd_station_id)
             observation_type = self.parse_observation_type()
-            lat_lon_history = self.parse_lat_lon_history(zf, station_id)
+            lat_lon_history = self.parse_lat_lon_history(zf, dwd_station_id)
             for record in self.parse_records(zf, lat_lon_history):
                 yield {
                     'observation_type': observation_type,
-                    'station_id': station_id,
+                    'dwd_station_id': dwd_station_id,
+                    'wmo_station_id': wmo_station_id,
                     **record
                 }
 
@@ -287,8 +294,8 @@ class ObservationsParser(Parser):
         raise ValueError(
             f'Unable to determine observation type from path "{self.path}"')
 
-    def parse_lat_lon_history(self, zf, station_id):
-        with zf.open(f'Metadaten_Geographie_{station_id}.txt') as f:
+    def parse_lat_lon_history(self, zf, dwd_station_id):
+        with zf.open(f'Metadaten_Geographie_{dwd_station_id}.txt') as f:
             reader = csv.DictReader(
                 io.TextIOWrapper(f, encoding='latin1'),
                 delimiter=';')
@@ -432,7 +439,7 @@ class WindGustsObservationsParser(ObservationsParser):
     META_DATA_URL = (
         'https://opendata.dwd.de/climate_environment/CDC/observations_germany/'
         'climate/10_minutes/extreme_wind/meta_data/'
-        'Meta_Daten_zehn_min_fx_{station_id}.zip')
+        'Meta_Daten_zehn_min_fx_{dwd_station_id}.zip')
 
     elements = {
         'wind_gust_direction': 'DX_10',
@@ -446,8 +453,9 @@ class WindGustsObservationsParser(ObservationsParser):
     def download(self):
         super().download()
         with zipfile.ZipFile(self.path) as zf:
-            station_id = self.parse_station_id(zf)
-        meta_data_url = self.META_DATA_URL.format(station_id=station_id)
+            dwd_station_id = self.parse_station_id(zf)
+        meta_data_url = self.META_DATA_URL.format(
+            dwd_station_id=dwd_station_id)
         if not self.meta_path:
             self.meta_path = cache_path(meta_data_url)
         self._download(meta_data_url, self.meta_path)
@@ -458,9 +466,9 @@ class WindGustsObservationsParser(ObservationsParser):
                 return m.group(1)
         raise ValueError(f"Unable to parse station ID for {self.path}")
 
-    def parse_lat_lon_history(self, zf, station_id):
+    def parse_lat_lon_history(self, zf, dwd_station_id):
         with zipfile.ZipFile(self.meta_path) as meta_zf:
-            return super().parse_lat_lon_history(meta_zf, station_id)
+            return super().parse_lat_lon_history(meta_zf, dwd_station_id)
 
     def parse_reader(self, filename, reader, lat_lon_history):
         hour_values = []
