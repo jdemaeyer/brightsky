@@ -9,7 +9,7 @@ DELETE
     s.lat = s2.lat AND
     s.lon = s2.lon AND
     s.height = s2.height AND
-    s.id > s2.id
+    s.id > s2.id;
 
 ALTER TABLE sources
   RENAME COLUMN station_id TO dwd_station_id;
