@@ -22,6 +22,7 @@ from brightsky.utils import cache_path, download, dwd_id_to_wmo, wmo_id_to_dwd
 class Parser:
 
     DEFAULT_URL = None
+    PRIORITY = 10
 
     @property
     def logger(self):
@@ -64,6 +65,7 @@ class MOSMIXParser(Parser):
     DEFAULT_URL = (
         'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/'
         'all_stations/kml/MOSMIX_S_LATEST_240.kmz')
+    PRIORITY = 20
 
     ELEMENTS = {
         'DD': 'wind_direction',
@@ -154,6 +156,8 @@ class MOSMIXParser(Parser):
 
 
 class CurrentObservationsParser(Parser):
+
+    PRIORITY = 30
 
     ELEMENTS = {
         'cloud_cover_total': 'cloud_cover',

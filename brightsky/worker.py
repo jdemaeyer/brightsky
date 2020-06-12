@@ -1,6 +1,6 @@
 import time
 
-from huey import crontab, RedisHuey
+from huey import crontab, PriorityRedisHuey
 from huey.api import TaskLock as TaskLock_
 from huey.exceptions import TaskLockedException
 
@@ -8,7 +8,7 @@ from brightsky import tasks
 from brightsky.settings import settings
 
 
-class ExpiringLocksHuey(RedisHuey):
+class ExpiringLocksHuey(PriorityRedisHuey):
 
     def lock_task(self, lock_name):
         return TaskLock(self, lock_name)
@@ -50,11 +50,12 @@ def process(url):
         tasks.parse(url=url, export=True)
 
 
-@huey.periodic_task(crontab(minute=settings.POLLING_CRONTAB_MINUTE))
+@huey.periodic_task(
+    crontab(minute=settings.POLLING_CRONTAB_MINUTE), priority=50)
 def poll():
     tasks.poll(enqueue=True)
 
 
-@huey.periodic_task(crontab(minute='23'))
+@huey.periodic_task(crontab(minute='23'), priority=0)
 def clean():
     tasks.clean()

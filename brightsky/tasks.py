@@ -51,7 +51,8 @@ def poll(enqueue=False):
                 logger.debug('Skipping "%s": already running', url)
                 continue
             logger.debug('Enqueueing "%s"', url)
-            process(url)
+            parser_cls = get_parser(os.path.basename(url))
+            process(url, priority=parser_cls.PRIORITY)
             enqueued += 1
         logger.info('Enqueued %d updated files for processing', enqueued)
     return updated_files
