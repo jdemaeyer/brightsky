@@ -97,6 +97,7 @@ class StationIDConverter:
     STATION_LIST_URL = (
         'https://www.dwd.de/DE/leistungen/klimadatendeutschland/statliste/'
         'statlex_html.html?view=nasPublication')
+    STATION_TYPES = ['SY', 'MN']
     UPDATE_INTERVAL = 86400
 
     update_lock = threading.Lock()
@@ -119,7 +120,10 @@ class StationIDConverter:
 
     def parse_station_list(self, html):
         sel = Selector(html)
-        station_rows = sel.xpath('//tr[td[3][text() = "SY"]]')
+        station_rows = []
+        for station_type in self.STATION_TYPES:
+            station_rows.extend(sel.xpath(
+                f'//tr[td[3][text() = "{station_type}"]]'))
         assert station_rows, "No synoptic stations"
         self.dwd_to_wmo.clear()
         self.wmo_to_dwd.clear()
