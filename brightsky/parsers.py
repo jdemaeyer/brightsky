@@ -187,7 +187,7 @@ class CurrentObservationsParser(Parser):
     }
     IGNORED_VALUES = {
         'cloud_cover': ['112', '113', '126'],
-        'relative_humidity': ['101'],
+        'relative_humidity': ['101', '107'],
     }
 
     def parse(self, lat=None, lon=None, height=None, station_name=None):
