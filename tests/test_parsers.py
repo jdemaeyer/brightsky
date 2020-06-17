@@ -6,7 +6,7 @@ from brightsky.parsers import (
     CloudCoverObservationsParser, CurrentObservationsParser,
     DewPointObservationsParser, get_parser, MOSMIXParser,
     PrecipitationObservationsParser, PressureObservationsParser,
-    SunshineObservationsParser, TemperatureObservationsParser,
+    SunshineObservationsParser, SYNOPParser, TemperatureObservationsParser,
     VisibilityObservationsParser, WindGustsObservationsParser,
     WindObservationsParser)
 
@@ -59,6 +59,53 @@ def test_mosmix_parser(data_dir):
         'wind_speed': 7.72,
         'wind_gust_speed': None,
     }
+
+
+def test_synop_parser(data_dir):
+    p = SYNOPParser(path=data_dir / 'synop.json.bz2')
+    records = list(p.parse())
+    assert len(records) == 3
+    assert records[0] == {
+        'observation_type': 'synop',
+        'lat': 52.1344,
+        'lon': 7.69685,
+        'height': 47.8,
+        'wmo_station_id': '10315',
+        'dwd_station_id': '01766',
+        'station_name': 'Muenster/Osnabrueck',
+        'timestamp': datetime.datetime(2020, 6, 17, 9, 0, tzinfo=tzutc()),
+        'pressure_msl': 101290,
+        'temperature': 294.05,
+        'relative_humidity': 66,
+        'cloud_cover': 88,
+        'wind_direction_10': 30,
+        'wind_speed_10': 2,
+        'wind_gust_direction_10': None,
+        'wind_gust_speed_10': None,
+    }
+    assert records[1] == {
+        'observation_type': 'synop',
+        'lat': 52.1344,
+        'lon': 7.69685,
+        'height': 47.8,
+        'wmo_station_id': '10315',
+        'dwd_station_id': '01766',
+        'station_name': 'Muenster/Osnabrueck',
+        'timestamp': datetime.datetime(2020, 6, 17, 9, 0, tzinfo=tzutc()),
+        'visibility': None,
+        'sunshine_60': 2520,
+        'precipitation_60': 0,
+        'wind_direction_10': None,
+        'wind_speed_10': None,
+        'wind_gust_direction_10': None,
+        'wind_gust_speed_10': None,
+        'wind_gust_direction_60': None,
+        'wind_gust_speed_60': 4.6,
+        'wind_gust_direction_30': 340,
+        'wind_gust_speed_30': 4.6,
+    }
+    assert records[2]['wmo_station_id'] == 'M031'
+    assert records[2]['dwd_station_id'] == '05484'
 
 
 def test_current_observation_parser(data_dir):
@@ -308,6 +355,11 @@ def test_pressure_observations_parser_approximates_pressure_msl(data_dir):
 
 
 def test_get_parser():
+    synop_with_timestamp = (
+        'Z__C_EDZW_20200617114802_bda01,synop_bufr_GER_999999_999999__MW_617'
+        '.json.bz2')
+    synop_latest = (
+        'Z__C_EDZW_latest_bda01,synop_bufr_GER_999999_999999__MW_XXX.json.bz2')
     expected = {
         '10minutenwerte_extrema_wind_00427_akt.zip': (
             WindGustsObservationsParser),
@@ -322,6 +374,8 @@ def test_get_parser():
         'stundenwerte_VV_00161_akt.zip': VisibilityObservationsParser,
         'MOSMIX_S_LATEST_240.kmz': MOSMIXParser,
         'K611_-BEOB.csv': CurrentObservationsParser,
+        synop_with_timestamp: SYNOPParser,
+        synop_latest: None,
     }
     for filename, expected_parser in expected.items():
         assert get_parser(filename) is expected_parser

@@ -17,7 +17,9 @@ def pytest_configure(config):
     _converter.dwd_to_wmo = {
         'XXX': '01028',
         'YYY': '01049',
+        '01766': '10315',
         '04911': '10788',
+        '05484': 'M031',
     }
     _converter.wmo_to_dwd = dict(
         reversed(x) for x in _converter.dwd_to_wmo.items())

@@ -1,6 +1,8 @@
+import bz2
 import csv
 import datetime
 import io
+import json
 import logging
 import os
 import re
@@ -12,6 +14,7 @@ from dateutil.tz import tzutc
 from parsel import Selector
 
 from brightsky.db import fetch
+from brightsky.export import DBExporter, SYNOPExporter
 from brightsky.settings import settings
 from brightsky.units import (
     celsius_to_kelvin, eighths_to_percent, hpa_to_pa, kmh_to_ms,
@@ -19,10 +22,16 @@ from brightsky.units import (
 from brightsky.utils import cache_path, download, dwd_id_to_wmo, wmo_id_to_dwd
 
 
+class SkipRecord(Exception):
+    pass
+
+
 class Parser:
 
     DEFAULT_URL = None
     PRIORITY = 10
+
+    exporter = DBExporter
 
     @property
     def logger(self):
@@ -153,6 +162,114 @@ class MOSMIXParser(Parser):
                     "Fixing out-of-bounds wind direction: %s", r)
                 r['wind_direction'] -= 360
             yield r
+
+
+class SYNOPParser(Parser):
+
+    PRIORITY = 30
+
+    exporter = SYNOPExporter
+
+    mandatory_fields = [
+        'wmo_station_id', 'station_name', 'lat', 'lon', 'height', 'timestamp']
+
+    elements = {
+        'cloudCoverTotal': 'cloud_cover',
+        'heightOfStationGroundAboveMeanSeaLevel': 'height',
+        'latitude': 'lat',
+        'longitude': 'lon',
+        'meteorologicalOpticalRange': 'visibility',
+        'pressureReducedToMeanSeaLevel': 'pressure_msl',
+        'stationOrSiteName': 'station_name',
+    }
+    height_field = 'heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform'
+    height = 2
+    height_elements = {
+        'airTemperature': 'temperature',
+        'dewPointTemperature': 'dew_point',
+        'relativeHumidity': 'relative_humidity',
+    }
+    time_period_field = 'timePeriod'
+    time_periods = (-10, -30, -60)
+    time_period_elements = {
+        'windDirection': 'wind_direction',
+        'windSpeed': 'wind_speed',
+        'maximumWindGustDirection': 'wind_gust_direction',
+        'maximumWindGustSpeed': 'wind_gust_speed',
+        'totalPrecipitationOrTotalWaterEquivalent': 'precipitation',
+        'totalSunshine': 'sunshine',
+    }
+
+    def parse(self):
+        with bz2.open(self.path) as f:
+            if next(f).startswith(b'no messages found'):
+                return
+            f.seek(0)
+            message_blocks = json.load(f)['messages']
+        for block in message_blocks:
+            for message in block[-1]:
+                with suppress(SkipRecord):
+                    record = self.parse_message(message)
+                    self.sanitize_record(record)
+                    yield record
+
+    def parse_message(self, message):
+        record = {
+            'observation_type': 'synop',
+        }
+        self.parse_tree(record, message)
+        is_complete = all(
+            record.get(field) is not None for field in self.mandatory_fields)
+        if not is_complete:
+            self.logger.error("Skipping incomplete record: %s", record)
+            raise SkipRecord
+        return record
+
+    def parse_tree(self, record, message, base=None):
+        data = {} if base is None else base.copy()
+        for block in message:
+            if isinstance(block, dict):
+                key = block['key']
+                value = block['value']
+                data[key] = value
+                if field := self.elements.get(key):
+                    record[field] = value
+                elif field := self.height_elements.get(key):
+                    if data[self.height_field] == self.height:
+                        record[field] = value
+                elif field := self.time_period_elements.get(key):
+                    time_period = data[self.time_period_field]
+                    if time_period in self.time_periods:
+                        if field == 'sunshine' and value:
+                            value *= 60
+                        record[field + f'_{-time_period}'] = value
+                elif parse_method := getattr(self, f'parse_{key}', None):
+                    parse_method(record, data, value)
+            else:
+                self.parse_tree(record, block, base=data)
+
+    def parse_minute(self, record, data, value):
+        parts = ['year', 'month', 'day', 'hour', 'minute']
+        if any(data[part] is None for part in parts):
+            raise SkipRecord
+        record['timestamp'] = datetime.datetime(
+            data['year'], data['month'], data['day'], data['hour'],
+            data['minute'], tzinfo=tzutc())
+
+    def parse_stationNumber(self, record, data, value):
+        if data['stationNumber']:
+            wmo_id = f"{data['blockNumber']}{data['stationNumber']:03d}"
+        else:
+            wmo_id = data['shortStationName']
+        record['wmo_station_id'] = wmo_id
+        record['dwd_station_id'] = wmo_id_to_dwd(wmo_id)
+
+    def sanitize_record(self, record):
+        for field in list(record):
+            if field.startswith('precipitation_') and (record[field] or 0) < 0:
+                record[field] = None
+        if (record.get('cloud_cover') or 0) > 100:
+            record['cloud_cover'] = None
 
 
 class CurrentObservationsParser(Parser):
@@ -563,6 +680,7 @@ class PressureObservationsParser(ObservationsParser):
 def get_parser(filename):
     parsers = {
         r'MOSMIX_S_LATEST_240\.kmz$': MOSMIXParser,
+        r'Z__C_EDZW_\d+_.*\.json\.bz2$': SYNOPParser,
         r'\w{5}-BEOB\.csv$': CurrentObservationsParser,
         'stundenwerte_FF_': WindObservationsParser,
         'stundenwerte_N_': CloudCoverObservationsParser,

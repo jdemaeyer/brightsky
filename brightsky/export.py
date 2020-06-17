@@ -1,3 +1,4 @@
+import functools
 import logging
 from threading import Lock
 
@@ -30,13 +31,15 @@ class DBExporter:
     UPDATE_SOURCES_CLEANUP = """
         SELECT setval('sources_id_seq', (SELECT max(id) FROM sources));
     """
+    WEATHER_TABLE = 'weather'
     UPDATE_WEATHER_STMT = sql.SQL("""
-        INSERT INTO weather (timestamp, source_id, {fields})
+        INSERT INTO {weather_table} (timestamp, source_id, {fields})
         VALUES %s
         ON CONFLICT
-            ON CONSTRAINT weather_key DO UPDATE SET
+            ON CONSTRAINT {constraint} DO UPDATE SET
                 {conflict_updates};
     """)
+    UPDATE_WEATHER_CONFLICT_UPDATE = '{field} = EXCLUDED.{field}'
     SOURCE_FIELDS = [
         'observation_type', 'lat', 'lon', 'height', 'dwd_station_id',
         'wmo_station_id', 'station_name']
@@ -49,12 +52,16 @@ class DBExporter:
     sources_update_lock = Lock()
 
     def export(self, records, fingerprint=None):
+        records = self.prepare_records(records)
         sources = self.prepare_sources(records)
         with get_connection() as conn:
             source_map = self.update_sources(conn, sources)
             self.update_weather(conn, source_map, records)
             if fingerprint:
                 self.update_parsed_files(conn, fingerprint)
+
+    def prepare_records(self, records):
+        return records
 
     def prepare_sources(self, records):
         sources = {}
@@ -86,11 +93,14 @@ class DBExporter:
                 "Exporting %d records with fields %s",
                 len(records), tuple(fields))
             stmt = self.UPDATE_WEATHER_STMT.format(
+                weather_table=sql.Identifier(self.WEATHER_TABLE),
+                constraint=sql.Identifier(f'{self.WEATHER_TABLE}_key'),
                 fields=sql.SQL(', ').join(
                     sql.Identifier(f) for f in fields),
                 conflict_updates=sql.SQL(', ').join(
-                    sql.SQL('{field} = EXCLUDED.{field}').format(
-                        field=sql.Identifier(f))
+                    sql.SQL(self.UPDATE_WEATHER_CONFLICT_UPDATE).format(
+                        field=sql.Identifier(f),
+                        weather_table=sql.Identifier(self.WEATHER_TABLE))
                     for f in fields),
             )
             template = sql.SQL(
@@ -129,3 +139,38 @@ class DBExporter:
                         parsed_at = current_timestamp;
                 """,
                 fingerprint)
+
+
+class SYNOPExporter(DBExporter):
+
+    WEATHER_TABLE = 'synop'
+    UPDATE_WEATHER_CONFLICT_UPDATE = (
+        '{field} = COALESCE(EXCLUDED.{field}, {weather_table}.{field})')
+
+    ELEMENT_FIELDS = [
+        'cloud_cover', 'dew_point', 'precipitation_10', 'precipitation_30',
+        'precipitation_60', 'pressure_msl', 'relative_humidity', 'sunshine_10',
+        'sunshine_30', 'sunshine_60', 'temperature', 'visibility',
+        'wind_direction_10', 'wind_direction_30', 'wind_direction_60',
+        'wind_speed_10', 'wind_speed_30', 'wind_speed_60',
+        'wind_gust_direction_10', 'wind_gust_direction_30',
+        'wind_gust_direction_60', 'wind_gust_speed_10', 'wind_gust_speed_30',
+        'wind_gust_speed_60']
+
+    def prepare_records(self, records):
+        # Merge records for same source and timestamp (otherwise we will run
+        # into trouble with our ON CONFLICT DO UPDATE as we cannot touch the
+        # same row twice in the same command).
+        records_by_key = {}
+        for r in records:
+            key = (r['timestamp'], r['wmo_station_id'])
+            records_by_key.setdefault(key, []).append(r)
+        return [
+            functools.reduce(self._update_where_none, records)
+            for records in records_by_key.values()]
+
+    def _update_where_none(self, base, update):
+        for k, v in update.items():
+            if not base.get(k):
+                base[k] = v
+        return base

@@ -2,7 +2,6 @@ import logging
 import os
 
 from brightsky.db import get_connection
-from brightsky.export import DBExporter
 from brightsky.parsers import get_parser
 from brightsky.polling import DWDPoller
 from brightsky.utils import dwd_fingerprint
@@ -27,7 +26,7 @@ def parse(path=None, url=None, export=False):
     records = list(parser.parse())
     parser.cleanup()
     if export:
-        exporter = DBExporter()
+        exporter = parser.exporter()
         exporter.export(records, fingerprint=fingerprint)
     return records
 
@@ -60,25 +59,47 @@ def poll(enqueue=False):
 
 def clean():
     expiry_intervals = {
-        'forecast': '12 hours',
-        'current': '48 hours',
+        'weather': {
+            'forecast': '12 hours',
+            'current': '48 hours',
+        },
+        'synop': {
+            'synop': '30 hours',
+        },
+    }
+    parsed_files_expiry_intervals = {
+        '%/Z__C_EDZW_%': '1 week',
     }
     logger.info('Deleting expired weather records: %s', expiry_intervals)
     with get_connection() as conn:
         with conn.cursor() as cur:
-            for observation_type, expiry_interval in expiry_intervals.items():
+            for table, table_expires in expiry_intervals.items():
+                for observation_type, interval in table_expires.items():
+                    cur.execute(
+                        f"""
+                        DELETE FROM {table} WHERE
+                            source_id IN (
+                                SELECT id FROM sources
+                                WHERE observation_type = %s) AND
+                            timestamp < current_timestamp - %s::interval;
+                        """,
+                        (observation_type, interval),
+                    )
+                    conn.commit()
+                    if cur.rowcount:
+                        logger.info(
+                            'Deleted %d outdated %s weather records from %s',
+                            cur.rowcount, observation_type, table)
+            for filename, interval in parsed_files_expiry_intervals.items():
                 cur.execute(
                     """
-                    DELETE FROM weather WHERE
-                        source_id IN (
-                            SELECT id FROM sources
-                            WHERE observation_type = %s) AND
-                        timestamp < current_timestamp - %s::interval;
+                    DELETE FROM parsed_files WHERE
+                        url LIKE %s AND
+                        parsed_at < current_timestamp - %s::interval;
                     """,
-                    (observation_type, expiry_interval),
-                )
+                    (filename, interval))
                 conn.commit()
                 if cur.rowcount:
                     logger.info(
-                        'Deleted %d outdated %s weather records',
-                        cur.rowcount, observation_type)
+                        'Deleted %d outdated parsed file for pattern "%s"',
+                        cur.rowcount, filename)
