@@ -186,7 +186,7 @@ class SYNOPParser(Parser):
     height = 2
     height_elements = {
         'airTemperature': 'temperature',
-        'dewPointTemperature': 'dew_point',
+        'dewpointTemperature': 'dew_point',
         'relativeHumidity': 'relative_humidity',
     }
     time_period_field = 'timePeriod'
