@@ -3,11 +3,13 @@ import sys
 from contextlib import contextmanager
 
 import falcon
+import falcon_cors
 from dateutil.tz import gettz
 from gunicorn.app.base import BaseApplication
 from gunicorn.util import import_app
 
 from brightsky import query
+from brightsky.settings import settings
 from brightsky.units import convert_record, CONVERTERS
 from brightsky.utils import parse_date
 
@@ -119,7 +121,9 @@ class SourcesResource(BrightskyResource):
         resp.media = result
 
 
-app = falcon.API()
+cors = falcon_cors.CORS(allow_origins_list=settings.CORS_ALLOWED_ORIGINS)
+
+app = falcon.API(middleware=[cors.middleware])
 app.add_route('/weather', WeatherResource())
 app.add_route('/sources', SourcesResource())
 

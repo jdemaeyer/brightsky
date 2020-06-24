@@ -11,6 +11,7 @@ setup(
         'click',
         'coloredlogs',
         'falcon',
+        'falcon-cors',
         'gunicorn',
         'huey[redis]',
         'parsel',

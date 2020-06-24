@@ -4,6 +4,7 @@ import os
 from dateutil.tz import tzutc
 
 
+CORS_ALLOWED_ORIGINS = []
 DATABASE_URL = 'postgres://localhost'
 KEEP_DOWNLOADS = False
 MIN_DATE = datetime.datetime(2010, 1, 1, tzinfo=tzutc())
@@ -20,11 +21,16 @@ def _make_date(date_str):
     return datetime.datetime.fromisoformat(date_str).replace(tzinfo=tzutc())
 
 
+def _make_list(list_str, separator=','):
+    return list_str.split(separator)
+
+
 _SETTING_PARSERS = {
     'MAX_DATE': _make_date,
 
     bool: _make_bool,
     datetime.datetime: _make_date,
+    list: _make_list,
 }
 
 
