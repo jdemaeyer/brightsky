@@ -133,7 +133,9 @@ def sources(
         else:
             order_by += ", distance"
     else:
-        raise ValueError("Please supply lat/lon or station_id or source_id")
+        raise ValueError(
+            "Please supply lat/lon or dwd_station_id or wmo_station_id or "
+            "source_id")
     sql = f"""
         SELECT {select}
         FROM sources

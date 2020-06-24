@@ -1,0 +1,395 @@
+openapi: 3.0.3
+info:
+  title: Bright Sky
+  version: 0.8.0
+  description: |
+    <h2>JSON API for DWD's open weather data.</h2>
+
+    Bright Sky's main API server is located at `https://api.brightsky.dev/`. The following paragraphs provide some background information on data sources, performance considerations, and internal structure. If you just want to get started, head straight to the [`weather` endpoint](#get-/weather).
+
+    The documentation you are looking at is generated from an OpenAPI specification. The current version is available from https://brightsky.dev/brightsky.yml.
+
+    ## Data Origin
+
+    Data with the observation types `current`, `recent`, and `historical` is published by [DWD's extensive network of observation stations](https://www.dwd.de/DE/leistungen/klimadatendeutschland/stationsliste.html). The difference between these three types lies only in the level of quality assurance that the DWD has provided (see the [DWD's Climate Data Center README](https://opendata.dwd.de/climate_environment/CDC/Readme_intro_CDC_ftp.txt)). Data with observation type `forecast` comes from [MOSMIX](https://www.dwd.de/EN/research/weatherforecasting/met_applications/nwp_applications/mosmix_application.html).
+
+    All source files can be found on DWD's [Open Data Server](https://www.dwd.de/EN/ourservices/opendata/opendata.html):
+    <table>
+      <tr><th>Observation Type</th><th>Location</th></tr>
+      <tr><td><code>historical</code> / <code>recent</code></td><td><a href="https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/">https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/</a></td></tr>
+      <tr><td><code>current</code></td><td><a href="https://opendata.dwd.de/weather/weather_reports/poi/">https://opendata.dwd.de/weather/weather_reports/poi/</a></td></tr>
+      <tr><td><code>forecast</code></td><td><a href="https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/all_stations/kml/">https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/all_stations/kml/</a></td></tr>
+    </table>
+
+    ## Good to Know
+
+    ### Geographical Data Coverage
+
+      Due to its nature as German meteorological service, the observations published by the DWD have a strong focus on Germany. While there is data for some locations outside of Germany, mainly in the rest of Europe, it is currently not a priority for us. Your mileage may vary.
+
+    ### Historical Data Coverage
+
+      Bright Sky currently only serves data going back to January 1st, 2010. We plan to extend this to the whole set of historical data published by the DWD in the future.
+
+    ### Performance
+
+    The main bottleneck when querying our database is selecting the closest available station for a given `lat` and `lon`. If you want to improve API latency and know that you will often be querying for the same location, try providing a station ID instead of geographical coordinates. You can retrieve nearby stations for a given location by querying the `/sources` endpoint (see "On Stations and Sources..."). If you are collecting historical data, note that you are not required to submit one query per day like with other weather services. Simply set the `date` and `last_date` parameters to the complete date range you are looking to retrieve.
+
+    ## On Stations and Sources...
+
+    The DWD provides data from an extensive network of own and third-party meteorological observation stations, located mainly but not exclusively in Germany. Each of these is identified by a station ID. In an ideal world, these stations would provide an endless stream of one record of "historical weather" and one record of "forecasted weather" per hour. Sadly (and I am sure to much nuisance for the DWD), in the real world, stations have outages and measurement errors, and sometimes even move. Moreover, the weather forecasts come from a model that is not tied to any physical observation station locations, and predicts the meteorological parameters at a whole bunch of additional locations (which each get their own station ID).
+
+    To accomodate these real-world complications, Bright Sky internally uses a concept of _sources_. Each source is a unique combination of location and observation type. Hence, each physical observation station (with a single station ID) will typically correspond to four sources in Bright Sky: one for each of the four observation types `forecast`, `current`, `recent`, and `historical`. If the station has moved during its lifetime, you may even find more than one source for the same station ID and observation type.
+
+    Bright Sky's _source IDs_ have no meaning in the real world. They should be treated as the technical artifact they are, and not even relied on to stay constant (although they likely will within each major release of Bright Sky).
+
+    ## Useful Links
+      - [Bright Sky source code](https://github.com/na-boa/brightsky/)
+      - [DWD Open Data landing page](https://www.dwd.de/EN/ourservices/opendata/opendata.html)
+      - [Additional explanation files for DWD Open Data](https://www.dwd.de/DE/leistungen/opendata/hilfe.html?nn=495490&lsbId=627548), including:
+          - [List of main observation stations](https://www.dwd.de/DE/leistungen/opendata/help/stationen/ha_messnetz.xls?__blob=publicationFile&v=1)
+          - [List of additional observation stations](https://www.dwd.de/DE/leistungen/opendata/help/stationen/na_messnetz.xlsx?__blob=publicationFile&v=10)
+          - [List of MOSMIX stations](https://www.dwd.de/DE/leistungen/met_verfahren_mosmix/mosmix_stationskatalog.cfg?view=nasPublication&nn=495490)
+          - [List of meteorological parameters](https://www.dwd.de/DE/leistungen/opendata/help/schluessel_datenformate/kml/mosmix_elemente_pdf.pdf?__blob=publicationFile&v=2)
+      - [DWD Open Data FAQ (German)](https://www.dwd.de/DE/leistungen/opendata/faqs_opendata.html)
+      - [DWD Copyright information](https://www.dwd.de/EN/service/copyright/copyright_artikel.html)
+
+    ## Contact
+
+  contact:
+    email: jakob@naboa.de
+    name: Bright Sky
+    url: 'https://brightsky.dev/'
+  license:
+    name: MIT License
+    url: 'https://raw.githubusercontent.com/na-boa/brightsky/master/LICENSE'
+servers:
+  - url: 'https://api.brightsky.dev/'
+paths:
+  /weather:
+    get:
+      summary: Get observed and/or forecasted weather
+      tags:
+        - weather
+      description: |
+        Get a list of hourly weather records (and/or forecasts) for the time range given by `date` and `last_date`.
+
+        To set the location for which to retrieve records (and/or forecasts), you must supply both `lat` and `lon` _or_ one of `dwd_station_id`, `wmo_station_id`, or `source_id`.
+      operationId: getWeather
+      parameters:
+        - $ref: '#/components/parameters/date'
+        - $ref: '#/components/parameters/last_date'
+        - $ref: '#/components/parameters/lat'
+        - $ref: '#/components/parameters/lon'
+        - $ref: '#/components/parameters/dwd_station_id'
+        - $ref: '#/components/parameters/wmo_station_id'
+        - $ref: '#/components/parameters/source_id'
+        - $ref: '#/components/parameters/max_dist'
+        - $ref: '#/components/parameters/tz'
+        - $ref: '#/components/parameters/units'
+      responses:
+        '200':
+          description: Hourly weather records/forecasts and meta information on their sources.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  weather:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WeatherRecord'
+                  sources:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Source'
+                example:
+                  weather:
+                    - timestamp: '2020-04-21T00:00:00+00:00'
+                      source_id: 6007
+                      cloud_cover: 0
+                      dew_point: -2.5
+                      precipitation: 0
+                      pressure_msl: 1015.1
+                      relative_humidity: 40
+                      sunshine: 0
+                      temperature: 10.6
+                      visibility: 50000
+                      wind_direction: 70
+                      wind_speed: 12.6
+                      wind_gust_direction: 50
+                      wind_gust_speed: 33.5
+                  sources:
+                    - id: 6007
+                      dwd_station_id: '01766'
+                      wmo_station_id: '10315'
+                      station_name: Münster/Osnabrück
+                      observation_type: recent
+                      lat: 52.1344
+                      lon: 7.6969
+                      height: 47.8
+                      distance: 16365
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NoSources'
+  /sources:
+    get:
+      summary: Get available sources
+      tags:
+        - sources
+      description: Get a list of all Bright Sky sources matching the given location criteria, ordered by distance.
+      operationId: getSources
+      parameters:
+        - $ref: '#/components/parameters/lat'
+        - $ref: '#/components/parameters/lon'
+        - $ref: '#/components/parameters/dwd_station_id'
+        - $ref: '#/components/parameters/wmo_station_id'
+        - $ref: '#/components/parameters/source_id'
+        - $ref: '#/components/parameters/max_dist'
+      responses:
+        '200':
+          description: Hourly weather records/forecasts and meta information on their sources.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sources:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Source'
+                example:
+                  sources:
+                    - id: 6007
+                      dwd_station_id: '01766'
+                      wmo_station_id: '10315'
+                      station_name: Münster/Osnabrück
+                      observation_type: recent
+                      lat: 52.1344
+                      lon: 7.6969
+                      height: 47.8
+                      distance: 16365
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NoSources'
+components:
+  schemas:
+    Timestamp:
+      type: string
+      format: timestamp
+      example: "2020-04-21"
+    WeatherRecord:
+      type: object
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - description: ISO 8601-formatted timestamp of this weather record/forecast
+        source_id:
+          description: Main Bright Sky source ID for this record
+          type: integer
+          example: 6007
+        cloud_cover:
+          description: Total cloud cover at timestamp
+          type: number
+          example: 12.1
+        dew_point:
+          description: Dew point at timestamp, 2 m above ground
+          type: number
+          example: -2.5
+        precipitation:
+          description: Total precipitation during previous 60 minutes
+          type: number
+          example: 1.8
+        pressure_msl:
+          description: Atmospheric pressure at timestamp, reduced to mean sea level
+          type: number
+          example: 1015.1
+        relative_humidity:
+          description: Relative humidity at timestamp
+          type: number
+          example: 40
+        sunshine:
+          description: Sunshine duration during previous 60 minutes
+          type: number
+          example: 2100
+        temperature:
+          description:   Air temperature at timestamp, 2 m above the ground
+          type: number
+          example: 10.6
+        visibility:
+          description: Visibility at timestamp
+          type: number
+          example: 50000
+        wind_direction:
+          description: Mean wind direction during previous hour, 10 m above the ground
+          type: number
+          example: 70
+        wind_speed:
+          description: Mean wind speed during previous hour, 10 m above the ground
+          type: number
+          example: 12.6
+        wind_gust_direction:
+          description:   Direction of maximum wind gust during previous hour, 10 m above the ground
+          type: number
+          example: 50
+        wind_gust_speed:
+          description: Speed of maximum wind gust during previous hour, 10 m above the ground
+          type: number
+          example: 33.5
+        fallback_source_ids:
+          description: Object mapping meteorological parameters to the source IDs of alternative sources that were used to fill up missing values in the main source
+          type: object
+    Source:
+      type: object
+      properties:
+        id:
+          description: Bright Sky source ID
+          type: integer
+          example: 6007
+        dwd_station_id:
+          description: DWD weather station ID
+          type: string
+          example: '01766'
+        wmo_station_id:
+          description: WMO weather station ID
+          type: string
+          example: '10315'
+        station_name:
+          description: DWD weather station name
+          type: string
+          example: 'Münster/Osnabrück'
+        observation_type:
+          description: Source type
+          type: string
+          example: 'recent'
+          enum: ['forecast', 'current', 'recent', 'historical']
+        lat:
+          description: Station latitude, in decimal degrees
+          type: number
+          example: 52.1344
+        lon:
+          description:   Station longitude, in decimal degrees
+          type: number
+          example: 7.6969
+        height:
+          description: Station height, in meters
+          type: number
+          example: 47.8
+        distance:
+          description: Distance of weather station to the requested `lat` and `lon`, in meters
+          type: number
+          example: 16365
+  parameters:
+    date:
+      name: date
+      in: query
+      description: Timestamp of first weather record (or forecast) to retrieve, in ISO 8601 format, e.g. `2020-04-21` or `2020-04-24T12:00+02:00`. May contain time and/or UTC offset. If you do not supply a time, midnight will be assumed.
+      example: '2020-04-21'
+      required: true
+      schema:
+        $ref: '#/components/schemas/Timestamp'
+    last_date:
+      name: last_date
+      in: query
+      description: Timestamp of last weather record (or forecast) to retrieve, in ISO 8601 format. Will default to `date + 1 day`. (Also see explanation for `date`.)
+      schema:
+        $ref: '#/components/schemas/Timestamp'
+    lat:
+      name: lat
+      in: query
+      description: Latitude in decimal degrees, e.g. `51.58`.
+      example: 51.58
+      schema:
+        type: number
+    lon:
+      name: lon
+      in: query
+      description: Longitude in decimal degrees, e.g. `7.38`.
+      example: 7.38
+      schema:
+        type: number
+    dwd_station_id:
+      name: dwd_station_id
+      in: query
+      description: DWD station ID, typically five alphanumeric characters, e.g. `P0036`.
+      schema:
+        type: string
+    wmo_station_id:
+      name: wmo_station_id
+      in: query
+      description: WMO station ID, typically five digits, e.g. `10315`.
+      schema:
+        type: string
+    source_id:
+      name: source_id
+      in: query
+      description: Bright Sky source ID, as retrieved from the `sources` endpoint, e.g. `1234`.
+      schema:
+        type: integer
+    max_dist:
+      name: max_dist
+      in: query
+      description: Maximum distance of record location from the location given by `lat` and `lon`, in meters, e.g. `10000`. Only has an effect when using `lat` and `lon`. Defaults to `50000`.
+      schema:
+        type: integer
+    tz:
+      name: tz
+      in: query
+      description: Timezone in which record timestamps will be presented, as <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">tz database name</a>, e.g. `Europe/Berlin`. Will also be used as timezone when parsing `date` and `last_date`, unless these have explicit UTC offsets. If omitted but `date` has an explicit UTC offset, that offset will be used as timezone. Otherwise will default to UTC.
+      schema:
+        type: string
+    units:
+      name: units
+      in: query
+      description: |
+        Physical units in which meteorological parameters will be returned. Set to `si` to use <a href="https://en.wikipedia.org/wiki/International_System_of_Units">SI units</a>. The default `dwd` option uses a set of units that is more common in meteorological applications and civil use:
+        <table>
+          <tr><td></td><td>DWD</td><td>SI</td></tr>
+          <tr><td>Cloud cover</td><td>%</td><td>%</td></tr>
+          <tr><td>Dew point</td><td>°C</td><td>K</td></tr>
+          <tr><td>Precipitation</td><td>mm</td><td>kg / m²</td></tr>
+          <tr><td>Pressure</td><td>hPa</td><td>Pa</td></tr>
+          <tr><td>Relative humidity</td><td>%</td><td>%</td></tr>
+          <tr><td>Sunshine</td><td>min</td><td>s</td></tr>
+          <tr><td>Temperature</td><td>°C</td><td>K</td></tr>
+          <tr><td>Visibility</td><td>m</td><td>m</td></tr>
+          <tr><td>Wind direction</td><td>°</td><td>°</td></tr>
+          <tr><td>Wind speed</td><td>km / h</td><td>m / s</td></tr>
+          <tr><td>Wind gust direction</td><td>°</td><td>°</td></tr>
+          <tr><td>Wind gust speed</td><td>km / h</td><td>m / s</td></tr>
+        </table>
+      schema:
+        type: string
+        enum: ['dwd', 'si']
+  responses:
+    InvalidRequest:
+      description: Request has missing or invalid parameters.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+              description:
+                type: string
+            example:
+              title: 400 Bad Request
+              description: Please supply lat/lon or dwd_station_id or wmo_station_id or source_id
+    NoSources:
+      description: No weather sources match the given location criteria.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+              description:
+                type: string
+            example:
+              title: 404 Not Found
+              description: No sources match your criteria
