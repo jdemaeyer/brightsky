@@ -89,7 +89,7 @@ class WeatherResource(BrightskyResource):
         elif date.tzinfo:
             timezone = date.tzinfo
         with convert_exceptions():
-            result = query.weather(
+            result = self.query(
                 date, last_date=last_date, lat=lat, lon=lon,
                 dwd_station_id=dwd_station_id, wmo_station_id=wmo_station_id,
                 source_id=source_id, max_dist=max_dist)
@@ -97,12 +97,25 @@ class WeatherResource(BrightskyResource):
             self.process_row(row, units, timezone)
         resp.media = result
 
+    def query(self, *args, **kwargs):
+        return query.weather(*args, **kwargs)
+
     def process_row(self, row, units, timezone):
         if timezone:
             row['timestamp'] = row['timestamp'].astimezone(timezone)
         row['timestamp'] = row['timestamp'].isoformat()
         if units != 'si':
             convert_record(row, units)
+
+
+class SynopResource(WeatherResource):
+
+    def query(self, *args, **kwargs):
+        kwargs.pop('max_dist')
+        if any(kwargs.pop(param) for param in ['lat', 'lon']):
+            raise falcon.HTTPBadRequest(
+                "Querying by lat/lon is not supported for the synop endpoint")
+        return query.synop(*args, **kwargs)
 
 
 class SourcesResource(BrightskyResource):
@@ -125,6 +138,7 @@ cors = falcon_cors.CORS(allow_origins_list=settings.CORS_ALLOWED_ORIGINS)
 
 app = falcon.API(middleware=[cors.middleware])
 app.add_route('/weather', WeatherResource())
+app.add_route('/synop', SynopResource())
 app.add_route('/sources', SourcesResource())
 
 

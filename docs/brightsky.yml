@@ -133,6 +133,83 @@ paths:
           $ref: '#/components/responses/InvalidRequest'
         '404':
           $ref: '#/components/responses/NoSources'
+  /synop:
+    get:
+      summary: Get SYNOP observations
+      tags:
+        - weather
+      description: |
+        Get a list of ten-minutely SYNOP observations for the time range given by `date` and `last_date`. Note that Bright Sky only stores SYNOP observations from the past 30 hours.
+
+        To set the weather station for which to retrieve records, you must supply one of `dwd_station_id`, `wmo_station_id`, or `source_id`. The `synop` endpoint does not support `lat` and `lon`; use the `sources` endpoint if you need to retrieve a SYNOP station ID close to a given location.
+
+        SYNOP observations are stored as they were reported, which in particular implies that many parameters are only available at certain timestamps. For example, most stations report `sunshine_60` only on the full hour, and `sunshine_30` only at 30 minutes past the full hour (i.e. also not on the full hour).
+      operationId: getSynop
+      parameters:
+        - $ref: '#/components/parameters/date'
+        - $ref: '#/components/parameters/last_date'
+        - $ref: '#/components/parameters/dwd_station_id'
+        - $ref: '#/components/parameters/wmo_station_id'
+        - $ref: '#/components/parameters/source_id'
+        - $ref: '#/components/parameters/tz'
+        - $ref: '#/components/parameters/units'
+      responses:
+        '200':
+          description: Ten-minutely SYNOP records and meta information on the source.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  weather:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SynopRecord'
+                  sources:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Source'
+                example:
+                  weather:
+                    - timestamp: '2020-06-25T13:00:00+00:00'
+                      source_id: 9296
+                      cloud_cover: 25
+                      dew_point: 14.81
+                      precipitation_10:
+                      precipitation_30:
+                      precipitation_60: 0
+                      pressure_msl: 1018.7
+                      relative_humidity: 46
+                      sunshine_10:
+                      sunshine_30:
+                      sunshine_60: 53
+                      temperature: 27.5
+                      visibility:
+                      wind_direction_10: 80
+                      wind_direction_30:
+                      wind_direction_60:
+                      wind_speed_10: 15.8
+                      wind_speed_30:
+                      wind_speed_60:
+                      wind_gust_direction_10: 60
+                      wind_gust_direction_30: 60
+                      wind_gust_direction_60: 60
+                      wind_gust_speed_10: 33.8
+                      wind_gust_speed_30: 33.8
+                      wind_gust_speed_60: 33.8
+                  sources:
+                    - id: 9296
+                      dwd_station_id: '01766'
+                      observation_type: synop
+                      lat: 52.1344
+                      lon: 7.69685
+                      height: 47.8
+                      station_name: Muenster/Osnabrueck
+                      wmo_station_id: '10315'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NoSources'
   /sources:
     get:
       summary: Get available sources
@@ -216,7 +293,7 @@ components:
           type: number
           example: 2100
         temperature:
-          description:   Air temperature at timestamp, 2 m above the ground
+          description: Air temperature at timestamp, 2 m above the ground
           type: number
           example: 10.6
         visibility:
@@ -232,7 +309,7 @@ components:
           type: number
           example: 12.6
         wind_gust_direction:
-          description:   Direction of maximum wind gust during previous hour, 10 m above the ground
+          description: Direction of maximum wind gust during previous hour, 10 m above the ground
           type: number
           example: 50
         wind_gust_speed:
@@ -242,6 +319,105 @@ components:
         fallback_source_ids:
           description: Object mapping meteorological parameters to the source IDs of alternative sources that were used to fill up missing values in the main source
           type: object
+    SynopRecord:
+      type: object
+      properties:
+        timestamp:
+          allOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - description: ISO 8601-formatted timestamp of this weather record/forecast
+        source_id:
+          description: Bright Sky source ID for this record
+          type: integer
+          example: 6007
+        cloud_cover:
+          description: Total cloud cover at timestamp
+          type: number
+          example: 12.1
+        dew_point:
+          description: Dew point at timestamp, 2 m above ground
+          type: number
+          example: -2.5
+        precipitation_10:
+          description: Total precipitation during previous 10 minutes
+          type: number
+          example: 0.8
+        precipitation_30:
+          description: Total precipitation during previous 30 minutes
+          type: number
+          example: 1.2
+        precipitation_60:
+          description: Total precipitation during previous 60 minutes
+          type: number
+          example: 1.8
+        pressure_msl:
+          description: Atmospheric pressure at timestamp, reduced to mean sea level
+          type: number
+          example: 1015.1
+        relative_humidity:
+          description: Relative humidity at timestamp
+          type: number
+          example: 40
+        sunshine:
+          description: Sunshine duration during previous 60 minutes
+          type: number
+          example: 2100
+        temperature:
+          description: Air temperature at timestamp, 2 m above the ground
+          type: number
+          example: 10.6
+        visibility:
+          description: Visibility at timestamp
+          type: number
+          example: 50000
+        wind_direction_10:
+          description: Mean wind direction during previous 10 minutes, 10 m above the ground
+          type: number
+          example: 70
+        wind_direction_30:
+          description: Mean wind direction during previous 30 minutes, 10 m above the ground
+          type: number
+          example: 70
+        wind_direction_60:
+          description: Mean wind direction during previous 60 minutes, 10 m above the ground
+          type: number
+          example: 70
+        wind_speed_10:
+          description: Mean wind speed during previous previous 10 minutes, 10 m above the ground
+          type: number
+          example: 12.6
+        wind_speed_30:
+          description: Mean wind speed during previous previous 30 minutes, 10 m above the ground
+          type: number
+          example: 12.6
+        wind_speed_60:
+          description: Mean wind speed during previous previous 60 minutes, 10 m above the ground
+          type: number
+          example: 12.6
+        wind_gust_direction_10:
+          description: Direction of maximum wind gust during previous 10 minutes, 10 m above the ground
+          type: number
+          example: 50
+        wind_gust_direction_30:
+          description: Direction of maximum wind gust during previous 30 minutes, 10 m above the ground
+          type: number
+          example: 50
+        wind_gust_direction_60:
+          description: Direction of maximum wind gust during previous 60 minutes, 10 m above the ground
+          type: number
+          example: 50
+        wind_gust_speed_10:
+          description: Speed of maximum wind gust during previous 10 minutes, 10 m above the ground
+          type: number
+          example: 33.5
+        wind_gust_speed_30:
+          description: Speed of maximum wind gust during previous 30 minutes, 10 m above the ground
+          type: number
+          example: 33.5
+        wind_gust_speed_60:
+          description: Speed of maximum wind gust during previous 60 minutes, 10 m above the ground
+          type: number
+          example: 33.5
     Source:
       type: object
       properties:

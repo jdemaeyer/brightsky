@@ -93,19 +93,39 @@ def _fill_missing_fields(weather_rows, date, last_date, source_ids):
                     row['fallback_source_ids'][f] = fallback_row['source_id']
 
 
+def synop(
+        date, last_date=None, dwd_station_id=None, wmo_station_id=None,
+        source_id=None):
+    if not last_date:
+        last_date = date + datetime.timedelta(days=1)
+    sources_rows = sources(
+        dwd_station_id=dwd_station_id, wmo_station_id=wmo_station_id,
+        source_id=source_id, observation_type='synop')['sources']
+    source_ids = [row['id'] for row in sources_rows]
+    sql = """
+        SELECT *
+        FROM synop
+        WHERE
+            timestamp BETWEEN %(date)s AND %(last_date)s AND
+            source_id IN %(source_ids_tuple)s
+        ORDER BY timestamp
+        """
+    params = {
+        'date': date,
+        'last_date': last_date,
+        'source_ids_tuple': tuple(source_ids),
+    }
+    return {
+        'weather': _make_dicts(fetch(sql, params)),
+        'sources': _make_dicts(sources_rows),
+    }
+
+
 def sources(
         lat=None, lon=None, dwd_station_id=None, wmo_station_id=None,
-        source_id=None, max_dist=50000, ignore_type=False):
-    select = """
-        id,
-        dwd_station_id,
-        wmo_station_id,
-        station_name,
-        observation_type,
-        lat,
-        lon,
-        height
-    """
+        source_id=None, observation_type=None, max_dist=50000,
+        ignore_type=False):
+    select = "*"
     order_by = "observation_type"
     if source_id is not None:
         where = "id = %(source_id)s"
@@ -136,6 +156,8 @@ def sources(
         raise ValueError(
             "Please supply lat/lon or dwd_station_id or wmo_station_id or "
             "source_id")
+    if observation_type:
+        where += " AND observation_type = %(observation_type)s"
     sql = f"""
         SELECT {select}
         FROM sources
@@ -149,6 +171,7 @@ def sources(
         'dwd_station_id': dwd_station_id,
         'wmo_station_id': wmo_station_id,
         'source_id': source_id,
+        'observation_type': observation_type,
     }
     rows = fetch(sql, params)
     if not rows:

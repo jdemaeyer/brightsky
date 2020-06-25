@@ -39,9 +39,18 @@ CONVERTERS = {
         'dew_point': kelvin_to_celsius,
         'pressure_msl': pa_to_hpa,
         'sunshine': seconds_to_minutes,
+        'sunshine_10': seconds_to_minutes,
+        'sunshine_30': seconds_to_minutes,
+        'sunshine_60': seconds_to_minutes,
         'temperature': kelvin_to_celsius,
         'wind_speed': ms_to_kmh,
+        'wind_speed_10': ms_to_kmh,
+        'wind_speed_30': ms_to_kmh,
+        'wind_speed_60': ms_to_kmh,
         'wind_gust_speed': ms_to_kmh,
+        'wind_gust_speed_10': ms_to_kmh,
+        'wind_gust_speed_30': ms_to_kmh,
+        'wind_gust_speed_60': ms_to_kmh,
     }
 }
 
