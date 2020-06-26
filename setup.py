@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='brightsky',
-    version='0.1',
+    version='0.8.1',
     author='Jakob de Maeyer',
     author_email='jakob@naboa.de',
     packages=['brightsky'],
