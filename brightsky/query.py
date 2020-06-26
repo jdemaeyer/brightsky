@@ -93,6 +93,56 @@ def _fill_missing_fields(weather_rows, date, last_date, source_ids):
                     row['fallback_source_ids'][f] = fallback_row['source_id']
 
 
+def current_weather(
+        lat=None, lon=None, dwd_station_id=None, wmo_station_id=None,
+        source_id=None, max_dist=50000, fallback=True):
+    sources_rows = sources(
+        lat=lat, lon=lon, dwd_station_id=dwd_station_id,
+        wmo_station_id=wmo_station_id, max_dist=max_dist
+    )['sources']
+    source_ids = [row['id'] for row in sources_rows]
+    weather = _current_weather(source_ids)
+    if not weather:
+        raise LookupError(
+            "Could not find current weather for your location criteria")
+    used_source_ids = [weather['source_id']]
+    if fallback:
+        missing_fields = [k for k, v in weather.items() if v is None]
+        fallback_weather = _current_weather(
+            source_ids, not_null=missing_fields)
+        if fallback_weather:
+            weather.update({k: fallback_weather[k] for k in missing_fields})
+            weather['fallback_source_ids'] = {
+                field: fallback_weather['source_id']
+                for field in missing_fields}
+            used_source_ids.append(fallback_weather['source_id'])
+    return {
+        'weather': weather,
+        'sources': [s for s in sources_rows if s['id'] in used_source_ids],
+    }
+
+
+def _current_weather(source_ids, not_null=None):
+    params = {
+        'source_ids': source_ids,
+        'source_ids_tuple': tuple(source_ids),
+    }
+    where = "source_id IN %(source_ids_tuple)s"
+    if not_null:
+        where += ''.join(f" AND {element} IS NOT NULL" for element in not_null)
+    sql = f"""
+        SELECT *
+        FROM current_weather
+        WHERE {where}
+        ORDER BY array_position(%(source_ids)s, source_id)
+        LIMIT 1
+    """
+    rows = _make_dicts(fetch(sql, params))
+    if not rows:
+        return {}
+    return rows[0]
+
+
 def synop(
         date, last_date=None, dwd_station_id=None, wmo_station_id=None,
         source_id=None):

@@ -26,6 +26,8 @@ def convert_exceptions():
 
 class BrightskyResource:
 
+    ALLOWED_UNITS = ['si'] + list(CONVERTERS)
+
     def parse_location(self, req, required=False):
         lat = req.get_param_as_float(
             'lat', required=required, min_value=-90, max_value=90)
@@ -61,10 +63,15 @@ class BrightskyResource:
                 description='Unknown timezone: %s' % tz_str)
         return tz
 
+    def parse_units(self, req):
+        units = req.get_param('units', default='dwd').lower()
+        if units not in self.ALLOWED_UNITS:
+            raise falcon.HTTPBadRequest(
+                description="'units' must be in %s" % (self.ALLOWED_UNITS,))
+        return units
+
 
 class WeatherResource(BrightskyResource):
-
-    ALLOWED_UNITS = ['si'] + list(CONVERTERS)
 
     def on_get(self, req, resp):
         date, last_date = self.parse_date_range(req)
@@ -76,11 +83,8 @@ class WeatherResource(BrightskyResource):
             wmo_station_id = req.get_param('station_id')
         source_id = req.get_param_as_int('source_id')
         max_dist = self.parse_max_dist(req)
-        units = req.get_param('units', default='dwd').lower()
-        if units not in self.ALLOWED_UNITS:
-            raise falcon.HTTPBadRequest(
-                description="'units' must be in %s" % (self.ALLOWED_UNITS,))
         timezone = self.parse_timezone(req)
+        units = self.parse_units(req)
         if timezone:
             if not date.tzinfo:
                 date = date.replace(tzinfo=timezone)
@@ -106,6 +110,25 @@ class WeatherResource(BrightskyResource):
         row['timestamp'] = row['timestamp'].isoformat()
         if units != 'si':
             convert_record(row, units)
+
+
+class CurrentWeatherResource(WeatherResource):
+
+    def on_get(self, req, resp):
+        lat, lon = self.parse_location(req)
+        dwd_station_id = req.get_param('dwd_station_id')
+        wmo_station_id = req.get_param('wmo_station_id')
+        source_id = req.get_param_as_int('source_id')
+        max_dist = self.parse_max_dist(req)
+        timezone = self.parse_timezone(req)
+        units = self.parse_units(req)
+        with convert_exceptions():
+            result = query.current_weather(
+                lat=lat, lon=lon, dwd_station_id=dwd_station_id,
+                wmo_station_id=wmo_station_id, source_id=source_id,
+                max_dist=max_dist)
+        self.process_row(result['weather'], units, timezone)
+        resp.media = result
 
 
 class SynopResource(WeatherResource):
@@ -138,6 +161,7 @@ cors = falcon_cors.CORS(allow_origins_list=settings.CORS_ALLOWED_ORIGINS)
 
 app = falcon.API(middleware=[cors.middleware])
 app.add_route('/weather', WeatherResource())
+app.add_route('/current_weather', CurrentWeatherResource())
 app.add_route('/synop', SynopResource())
 app.add_route('/sources', SourcesResource())
 

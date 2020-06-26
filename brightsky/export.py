@@ -40,6 +40,7 @@ class DBExporter:
                 {conflict_updates};
     """)
     UPDATE_WEATHER_CONFLICT_UPDATE = '{field} = EXCLUDED.{field}'
+    UPDATE_WEATHER_CLEANUP = None
     SOURCE_FIELDS = [
         'observation_type', 'lat', 'lon', 'height', 'dwd_station_id',
         'wmo_station_id', 'station_name']
@@ -111,6 +112,9 @@ class DBExporter:
             )
             with conn.cursor() as cur:
                 execute_values(cur, stmt, records, template, page_size=1000)
+        if self.UPDATE_WEATHER_CLEANUP:
+            with conn.cursor() as cur:
+                cur.execute(self.UPDATE_WEATHER_CLEANUP)
 
     def make_batches(self, records):
         batches = {}
@@ -146,6 +150,8 @@ class SYNOPExporter(DBExporter):
     WEATHER_TABLE = 'synop'
     UPDATE_WEATHER_CONFLICT_UPDATE = (
         '{field} = COALESCE(EXCLUDED.{field}, {weather_table}.{field})')
+    UPDATE_WEATHER_CLEANUP = (
+        'REFRESH MATERIALIZED VIEW CONCURRENTLY current_weather')
 
     ELEMENT_FIELDS = [
         'cloud_cover', 'dew_point', 'precipitation_10', 'precipitation_30',

@@ -1,11 +1,11 @@
 openapi: 3.0.3
 info:
   title: Bright Sky
-  version: 0.8.1
+  version: 0.9.0
   description: |
     <h2>JSON API for DWD's open weather data.</h2>
 
-    Bright Sky's main API server is located at `https://api.brightsky.dev/`. The following paragraphs provide some background information on data sources, performance considerations, and internal structure. If you just want to get started, head straight to the [`weather` endpoint](#get-/weather).
+    Bright Sky's main API server is located at `https://api.brightsky.dev/`. The following paragraphs provide some background information on data sources, performance considerations, and internal structure. If you just want to get started, head straight to the [`weather` endpoint](#get-/weather) (for historical and forecasted weather) or the [`current_weather` endpoint](#get-/current_weather).
 
     The documentation you are looking at is generated from an OpenAPI specification. The current version is available from https://brightsky.dev/brightsky.yml.
 
@@ -39,7 +39,7 @@ info:
 
     The DWD provides data from an extensive network of own and third-party meteorological observation stations, located mainly but not exclusively in Germany. Each of these is identified by a station ID. In an ideal world, these stations would provide an endless stream of one record of "historical weather" and one record of "forecasted weather" per hour. Sadly (and I am sure to much nuisance for the DWD), in the real world, stations have outages and measurement errors, and sometimes even move. Moreover, the weather forecasts come from a model that is not tied to any physical observation station locations, and predicts the meteorological parameters at a whole bunch of additional locations (which each get their own station ID).
 
-    To accomodate these real-world complications, Bright Sky internally uses a concept of _sources_. Each source is a unique combination of location and observation type. Hence, each physical observation station (with a single station ID) will typically correspond to four sources in Bright Sky: one for each of the four observation types `forecast`, `current`, `recent`, and `historical`. If the station has moved during its lifetime, you may even find more than one source for the same station ID and observation type.
+    To accomodate these real-world complications, Bright Sky internally uses a concept of _sources_. Each source is a unique combination of location and observation type. Hence, each physical observation station (with a single station ID) will typically correspond to five sources in Bright Sky: one for each of the five observation types `forecast`, `synop`, `current`, `recent`, and `historical`. If the station has moved during its lifetime, you may even find more than one source for the same station ID and observation type.
 
     Bright Sky's _source IDs_ have no meaning in the real world. They should be treated as the technical artifact they are, and not even relied on to stay constant (although they likely will within each major release of Bright Sky).
 
@@ -133,6 +133,99 @@ paths:
           $ref: '#/components/responses/InvalidRequest'
         '404':
           $ref: '#/components/responses/NoSources'
+  /current_weather:
+    get:
+      summary: Get current weather
+      tags:
+        - weather
+      description: |
+        Get current weather for a given location.
+
+        This endpoint is different from the other weather endpoints in that it does not directly correspond to any of the data available from the DWD Open Data server. Instead, it is a best-effort solution to reflect current weather conditions by compiling SYNOP observations from the past one and a half hours.
+
+        To set the location for which to retrieve weather, you must supply both `lat` and `lon` _or_ one of `dwd_station_id`, `wmo_station_id`, or `source_id`.
+      operationId: getWeather
+      parameters:
+        - $ref: '#/components/parameters/lat'
+        - $ref: '#/components/parameters/lon'
+        - $ref: '#/components/parameters/dwd_station_id'
+        - $ref: '#/components/parameters/wmo_station_id'
+        - $ref: '#/components/parameters/source_id'
+        - $ref: '#/components/parameters/max_dist'
+        - $ref: '#/components/parameters/tz'
+        - $ref: '#/components/parameters/units'
+      responses:
+        '200':
+          description: Current weather and meta information on its sources.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  weather:
+                    allOf:
+                      - $ref: '#/components/schemas/SynopRecord'
+                      - type: object
+                        properties:
+                          fallback_source_ids:
+                            description: Object mapping meteorological parameters to the source IDs of alternative sources that were used to fill up missing values in the main source
+                            type: object
+                  sources:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Source'
+                example:
+                  weather:
+                    source_id: 9296
+                    timestamp: '2020-06-26T10:30:00+00:00'
+                    cloud_cover: 0
+                    dew_point: 10.89
+                    precipitation_10: 0
+                    precipitation_30: 0
+                    precipitation_60: 0
+                    pressure_msl: 1013.3
+                    relative_humidity: 38
+                    visibility: 34399
+                    wind_direction_10: 110
+                    wind_direction_30: 125
+                    wind_direction_60: 132
+                    wind_speed_10: 17.3
+                    wind_speed_30: 15.5
+                    wind_speed_60: 16.2
+                    wind_gust_direction_10: 110
+                    wind_gust_direction_30: 110
+                    wind_gust_direction_60: 110
+                    wind_gust_speed_10: 31.3
+                    wind_gust_speed_30: 31.3
+                    wind_gust_speed_60: 31.3
+                    sunshine_30: 30
+                    sunshine_60: 60
+                    temperature: 26.3
+                    fallback_source_ids:
+                      visibility: 9358
+                  sources:
+                    - id: 9296
+                      dwd_station_id: '01766'
+                      observation_type: synop
+                      lat: 52.1344
+                      lon: 7.69685
+                      height: 47.8
+                      station_name: Muenster/Osnabrueck
+                      wmo_station_id: '10315'
+                      distance: 16363.614888635135
+                    - id: 9358
+                      dwd_station_id: '07374'
+                      observation_type: synop
+                      lat: 52.0814
+                      lon: 6.94096
+                      height: 45.5
+                      station_name: Ahaus
+                      wmo_station_id: '10309'
+                      distance: 46027.181977953594
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NoSources'
   /synop:
     get:
       summary: Get SYNOP observations
@@ -143,7 +236,7 @@ paths:
 
         To set the weather station for which to retrieve records, you must supply one of `dwd_station_id`, `wmo_station_id`, or `source_id`. The `synop` endpoint does not support `lat` and `lon`; use the `sources` endpoint if you need to retrieve a SYNOP station ID close to a given location.
 
-        SYNOP observations are stored as they were reported, which in particular implies that many parameters are only available at certain timestamps. For example, most stations report `sunshine_60` only on the full hour, and `sunshine_30` only at 30 minutes past the full hour (i.e. also not on the full hour).
+        SYNOP observations are stored as they were reported, which in particular implies that many parameters are only available at certain timestamps. For example, most stations report `sunshine_60` only on the full hour, and `sunshine_30` only at 30 minutes past the full hour (i.e. also not on the full hour). Check out the [`current_weather` endpoint](#get-/current_weather) for an opinionated compilation of recent SYNOP records into a single "current weather" record.
       operationId: getSynop
       parameters:
         - $ref: '#/components/parameters/date'
@@ -441,7 +534,7 @@ components:
           description: Source type
           type: string
           example: 'recent'
-          enum: ['forecast', 'current', 'recent', 'historical']
+          enum: ['forecast', 'synop', 'current', 'recent', 'historical']
         lat:
           description: Station latitude, in decimal degrees
           type: number
