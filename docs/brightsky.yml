@@ -144,7 +144,7 @@ paths:
         This endpoint is different from the other weather endpoints in that it does not directly correspond to any of the data available from the DWD Open Data server. Instead, it is a best-effort solution to reflect current weather conditions by compiling SYNOP observations from the past one and a half hours.
 
         To set the location for which to retrieve weather, you must supply both `lat` and `lon` _or_ one of `dwd_station_id`, `wmo_station_id`, or `source_id`.
-      operationId: getWeather
+      operationId: getCurrentWeather
       parameters:
         - $ref: '#/components/parameters/lat'
         - $ref: '#/components/parameters/lon'
