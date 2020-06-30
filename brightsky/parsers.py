@@ -307,6 +307,11 @@ class CurrentObservationsParser(Parser):
         'relative_humidity': ['101', '107'],
     }
 
+    def should_skip(self):
+        return self.path.endswith(tuple(
+            f'{station:_<5}-BEOB.csv'
+            for station in settings.IGNORED_CURRENT_OBSERVATIONS_STATIONS))
+
     def parse(self, lat=None, lon=None, height=None, station_name=None):
         with open(self.path) as f:
             reader = csv.DictReader(f, delimiter=';')

@@ -6,6 +6,7 @@ from dateutil.tz import tzutc
 
 CORS_ALLOWED_ORIGINS = []
 DATABASE_URL = 'postgres://localhost'
+IGNORED_CURRENT_OBSERVATIONS_STATIONS = ['K386']
 KEEP_DOWNLOADS = False
 MIN_DATE = datetime.datetime(2010, 1, 1, tzinfo=tzutc())
 MAX_DATE = None
