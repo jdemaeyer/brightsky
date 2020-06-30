@@ -163,6 +163,8 @@ class SYNOPExporter(DBExporter):
         'wind_gust_direction_60', 'wind_gust_speed_10', 'wind_gust_speed_30',
         'wind_gust_speed_60']
 
+    synop_update_lock = Lock()
+
     def prepare_records(self, records):
         # Merge records for same source and timestamp (otherwise we will run
         # into trouble with our ON CONFLICT DO UPDATE as we cannot touch the
@@ -180,3 +182,7 @@ class SYNOPExporter(DBExporter):
             if not base.get(k):
                 base[k] = v
         return base
+
+    def update_weather(self, *args, **kwargs):
+        with self.synop_update_lock:
+            super().update_weather(*args, **kwargs)
