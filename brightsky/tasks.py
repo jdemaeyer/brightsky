@@ -53,14 +53,16 @@ def poll(enqueue=False):
             parser_cls = get_parser(os.path.basename(url))
             process(url, priority=parser_cls.PRIORITY)
             enqueued += 1
-        logger.info('Enqueued %d updated files for processing', enqueued)
+        logger.info(
+            'Enqueued %d updated files for processing. Queue size: %d',
+            enqueued, enqueued + len(pending_urls))
     return updated_files
 
 
 def clean():
     expiry_intervals = {
         'weather': {
-            'forecast': '12 hours',
+            'forecast': '3 hours',
             'current': '48 hours',
         },
         'synop': {
@@ -117,5 +119,5 @@ def clean():
                 conn.commit()
                 if cur.rowcount:
                     logger.info(
-                        'Deleted %d outdated parsed file for pattern "%s"',
+                        'Deleted %d outdated parsed files for pattern "%s"',
                         cur.rowcount, filename)

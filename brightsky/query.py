@@ -9,7 +9,7 @@ def _make_dicts(rows):
 
 def weather(
         date, last_date=None, lat=None, lon=None, dwd_station_id=None,
-        wmo_station_id=None, source_id=None, max_dist=50000, fallback=True):
+        wmo_station_id=None, source_id=None, max_dist=50000):
     if not last_date:
         last_date = date + datetime.timedelta(days=1)
     if source_id is not None:
@@ -21,12 +21,18 @@ def weather(
     else:
         sources_rows = sources(
             lat=lat, lon=lon, dwd_station_id=dwd_station_id,
-            wmo_station_id=wmo_station_id, max_dist=max_dist
-        )['sources']
+            wmo_station_id=wmo_station_id, max_dist=max_dist,
+            observation_types=['historical', 'recent', 'current', 'forecast'],
+            date=date, last_date=last_date)['sources']
+        primary_source_ids = {}
+        for row in sources_rows:
+            primary_source_ids.setdefault(row['observation_type'], row['id'])
+        primary_source_ids = list(primary_source_ids.values())
+        weather_rows = _weather(date, last_date, primary_source_ids)
         source_ids = [row['id'] for row in sources_rows]
-        weather_rows = _weather(date, last_date, source_ids)
-        if fallback:
-            _fill_missing_fields(weather_rows, date, last_date, source_ids)
+        if len(weather_rows) < int((last_date - date).total_seconds()) // 3600:
+            weather_rows = _weather(date, last_date, source_ids)
+        _fill_missing_fields(weather_rows, date, last_date, source_ids)
         used_source_ids = {row['source_id'] for row in weather_rows}
         used_source_ids.update(
             source_id
@@ -63,11 +69,17 @@ def _weather(date, last_date, source_id, not_null=None):
     return _make_dicts(fetch(sql, params))
 
 
+# Not available in MOSMIX
+IGNORED_MISSING_FIELDS = {'wind_gust_direction', 'relative_humidity'}
+
+
 def _fill_missing_fields(weather_rows, date, last_date, source_ids):
     incomplete_rows = []
     missing_fields = set()
     for row in weather_rows:
-        missing_row_fields = set(k for k, v in row.items() if v is None)
+        missing_row_fields = set(
+            k for k, v in row.items() if v is None
+        ).difference(IGNORED_MISSING_FIELDS)
         if missing_row_fields:
             incomplete_rows.append((row, missing_row_fields))
             missing_fields.update(missing_row_fields)
@@ -150,7 +162,7 @@ def synop(
         last_date = date + datetime.timedelta(days=1)
     sources_rows = sources(
         dwd_station_id=dwd_station_id, wmo_station_id=wmo_station_id,
-        source_id=source_id, observation_type='synop')['sources']
+        source_id=source_id, observation_types=['synop'])['sources']
     source_ids = [row['id'] for row in sources_rows]
     sql = """
         SELECT *
@@ -173,8 +185,8 @@ def synop(
 
 def sources(
         lat=None, lon=None, dwd_station_id=None, wmo_station_id=None,
-        source_id=None, observation_type=None, max_dist=50000,
-        ignore_type=False):
+        source_id=None, observation_types=None, max_dist=50000,
+        ignore_type=False, date=None, last_date=None):
     select = "*"
     order_by = "observation_type"
     if source_id is not None:
@@ -206,8 +218,12 @@ def sources(
         raise ValueError(
             "Please supply lat/lon or dwd_station_id or wmo_station_id or "
             "source_id")
-    if observation_type:
-        where += " AND observation_type = %(observation_type)s"
+    if observation_types:
+        where += " AND observation_type IN %(observation_types)s"
+    if date is not None:
+        where += " AND last_record >= %(date)s"
+    if last_date is not None:
+        where += " AND first_record <= %(last_date)s"
     sql = f"""
         SELECT {select}
         FROM sources
@@ -221,7 +237,9 @@ def sources(
         'dwd_station_id': dwd_station_id,
         'wmo_station_id': wmo_station_id,
         'source_id': source_id,
-        'observation_type': observation_type,
+        'observation_types': tuple(observation_types or ()),
+        'date': date,
+        'last_date': last_date,
     }
     rows = fetch(sql, params)
     if not rows:
