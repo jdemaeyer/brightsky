@@ -6,13 +6,15 @@ import random
 import time
 from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from contextlib import contextmanager
+from functools import lru_cache
 from multiprocessing import cpu_count
 
 import click
 import psycopg2
 from dateutil.tz import tzutc
+from falcon.testing import TestClient
 
-from brightsky import db, query, tasks
+from brightsky import db, tasks
 from brightsky.settings import settings
 from brightsky.utils import configure_logging, load_dotenv
 
@@ -32,6 +34,12 @@ def _time(description, precision=0, unit='s'):
     if not description.rstrip().endswith(':'):
         description += ':'
     click.echo(f'{description} {delta_str}')
+
+
+@lru_cache
+def get_client():
+    from brightsky.web import app
+    return TestClient(app)
 
 
 @click.group()
@@ -67,10 +75,13 @@ def build():
             futures = [
                 executor.submit(tasks.parse, url=file_info['url'], export=True)
                 for file_info in file_infos]
-            finished_futures, _ = wait(futures, return_when=FIRST_EXCEPTION)
-            for f in finished_futures:
+            finished, pending = wait(futures, return_when=FIRST_EXCEPTION)
+            for f in pending:
+                f.cancel()
+            for f in finished:
                 # Re-raise any occured exceptions
-                f.result()
+                if exc := f.exception():
+                    raise exc
 
 
 @cli.command(help='Calculate database size')
@@ -101,6 +112,20 @@ def mosmix_parse():
         tasks.parse(url=MOSMIX_URL, export=True)
 
 
+def _query_sequential(path, kwargs_list, **base_kwargs):
+    client = get_client()
+    for kwargs in kwargs_list:
+        client.simulate_get(path, params={**base_kwargs, **kwargs})
+
+
+def _query_parallel(path, kwargs_list, **base_kwargs):
+    client = get_client()
+    with ThreadPoolExecutor(max_workers=2*cpu_count()+1) as executor:
+        for kwargs in kwargs_list:
+            executor.submit(
+                client.simulate_get, path, params={**base_kwargs, **kwargs})
+
+
 @cli.command('query', help='Query records from database')
 def query_():
     # Generate 50 random locations within Germany's bounding box. Locations
@@ -126,39 +151,66 @@ def query_():
             station_kwargs = [
                 {'dwd_station_id': row['dwd_station_id']} for row in rows]
             source_kwargs = [{'source_id': row['id']} for row in rows]
-    date = datetime.date(2020, 2, 14)
-    last_date = datetime.date(2020, 2, 21)
+            cur.execute(
+                """
+                SELECT MAX(last_record)
+                FROM sources
+                WHERE observation_type = 'current'
+                """)
+            today = cur.fetchone()['max'].date().isoformat()
+    date = '2020-02-14'
+    last_date = '2020-02-21'
 
-    def _test_with_kwargs(desc, kwargs_list, **extra_kwargs):
+    def _test_with_kwargs(kwargs_list):
         with _time('  100  one-day queries, sequential', precision=2):
-            for kwargs in kwargs_list:
-                query.weather(date, **kwargs, **extra_kwargs)
+            _query_sequential('/weather', kwargs_list, date=date)
         with _time('  100  one-day queries, parallel:  ', precision=2):
-            with ThreadPoolExecutor(max_workers=2*cpu_count()+1) as executor:
-                for kwargs in kwargs_list:
-                    executor.submit(
-                        query.weather, date, **kwargs, **extra_kwargs)
+            _query_parallel('/weather', kwargs_list, date=date)
         with _time('  100 one-week queries, sequential', precision=2):
-            for kwargs in kwargs_list:
-                query.weather(
-                    date, last_date=last_date, **kwargs, **extra_kwargs)
+            _query_sequential(
+                '/weather', kwargs_list, date=date, last_date=last_date)
         with _time('  100 one-week queries, parallel:  ', precision=2):
-            with ThreadPoolExecutor(max_workers=2*cpu_count()+1) as executor:
-                for kwargs in kwargs_list:
-                    executor.submit(
-                        query.weather,
-                        date,
-                        last_date=last_date, **kwargs, **extra_kwargs)
+            _query_parallel(
+                '/weather', kwargs_list, date=date, last_date=last_date)
 
-    click.echo('By lat/lon:')
-    _test_with_kwargs('by lat/lon,', location_kwargs)
-    click.echo('\nBy lat/lon, no fallback:')
-    _test_with_kwargs(
-        'by lat/lon, no fallback,', location_kwargs, fallback=False)
-    click.echo('\nBy station:')
-    _test_with_kwargs('by station,', station_kwargs)
-    click.echo('\nBy source:')
-    _test_with_kwargs('by source, ', source_kwargs)
+    click.echo('Sources by lat/lon:')
+    with _time('  100  queries, sequential:        ', precision=2):
+        _query_sequential('/sources', location_kwargs)
+    with _time('  100  queries, parallel:          ', precision=2):
+        _query_parallel('/sources', location_kwargs)
+    click.echo('\nSources by station:')
+    with _time('  100  queries, sequential:        ', precision=2):
+        _query_sequential('/sources', station_kwargs)
+    with _time('  100  queries, parallel:          ', precision=2):
+        _query_parallel('/sources', station_kwargs)
+    click.echo('\nSources by source:')
+    with _time('  100  queries, sequential:        ', precision=2):
+        _query_sequential('/sources', source_kwargs)
+    with _time('  100  queries, parallel:          ', precision=2):
+        _query_parallel('/sources', source_kwargs)
+
+    click.echo('\nWeather by lat/lon:')
+    _test_with_kwargs(location_kwargs)
+    click.echo('\nWeather by lat/lon, today:')
+    with _time('  100  one-day queries, sequential', precision=2):
+        _query_sequential('/weather', location_kwargs, date=today)
+    with _time('  100  one-day queries, parallel:  ', precision=2):
+        _query_parallel('/weather', location_kwargs, date=today)
+    click.echo('\nWeather by station:')
+    _test_with_kwargs(station_kwargs)
+    click.echo('\nWeather by source:')
+    _test_with_kwargs(source_kwargs)
+
+    click.echo('\nCurrent weather by lat/lon:')
+    with _time('  100  queries, sequential:        ', precision=2):
+        _query_sequential('/current_weather', location_kwargs)
+    with _time('  100  queries, parallel:          ', precision=2):
+        _query_parallel('/current_weather', location_kwargs)
+    click.echo('\nCurrent weather by station:')
+    with _time('  100  queries, sequential:        ', precision=2):
+        _query_sequential('/current_weather', station_kwargs)
+    with _time('  100  queries, parallel:          ', precision=2):
+        _query_parallel('/current_weather', station_kwargs)
 
 
 if __name__ == '__main__':
