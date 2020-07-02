@@ -70,6 +70,18 @@ class BrightskyResource:
                 description="'units' must be in %s" % (self.ALLOWED_UNITS,))
         return units
 
+    def process_timestamp(self, row, key, timezone):
+        if not row[key]:
+            return
+        if timezone:
+            row[key] = row[key].astimezone(timezone)
+        row[key] = row[key].isoformat()
+
+    def process_sources(self, sources, timezone=None):
+        for source in sources:
+            self.process_timestamp(source, 'first_record', timezone)
+            self.process_timestamp(source, 'last_record', timezone)
+
 
 class WeatherResource(BrightskyResource):
 
@@ -97,6 +109,7 @@ class WeatherResource(BrightskyResource):
                 date, last_date=last_date, lat=lat, lon=lon,
                 dwd_station_id=dwd_station_id, wmo_station_id=wmo_station_id,
                 source_id=source_id, max_dist=max_dist)
+        self.process_sources(result.get('sources', []))
         for row in result['weather']:
             self.process_row(row, units, timezone)
         resp.media = result
@@ -105,9 +118,7 @@ class WeatherResource(BrightskyResource):
         return query.weather(*args, **kwargs)
 
     def process_row(self, row, units, timezone):
-        if timezone:
-            row['timestamp'] = row['timestamp'].astimezone(timezone)
-        row['timestamp'] = row['timestamp'].isoformat()
+        self.process_timestamp(row, 'timestamp', timezone)
         if units != 'si':
             convert_record(row, units)
 
@@ -127,6 +138,7 @@ class CurrentWeatherResource(WeatherResource):
                 lat=lat, lon=lon, dwd_station_id=dwd_station_id,
                 wmo_station_id=wmo_station_id, source_id=source_id,
                 max_dist=max_dist)
+        self.process_sources(result.get('sources', []))
         self.process_row(result['weather'], units, timezone)
         resp.media = result
 
@@ -154,6 +166,7 @@ class SourcesResource(BrightskyResource):
                 lat=lat, lon=lon, dwd_station_id=dwd_station_id,
                 wmo_station_id=wmo_station_id, source_id=source_id,
                 max_dist=max_dist, ignore_type=True)
+        self.process_sources(result.get('sources', []))
         resp.media = result
 
 

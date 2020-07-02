@@ -19,13 +19,17 @@ class DBExporter:
     UPDATE_SOURCES_STMT = """
         INSERT INTO sources (
             observation_type, lat, lon, height, dwd_station_id, wmo_station_id,
-            station_name)
+            station_name, first_record, last_record)
         VALUES %s
         ON CONFLICT
             ON CONSTRAINT weather_source_key DO UPDATE SET
                 dwd_station_id = EXCLUDED.dwd_station_id,
                 wmo_station_id = EXCLUDED.wmo_station_id,
-                station_name = EXCLUDED.station_name
+                station_name = EXCLUDED.station_name,
+                first_record = LEAST(
+                    sources.first_record, EXCLUDED.first_record),
+                last_record = GREATEST(
+                    sources.last_record, EXCLUDED.last_record)
         RETURNING id;
     """
     UPDATE_SOURCES_CLEANUP = """
@@ -68,12 +72,23 @@ class DBExporter:
         sources = {}
         for r in records:
             r['source'] = tuple(r[field] for field in self.SOURCE_FIELDS)
-            sources[r['source']] = {
-                field: r[field] for field in self.SOURCE_FIELDS}
+            source = sources.setdefault(
+                r['source'],
+                {field: r[field] for field in self.SOURCE_FIELDS})
+            if 'first_record' in source:
+                source['first_record'] = min(
+                    source['first_record'], r['timestamp'])
+                source['last_record'] = max(
+                    source['last_record'], r['timestamp'])
+            else:
+                source['first_record'] = r['timestamp']
+                source['last_record'] = r['timestamp']
         return sources
 
     def update_sources(self, conn, sources):
-        fields = ', '.join(f'%({field})s' for field in self.SOURCE_FIELDS)
+        extra_fields = ['first_record', 'last_record']
+        fields = ', '.join(
+            f'%({field})s' for field in self.SOURCE_FIELDS + extra_fields)
         with self.sources_update_lock:
             with conn.cursor() as cur:
                 rows = execute_values(

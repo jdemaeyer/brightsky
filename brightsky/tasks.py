@@ -90,6 +90,22 @@ def clean():
                         logger.info(
                             'Deleted %d outdated %s weather records from %s',
                             cur.rowcount, observation_type, table)
+                cur.execute(
+                    f"""
+                    UPDATE sources SET
+                      first_record = record_range.first_record,
+                      last_record = record_range.last_record
+                    FROM (
+                      SELECT
+                        source_id,
+                        MIN(timestamp) AS first_record,
+                        MAX(timestamp) AS last_record
+                      FROM {table}
+                      GROUP BY source_id
+                    ) AS record_range
+                    WHERE sources.id = record_range.source_id;
+                    """)
+                conn.commit()
             for filename, interval in parsed_files_expiry_intervals.items():
                 cur.execute(
                     """
