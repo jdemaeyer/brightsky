@@ -31,10 +31,6 @@ info:
 
       Bright Sky currently only serves data going back to January 1st, 2010. We plan to extend this to the whole set of historical data published by the DWD in the future.
 
-    ### Performance
-
-    The main bottleneck when querying our database is selecting the closest available station for a given `lat` and `lon`. If you want to improve API latency and know that you will often be querying for the same location, try providing a station ID instead of geographical coordinates. You can retrieve nearby stations for a given location by querying the `/sources` endpoint (see "On Stations and Sources..."). If you are collecting historical data, note that you are not required to submit one query per day like with other weather services. Simply set the `date` and `last_date` parameters to the complete date range you are looking to retrieve.
-
     ## On Stations and Sources...
 
     The DWD provides data from an extensive network of own and third-party meteorological observation stations, located mainly but not exclusively in Germany. Each of these is identified by a station ID. In an ideal world, these stations would provide an endless stream of one record of "historical weather" and one record of "forecasted weather" per hour. Sadly (and I am sure to much nuisance for the DWD), in the real world, stations have outages and measurement errors, and sometimes even move. Moreover, the weather forecasts come from a model that is not tied to any physical observation station locations, and predicts the meteorological parameters at a whole bunch of additional locations (which each get their own station ID).
