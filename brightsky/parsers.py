@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import zipfile
+from concurrent.futures import ProcessPoolExecutor
 from contextlib import suppress
 
 import dateutil.parser
@@ -90,14 +91,23 @@ class MOSMIXParser(Parser):
     }
 
     def parse(self):
+        # Wrap in process as it seems to be leaking memory somewhere in lxml
+        with ProcessPoolExecutor() as executor:
+            f = executor.submit(MOSMIXParser._get_records, self)
+            return f.result()
+
+    @staticmethod
+    def _get_records(parser):
+        return list(parser._parse())
+
+    def _parse(self):
         self.logger.info("Parsing %s", self.path)
         sel = self.get_selector()
         timestamps = self.parse_timestamps(sel)
         source = self.parse_source(sel)
         self.logger.debug(
             'Got %d timestamps for source %s', len(timestamps), source)
-        station_selectors = sel.css('Placemark')
-        for i, station_sel in enumerate(station_selectors):
+        for station_sel in sel.css('Placemark'):
             records = self.parse_station(station_sel, timestamps, source)
             yield from self.sanitize_records(records)
 
