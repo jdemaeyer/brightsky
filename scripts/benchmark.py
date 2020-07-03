@@ -3,6 +3,7 @@
 import datetime
 import logging
 import random
+import re
 import time
 from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from contextlib import contextmanager
@@ -86,14 +87,15 @@ def build():
 
 @cli.command(help='Calculate database size')
 def db_size():
-    db_name = settings.DATABASE_URL.rsplit('/', 1)[1]
+    m = re.search(r'/(\w+)$', settings.DATABASE_URL)
+    db_name = m.group(1) if m else 'postgres'
     with db.get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 'SELECT pg_database_size(%s)', (db_name,))
             db_size = cur.fetchone()
             table_sizes = {}
-            for table in ['weather', 'sources']:
+            for table in ['weather', 'synop', 'sources']:
                 cur.execute('SELECT pg_total_relation_size(%s)', (table,))
                 table_sizes[table] = cur.fetchone()[0]
     click.echo('Total database size:\n%6d MB' % (db_size[0] / 1024 / 1024))
