@@ -1,3 +1,4 @@
+import datetime
 import logging
 import re
 
@@ -39,14 +40,12 @@ class DWDPoller:
     def poll(self):
         self.logger.info("Polling for updated files")
         parsed_files = {
-            row['url']: (row['last_modified'], row['file_size'])
+            row['url']: row
             for row in fetch('SELECT * FROM parsed_files')
         }
         for url in self.urls:
             for file_info in self.poll_url(url):
-                fingerprint = (
-                    file_info['last_modified'], file_info['file_size'])
-                if parsed_files.get(file_info['url']) != fingerprint:
+                if not self.matches_known_fingerprint(parsed_files, file_info):
                     yield file_info
 
     def poll_url(self, url):
@@ -88,3 +87,20 @@ class DWDPoller:
         yield from files
         for dir_url in directories:
             yield from self.poll_url(dir_url)
+
+    def matches_known_fingerprint(self, parsed_files, file_info):
+        parsed_info = parsed_files.get(file_info['url'])
+        if not parsed_info:
+            return False
+        last_modified_diff = abs(
+            file_info['last_modified'] - parsed_info['last_modified'])
+        # The downloaded file timestamp will sometimes be off from the index
+        # page timestamp by one second, presumably because it is delivered from
+        # a different server than the one that delivered the index page. If the
+        # file was modified at 59 seconds past the minute this can lead to a
+        # timestamp that is off by one minute (as seconds are not part of the
+        # timestamp). To not re-process these files over and over we allow a
+        # one minute time difference from the known fingerprint.
+        return (
+            file_info['file_size'] == parsed_info['file_size'] and
+            last_modified_diff <= datetime.timedelta(minutes=1))
