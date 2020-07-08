@@ -40,7 +40,7 @@ info:
     Bright Sky's _source IDs_ have no meaning in the real world. They should be treated as the technical artifact they are, and not even relied on to stay constant (although they likely will within each major release of Bright Sky).
 
     ## Useful Links
-      - [Bright Sky source code](https://github.com/na-boa/brightsky/)
+      - [Bright Sky source code](https://github.com/jdemaeyer/brightsky/)
       - [DWD Open Data landing page](https://www.dwd.de/EN/ourservices/opendata/opendata.html)
       - [Additional explanation files for DWD Open Data](https://www.dwd.de/DE/leistungen/opendata/hilfe.html?nn=495490&lsbId=627548), including:
           - [List of main observation stations](https://www.dwd.de/DE/leistungen/opendata/help/stationen/ha_messnetz.xls?__blob=publicationFile&v=1)
@@ -58,7 +58,7 @@ info:
     url: 'https://brightsky.dev/'
   license:
     name: MIT License
-    url: 'https://raw.githubusercontent.com/na-boa/brightsky/master/LICENSE'
+    url: 'https://raw.githubusercontent.com/jdemaeyer/brightsky/master/LICENSE'
 servers:
   - url: 'https://api.brightsky.dev/'
 paths:
