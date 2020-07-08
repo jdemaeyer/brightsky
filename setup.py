@@ -6,7 +6,7 @@ with open('README.md') as f:
 
 setup(
     name='brightsky',
-    version='0.9.2',
+    version='0.9.3',
     author='Jakob de Maeyer',
     author_email='jakob@naboa.de',
     description="JSON API for DWD's open weather data.",
