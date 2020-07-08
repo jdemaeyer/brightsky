@@ -3,6 +3,8 @@
 .env
 .tox
 .venv
+build
+dist
 *.egg-info
 *.pyc
 docker-compose.override.yml
