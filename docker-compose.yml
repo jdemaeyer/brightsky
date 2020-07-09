@@ -13,6 +13,7 @@ x-brightsky:
 services:
   postgres:
     image: postgres:12-alpine
+    shm_size: 512mb
     environment:
       POSTGRES_PASSWORD: pgpass
     volumes:
