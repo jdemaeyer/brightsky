@@ -41,6 +41,7 @@ info:
 
     ## Useful Links
       - [Bright Sky source code](https://github.com/jdemaeyer/brightsky/)
+      - [Bright Sky infrastructure configuration](https://github.com/jdemaeyer/brightsky-infrastructure/)
       - [DWD Open Data landing page](https://www.dwd.de/EN/ourservices/opendata/opendata.html)
       - [Additional explanation files for DWD Open Data](https://www.dwd.de/DE/leistungen/opendata/hilfe.html?nn=495490&lsbId=627548), including:
           - [List of main observation stations](https://www.dwd.de/DE/leistungen/opendata/help/stationen/ha_messnetz.xls?__blob=publicationFile&v=1)

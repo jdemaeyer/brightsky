@@ -2,7 +2,21 @@
 
 JSON API for DWD's open weather data.
 
-API Documentation: https://brightsky.dev/
+
+### Looking for something specific?
+
+#### I just want to retrieve some weather data
+
+You can use the free [public Bright Sky instance](https://brightsky.dev/)!
+
+#### I want to run my own instance of Bright Sky
+
+Check out the [infrastructure
+repo](https://github.com/jdemaeyer/brightsky-infrastructure/)!
+
+#### I want to play around with or contribute to Bright Sky's source code
+
+Read on. :)
 
 
 ## Quickstart
