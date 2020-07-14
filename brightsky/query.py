@@ -110,7 +110,8 @@ def current_weather(
         source_id=None, max_dist=50000, fallback=True):
     sources_rows = sources(
         lat=lat, lon=lon, dwd_station_id=dwd_station_id,
-        wmo_station_id=wmo_station_id, max_dist=max_dist
+        wmo_station_id=wmo_station_id, observation_types=['synop'],
+        max_dist=max_dist
     )['sources']
     source_ids = [row['id'] for row in sources_rows]
     weather = _current_weather(source_ids)
