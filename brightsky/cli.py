@@ -86,7 +86,10 @@ def work():
 def serve(bind, reload):
     from brightsky.web import StandaloneApplication
     StandaloneApplication(
-        'brightsky.web:app', bind=bind, workers=2*cpu_count()+1, reload=reload
+        'brightsky.web:app',
+        bind=bind,
+        workers=1 if reload else 2*cpu_count()+1,
+        reload=reload
     ).run()
 
 
