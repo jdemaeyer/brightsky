@@ -202,7 +202,7 @@ def sources(
                 ll_to_earth(lat, lon)
             )
         """
-        select += f", {distance} AS distance"
+        select += f", round({distance}) AS distance"
         where = f"""
             earth_box(
                 ll_to_earth(%(lat)s, %(lon)s),
