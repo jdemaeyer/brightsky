@@ -35,6 +35,18 @@ class BrightskyResource:
             'lon', required=required, min_value=-180, max_value=180)
         return lat, lon
 
+    def parse_source_ids(self, req):
+        return (
+            self._parse_list_or_single(req, 'source_id', transform=int),
+            self._parse_list_or_single(req, 'dwd_station_id'),
+            self._parse_list_or_single(req, 'wmo_station_id'))
+
+    def _parse_list_or_single(self, req, name, transform=None):
+        value = req.get_param_as_list(name, transform=transform)
+        if value and len(value) == 1:
+            return value[0]
+        return value
+
     def parse_max_dist(self, req):
         return req.get_param_as_int(
             'max_dist', min_value=0, max_value=500000, default=50000)
@@ -88,12 +100,10 @@ class WeatherResource(BrightskyResource):
     def on_get(self, req, resp):
         date, last_date = self.parse_date_range(req)
         lat, lon = self.parse_location(req)
-        dwd_station_id = req.get_param('dwd_station_id')
-        wmo_station_id = req.get_param('wmo_station_id')
+        source_id, dwd_station_id, wmo_station_id = self.parse_source_ids(req)
         # TODO: Remove this fallback on 2020-06-13
         if not wmo_station_id:
             wmo_station_id = req.get_param('station_id')
-        source_id = req.get_param_as_int('source_id')
         max_dist = self.parse_max_dist(req)
         timezone = self.parse_timezone(req)
         units = self.parse_units(req)
@@ -127,9 +137,7 @@ class CurrentWeatherResource(WeatherResource):
 
     def on_get(self, req, resp):
         lat, lon = self.parse_location(req)
-        dwd_station_id = req.get_param('dwd_station_id')
-        wmo_station_id = req.get_param('wmo_station_id')
-        source_id = req.get_param_as_int('source_id')
+        source_id, dwd_station_id, wmo_station_id = self.parse_source_ids(req)
         max_dist = self.parse_max_dist(req)
         timezone = self.parse_timezone(req)
         units = self.parse_units(req)
@@ -158,9 +166,7 @@ class SourcesResource(BrightskyResource):
     def on_get(self, req, resp):
         lat, lon = self.parse_location(req)
         max_dist = self.parse_max_dist(req)
-        dwd_station_id = req.get_param('dwd_station_id')
-        wmo_station_id = req.get_param('wmo_station_id')
-        source_id = req.get_param_as_int('source_id')
+        source_id, dwd_station_id, wmo_station_id = self.parse_source_ids(req)
         with convert_exceptions():
             result = query.sources(
                 lat=lat, lon=lon, dwd_station_id=dwd_station_id,
@@ -173,6 +179,8 @@ class SourcesResource(BrightskyResource):
 cors = falcon_cors.CORS(allow_origins_list=settings.CORS_ALLOWED_ORIGINS)
 
 app = falcon.API(middleware=[cors.middleware])
+app.req_options.auto_parse_qs_csv = True
+
 app.add_route('/weather', WeatherResource())
 app.add_route('/current_weather', CurrentWeatherResource())
 app.add_route('/synop', SynopResource())

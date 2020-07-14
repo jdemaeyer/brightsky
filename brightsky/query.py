@@ -190,12 +190,43 @@ def sources(
         ignore_type=False, date=None, last_date=None):
     select = "*"
     order_by = "observation_type"
+    params = {
+        'lat': lat,
+        'lon': lon,
+        'max_dist': max_dist,
+        'dwd_station_id': dwd_station_id,
+        'wmo_station_id': wmo_station_id,
+        'source_id': source_id,
+        'observation_types': tuple(observation_types or ()),
+        'date': date,
+        'last_date': last_date,
+    }
     if source_id is not None:
-        where = "id = %(source_id)s"
+        if isinstance(source_id, list):
+            where = "id IN %(source_id_tuple)s"
+            order_by = (
+                "array_position(%(source_id)s, source_id), observation_type")
+            params['source_id_tuple'] = tuple(source_id)
+        else:
+            where = "id = %(source_id)s"
     elif dwd_station_id is not None:
-        where = "dwd_station_id = %(dwd_station_id)s"
+        if isinstance(dwd_station_id, list):
+            where = "dwd_station_id IN %(dwd_station_id_tuple)s"
+            order_by = (
+                "array_position(%(dwd_station_id)s, dwd_station_id::text), "
+                "observation_type")
+            params['dwd_station_id_tuple'] = tuple(dwd_station_id)
+        else:
+            where = "dwd_station_id = %(dwd_station_id)s"
     elif wmo_station_id is not None:
-        where = "wmo_station_id = %(wmo_station_id)s"
+        if isinstance(wmo_station_id, list):
+            where = "wmo_station_id IN %(wmo_station_id_tuple)s"
+            order_by = (
+                "array_position(%(wmo_station_id)s, wmo_station_id::text), "
+                "observation_type")
+            params['wmo_station_id_tuple'] = tuple(wmo_station_id)
+        else:
+            where = "wmo_station_id = %(wmo_station_id)s"
     elif (lat is not None and lon is not None):
         distance = """
             earth_distance(
@@ -231,17 +262,6 @@ def sources(
         WHERE {where}
         ORDER BY {order_by}
         """
-    params = {
-        'lat': lat,
-        'lon': lon,
-        'max_dist': max_dist,
-        'dwd_station_id': dwd_station_id,
-        'wmo_station_id': wmo_station_id,
-        'source_id': source_id,
-        'observation_types': tuple(observation_types or ()),
-        'date': date,
-        'last_date': last_date,
-    }
     rows = fetch(sql, params)
     if not rows:
         raise LookupError("No sources match your criteria")
