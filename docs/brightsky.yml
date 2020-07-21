@@ -370,6 +370,7 @@ components:
             Current weather conditions, one of `dry`, `fog`, `rain`, `sleet`, `snow`, `hail`, `thunderstorm`. Note: Unlike the numerical parameters, this field is not taken as-is from the raw data (because it does not exist), but is calculated from different fields in the raw data as a best effort. Not all values are available for all source types.
           type: string
           example: 'rain'
+          enum: ['dry', 'fog', 'rain', 'sleet', 'snow', 'hail', 'thunderstorm']
         dew_point:
           description: Dew point at timestamp, 2 m above ground
           type: number
@@ -437,6 +438,7 @@ components:
             Current weather conditions, one of `dry`, `fog`, `rain`, `sleet`, `snow`, `hail`, `thunderstorm`. Note: Unlike the numerical parameters, this field is not taken as-is from the raw data (because it does not exist), but is calculated from different fields in the raw data as a best effort. Not all values are available for all source types.
           type: string
           example: 'rain'
+          enum: ['dry', 'fog', 'rain', 'sleet', 'snow', 'hail', 'thunderstorm']
         dew_point:
           description: Dew point at timestamp, 2 m above ground
           type: number
