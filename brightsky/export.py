@@ -49,9 +49,9 @@ class DBExporter:
         'observation_type', 'lat', 'lon', 'height', 'dwd_station_id',
         'wmo_station_id', 'station_name']
     ELEMENT_FIELDS = [
-        'cloud_cover', 'dew_point', 'precipitation', 'pressure_msl',
-        'relative_humidity', 'sunshine', 'temperature', 'visibility',
-        'wind_direction', 'wind_speed', 'wind_gust_direction',
+        'cloud_cover', 'condition', 'dew_point', 'precipitation',
+        'pressure_msl', 'relative_humidity', 'sunshine', 'temperature',
+        'visibility', 'wind_direction', 'wind_speed', 'wind_gust_direction',
         'wind_gust_speed']
 
     sources_update_lock = Lock()
@@ -169,11 +169,11 @@ class SYNOPExporter(DBExporter):
         'REFRESH MATERIALIZED VIEW CONCURRENTLY current_weather')
 
     ELEMENT_FIELDS = [
-        'cloud_cover', 'dew_point', 'precipitation_10', 'precipitation_30',
-        'precipitation_60', 'pressure_msl', 'relative_humidity', 'sunshine_10',
-        'sunshine_30', 'sunshine_60', 'temperature', 'visibility',
-        'wind_direction_10', 'wind_direction_30', 'wind_direction_60',
-        'wind_speed_10', 'wind_speed_30', 'wind_speed_60',
+        'cloud_cover', 'condition', 'dew_point', 'precipitation_10',
+        'precipitation_30', 'precipitation_60', 'pressure_msl',
+        'relative_humidity', 'sunshine_10', 'sunshine_30', 'sunshine_60',
+        'temperature', 'visibility', 'wind_direction_10', 'wind_direction_30',
+        'wind_direction_60', 'wind_speed_10', 'wind_speed_30', 'wind_speed_60',
         'wind_gust_direction_10', 'wind_gust_direction_30',
         'wind_gust_direction_60', 'wind_gust_speed_10', 'wind_gust_speed_30',
         'wind_gust_speed_60']

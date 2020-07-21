@@ -105,6 +105,7 @@ paths:
                     - timestamp: '2020-04-21T00:00:00+00:00'
                       source_id: 6007
                       cloud_cover: 0
+                      condition: 'dry'
                       dew_point: -2.5
                       precipitation: 0
                       pressure_msl: 1015.1
@@ -176,6 +177,7 @@ paths:
                     source_id: 9296
                     timestamp: '2020-06-26T10:30:00+00:00'
                     cloud_cover: 0
+                    condition: 'dry'
                     dew_point: 10.89
                     precipitation_10: 0
                     precipitation_30: 0
@@ -264,6 +266,7 @@ paths:
                     - timestamp: '2020-06-25T13:00:00+00:00'
                       source_id: 9296
                       cloud_cover: 25
+                      condition: 'dry'
                       dew_point: 14.81
                       precipitation_10:
                       precipitation_30:
@@ -362,6 +365,11 @@ components:
           description: Total cloud cover at timestamp
           type: number
           example: 12.1
+        condition:
+          description: |
+            Current weather conditions, one of `dry`, `fog`, `rain`, `sleet`, `snow`, `hail`, `thunderstorm`. Note: Unlike the numerical parameters, this field is not taken as-is from the raw data (because it does not exist), but is calculated from different fields in the raw data as a best effort. Not all values are available for all source types.
+          type: string
+          example: 'rain'
         dew_point:
           description: Dew point at timestamp, 2 m above ground
           type: number
@@ -424,6 +432,11 @@ components:
           description: Total cloud cover at timestamp
           type: number
           example: 12.1
+        condition:
+          description: |
+            Current weather conditions, one of `dry`, `fog`, `rain`, `sleet`, `snow`, `hail`, `thunderstorm`. Note: Unlike the numerical parameters, this field is not taken as-is from the raw data (because it does not exist), but is calculated from different fields in the raw data as a best effort. Not all values are available for all source types.
+          type: string
+          example: 'rain'
         dew_point:
           description: Dew point at timestamp, 2 m above ground
           type: number

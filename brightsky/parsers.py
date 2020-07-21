@@ -18,8 +18,11 @@ from brightsky.db import fetch
 from brightsky.export import DBExporter, SYNOPExporter
 from brightsky.settings import settings
 from brightsky.units import (
-    celsius_to_kelvin, eighths_to_percent, hpa_to_pa, kmh_to_ms,
-    minutes_to_seconds)
+    celsius_to_kelvin, current_observations_weather_code_to_condition,
+    eighths_to_percent, hpa_to_pa, kmh_to_ms, minutes_to_seconds,
+    synop_current_weather_code_to_condition,
+    synop_form_of_precipitation_code_to_condition,
+    synop_past_weather_code_to_condition)
 from brightsky.utils import cache_path, download, dwd_id_to_wmo, wmo_id_to_dwd
 
 
@@ -88,6 +91,7 @@ class MOSMIXParser(Parser):
         'Td': 'dew_point',
         'TTT': 'temperature',
         'VV': 'visibility',
+        'ww': 'condition',
     }
 
     def parse(self):
@@ -139,8 +143,9 @@ class MOSMIXParser(Parser):
             values_str = station_sel.css(
                 f'Forecast[elementName="{element}"] value::text'
             ).extract_first()
+            converter = getattr(self, f'parse_{column}', float)
             records[column] = [
-                None if row[0] == '-' else float(row[0])
+                None if row[0] == '-' else converter(row[0])
                 for row in csv.reader(
                     re.sub(r'\s+', '\n', values_str.strip()).splitlines())
             ]
@@ -160,6 +165,10 @@ class MOSMIXParser(Parser):
             {**base_record, **dict(zip(records, row))}
             for row in zip(*records.values())
         )
+
+    def parse_condition(self, value):
+        code = int(value.split('.')[0])
+        return synop_current_weather_code_to_condition(code)
 
     def sanitize_records(self, records):
         for r in records:
@@ -274,6 +283,19 @@ class SYNOPParser(Parser):
         record['wmo_station_id'] = wmo_id
         record['dwd_station_id'] = wmo_id_to_dwd(wmo_id)
 
+    def parse_presentWeather(self, record, data, value):
+        if record.get('timePeriod'):
+            return
+        condition = synop_current_weather_code_to_condition(value)
+        # Don't overwrite any condition from pastWeather1 with None, but do
+        # prioritize presentWeather if it's not None
+        if condition:
+            record['condition'] = condition
+
+    def parse_pastWeather1(self, record, data, value):
+        if value and not record.get('condition'):
+            record['condition'] = synop_past_weather_code_to_condition(value)
+
     def sanitize_record(self, record):
         for field in list(record):
             if field.startswith('precipitation_') and (record[field] or 0) < 0:
@@ -297,6 +319,7 @@ class CurrentObservationsParser(Parser):
         'mean_wind_speed_during last_10_min_at_10_meters_above_ground': (
             'wind_speed'),
         'precipitation_amount_last_hour': 'precipitation',
+        'present_weather': 'condition',
         'pressure_reduced_to_mean_sea_level': 'pressure_msl',
         'relative_humidity': 'relative_humidity',
         'total_time_of_sunshine_during_last_hour': 'sunshine',
@@ -305,6 +328,7 @@ class CurrentObservationsParser(Parser):
     HOUR_COLUMN = 'Parameter description'
 
     CONVERTERS = {
+        'condition': current_observations_weather_code_to_condition,
         'dew_point': celsius_to_kelvin,
         'pressure_msl': hpa_to_pa,
         'sunshine': minutes_to_seconds,
@@ -543,7 +567,28 @@ class PrecipitationObservationsParser(ObservationsParser):
 
     elements = {
         'precipitation': '  R1',
+        'condition': 'WRTR',
     }
+    converters = {
+        'condition': synop_form_of_precipitation_code_to_condition,
+    }
+
+    def parse_reader(self, filename, reader, lat_lon_history):
+        # XXX: WRTR is missing every third hour, we fill it up from the
+        #      previous or next row where sensible
+        rows = list(reader)
+        for i, row in enumerate(rows):
+            if row['WRTR'] != '-999':
+                continue
+            elif row['RS_IND'].strip() == '0':
+                row['WRTR'] = '0'
+            elif i > 0 and rows[i-1]['RS_IND'].strip() == '1':
+                row['WRTR'] = rows[i-1]['WRTR']
+            elif i + 1 < len(rows) and rows[i+1]['RS_IND'].strip() == '1':
+                row['WRTR'] = rows[i+1]['WRTR']
+            else:
+                row['WRTR'] = '9'
+        yield from super().parse_reader(filename, rows, lat_lon_history)
 
 
 class VisibilityObservationsParser(ObservationsParser):

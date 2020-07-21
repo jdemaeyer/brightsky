@@ -37,6 +37,7 @@ def test_mosmix_parser(data_dir):
         'wind_direction': 330.0,
         'wind_speed': 8.75,
         'wind_gust_speed': None,
+        'condition': 'snow',
     }
     assert records[-1] == {
         'observation_type': 'forecast',
@@ -58,6 +59,7 @@ def test_mosmix_parser(data_dir):
         'wind_direction': 49.0,
         'wind_speed': 7.72,
         'wind_gust_speed': None,
+        'condition': 'dry',
     }
 
 
@@ -83,6 +85,7 @@ def test_synop_parser(data_dir):
         'wind_speed_10': 2,
         'wind_gust_direction_10': None,
         'wind_gust_speed_10': None,
+        'condition': 'dry',
     }
     assert records[1] == {
         'observation_type': 'synop',
@@ -133,6 +136,7 @@ def test_current_observation_parser(data_dir):
         'wind_direction': 140,
         'wind_speed': 3.9,
         'wind_gust_speed': 5.8,
+        'condition': None,
     }
     assert records[15] == {
         'observation_type': 'current',
@@ -154,6 +158,7 @@ def test_current_observation_parser(data_dir):
         'wind_direction': 230,
         'wind_speed': 3.9,
         'wind_gust_speed': 7.2,
+        'condition': None,
     }
 
 
