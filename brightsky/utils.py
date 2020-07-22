@@ -4,9 +4,12 @@ import threading
 import time
 import os
 from contextlib import suppress
+from functools import lru_cache
 
 import coloredlogs
 import dateutil.parser
+from astral import Observer
+from astral.sun import daylight
 from dateutil.tz import tzlocal, tzutc
 from parsel import Selector
 
@@ -90,6 +93,11 @@ def parse_date(date_str):
     if not d.tzinfo:
         d.replace(tzinfo=tzutc())
     return d
+
+
+@lru_cache
+def sunrise_sunset(lat, lon, date):
+    return daylight(Observer(lat, lon), date)
 
 
 class StationIDConverter:

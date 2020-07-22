@@ -12,36 +12,29 @@ def weather(
         wmo_station_id=None, source_id=None, max_dist=50000):
     if not last_date:
         last_date = date + datetime.timedelta(days=1)
-    if source_id is not None:
-        weather = _weather(date, last_date, source_id)
-        if not weather:
-            # Make sure we throw a LookupError if the source id does not exist
-            sources(source_id=source_id)
-        return {'weather': weather}
-    else:
-        sources_rows = sources(
-            lat=lat, lon=lon, dwd_station_id=dwd_station_id,
-            wmo_station_id=wmo_station_id, max_dist=max_dist,
-            observation_types=['historical', 'recent', 'current', 'forecast'],
-            date=date, last_date=last_date)['sources']
-        primary_source_ids = {}
-        for row in sources_rows:
-            primary_source_ids.setdefault(row['observation_type'], row['id'])
-        primary_source_ids = list(primary_source_ids.values())
-        weather_rows = _weather(date, last_date, primary_source_ids)
-        source_ids = [row['id'] for row in sources_rows]
-        if len(weather_rows) < int((last_date - date).total_seconds()) // 3600:
-            weather_rows = _weather(date, last_date, source_ids)
-        _fill_missing_fields(weather_rows, date, last_date, source_ids)
-        used_source_ids = {row['source_id'] for row in weather_rows}
-        used_source_ids.update(
-            source_id
-            for row in weather_rows
-            for source_id in row.get('fallback_source_ids', {}).values())
-        return {
-            'weather': weather_rows,
-            'sources': [s for s in sources_rows if s['id'] in used_source_ids],
-        }
+    sources_rows = sources(
+        lat=lat, lon=lon, dwd_station_id=dwd_station_id, source_id=source_id,
+        wmo_station_id=wmo_station_id, max_dist=max_dist,
+        observation_types=['historical', 'recent', 'current', 'forecast'],
+        date=date, last_date=last_date)['sources']
+    primary_source_ids = {}
+    for row in sources_rows:
+        primary_source_ids.setdefault(row['observation_type'], row['id'])
+    primary_source_ids = list(primary_source_ids.values())
+    weather_rows = _weather(date, last_date, primary_source_ids)
+    source_ids = [row['id'] for row in sources_rows]
+    if len(weather_rows) < int((last_date - date).total_seconds()) // 3600:
+        weather_rows = _weather(date, last_date, source_ids)
+    _fill_missing_fields(weather_rows, date, last_date, source_ids)
+    used_source_ids = {row['source_id'] for row in weather_rows}
+    used_source_ids.update(
+        source_id
+        for row in weather_rows
+        for source_id in row.get('fallback_source_ids', {}).values())
+    return {
+        'weather': weather_rows,
+        'sources': [s for s in sources_rows if s['id'] in used_source_ids],
+    }
 
 
 def _weather(date, last_date, source_id, not_null=None):

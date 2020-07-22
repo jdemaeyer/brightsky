@@ -11,7 +11,7 @@ from gunicorn.util import import_app
 from brightsky import query
 from brightsky.settings import settings
 from brightsky.units import convert_record, CONVERTERS
-from brightsky.utils import parse_date
+from brightsky.utils import parse_date, sunrise_sunset
 
 
 @contextmanager
@@ -97,6 +97,9 @@ class BrightskyResource:
 
 class WeatherResource(BrightskyResource):
 
+    PRECIPITATION_FIELD = 'precipitation'
+    WIND_SPEED_FIELD = 'wind_speed'
+
     def on_get(self, req, resp):
         date, last_date = self.parse_date_range(req)
         lat, lon = self.parse_location(req)
@@ -119,21 +122,56 @@ class WeatherResource(BrightskyResource):
                 date, last_date=last_date, lat=lat, lon=lon,
                 dwd_station_id=dwd_station_id, wmo_station_id=wmo_station_id,
                 source_id=source_id, max_dist=max_dist)
-        self.process_sources(result.get('sources', []))
+        self.process_sources(result['sources'])
+        source_map = {s['id']: s for s in result['sources']}
         for row in result['weather']:
-            self.process_row(row, units, timezone)
+            self.process_row(row, units, timezone, source_map)
         resp.media = result
 
     def query(self, *args, **kwargs):
         return query.weather(*args, **kwargs)
 
-    def process_row(self, row, units, timezone):
-        self.process_timestamp(row, 'timestamp', timezone)
+    def process_row(self, row, units, timezone, source_map):
+        row['icon'] = self.get_icon(row, source_map)
         if units != 'si':
             convert_record(row, units)
+        self.process_timestamp(row, 'timestamp', timezone)
+
+    def get_icon(self, row, source_map):
+        if row['condition'] in (
+                'fog', 'sleet', 'snow', 'hail', 'thunderstorm'):
+            return row['condition']
+        precipitation = row[self.PRECIPITATION_FIELD]
+        wind_speed = row[self.WIND_SPEED_FIELD]
+        # Don't show 'rain' icon for little precipitation, and do show 'rain'
+        # icon when condition is None but there is significant precipitation
+        is_rainy = (
+            row['condition'] == 'rain' and precipitation is None) or (
+            (precipitation or 0) > settings.ICON_RAIN_THRESHOLD)
+        if is_rainy:
+            return 'rain'
+        elif (wind_speed or 0) > settings.ICON_WIND_THRESHOLD:
+            return 'wind'
+        elif (row['cloud_cover'] or 0) >= settings.ICON_CLOUDY_THRESHOLD:
+            return 'cloudy'
+        source = source_map[row['source_id']]
+        try:
+            sunrise, sunset = sunrise_sunset(
+                source['lat'], source['lon'], row['timestamp'].date())
+        except ValueError as e:
+            daytime = 'day' if 'above' in e.args[0] else 'night'
+        else:
+            daytime = (
+                'day' if sunrise <= row['timestamp'] <= sunset else 'night')
+        if (row['cloud_cover'] or 0) >= settings.ICON_PARTLY_CLOUDY_THRESHOLD:
+            return f'partly-cloudy-{daytime}'
+        return f'clear-{daytime}'
 
 
 class CurrentWeatherResource(WeatherResource):
+
+    PRECIPITATION_FIELD = 'precipitation_10'
+    WIND_SPEED_FIELD = 'wind_speed_10'
 
     def on_get(self, req, resp):
         lat, lon = self.parse_location(req)
@@ -146,12 +184,16 @@ class CurrentWeatherResource(WeatherResource):
                 lat=lat, lon=lon, dwd_station_id=dwd_station_id,
                 wmo_station_id=wmo_station_id, source_id=source_id,
                 max_dist=max_dist)
-        self.process_sources(result.get('sources', []))
-        self.process_row(result['weather'], units, timezone)
+        self.process_sources(result['sources'])
+        source_map = {s['id']: s for s in result['sources']}
+        self.process_row(result['weather'], units, timezone, source_map)
         resp.media = result
 
 
 class SynopResource(WeatherResource):
+
+    PRECIPITATION_FIELD = 'precipitation_10'
+    WIND_SPEED_FIELD = 'wind_speed_10'
 
     def query(self, *args, **kwargs):
         kwargs.pop('max_dist')

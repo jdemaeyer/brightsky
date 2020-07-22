@@ -107,6 +107,7 @@ paths:
                       cloud_cover: 0
                       condition: 'dry'
                       dew_point: -2.5
+                      icon: 'clear-night'
                       precipitation: 0
                       pressure_msl: 1015.1
                       relative_humidity: 40
@@ -179,6 +180,7 @@ paths:
                     cloud_cover: 0
                     condition: 'dry'
                     dew_point: 10.89
+                    icon: 'clear-day'
                     precipitation_10: 0
                     precipitation_30: 0
                     precipitation_60: 0
@@ -268,6 +270,7 @@ paths:
                       cloud_cover: 25
                       condition: 'dry'
                       dew_point: 14.81
+                      icon: 'partly-cloudy-day'
                       precipitation_10:
                       precipitation_30:
                       precipitation_60: 0
@@ -367,7 +370,7 @@ components:
           example: 12.1
         condition:
           description: |
-            Current weather conditions, one of `dry`, `fog`, `rain`, `sleet`, `snow`, `hail`, `thunderstorm`. Note: Unlike the numerical parameters, this field is not taken as-is from the raw data (because it does not exist), but is calculated from different fields in the raw data as a best effort. Not all values are available for all source types.
+            Current weather conditions. Unlike the numerical parameters, this field is not taken as-is from the raw data (because it does not exist), but is calculated from different fields in the raw data as a best effort. Not all values are available for all source types.
           type: string
           example: 'rain'
           enum: ['dry', 'fog', 'rain', 'sleet', 'snow', 'hail', 'thunderstorm']
@@ -375,6 +378,12 @@ components:
           description: Dew point at timestamp, 2 m above ground
           type: number
           example: -2.5
+        icon:
+          description: |
+            Icon alias suitable for the current weather conditions. Unlike the numerical parameters, this field is not taken as-is from the raw data (because it does not exist), but is calculated from different fields in the raw data as a best effort. Not all values are available for all source types.
+          type: string
+          example: 'partly-cloudy-day'
+          enum: ['clear-day', 'clear-night', 'partly-cloudy-day', 'partly-cloudy-night', 'cloudy', 'fog', 'wind', 'rain', 'sleet', 'snow', 'hail', 'thunderstorm']
         precipitation:
           description: Total precipitation during previous 60 minutes
           type: number
@@ -435,7 +444,7 @@ components:
           example: 12.1
         condition:
           description: |
-            Current weather conditions, one of `dry`, `fog`, `rain`, `sleet`, `snow`, `hail`, `thunderstorm`. Note: Unlike the numerical parameters, this field is not taken as-is from the raw data (because it does not exist), but is calculated from different fields in the raw data as a best effort. Not all values are available for all source types.
+            Current weather conditions. Unlike the numerical parameters, this field is not taken as-is from the raw data (because it does not exist), but is calculated from different fields in the raw data as a best effort. Not all values are available for all source types.
           type: string
           example: 'rain'
           enum: ['dry', 'fog', 'rain', 'sleet', 'snow', 'hail', 'thunderstorm']
@@ -443,6 +452,12 @@ components:
           description: Dew point at timestamp, 2 m above ground
           type: number
           example: -2.5
+        icon:
+          description: |
+            Icon alias suitable for the current weather conditions. Unlike the numerical parameters, this field is not taken as-is from the raw data (because it does not exist), but is calculated from different fields in the raw data as a best effort. Not all values are available for all source types.
+          type: string
+          example: 'partly-cloudy-day'
+          enum: ['clear-day', 'clear-night', 'partly-cloudy-day', 'partly-cloudy-night', 'cloudy', 'fog', 'wind', 'rain', 'sleet', 'snow', 'hail', 'thunderstorm']
         precipitation_10:
           description: Total precipitation during previous 10 minutes
           type: number

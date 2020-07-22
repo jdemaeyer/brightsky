@@ -4,6 +4,7 @@
 #
 #    pip-compile
 #
+astral==2.2               # via brightsky (setup.py)
 certifi==2020.4.5.1       # via requests, sentry-sdk
 chardet==3.0.4            # via requests
 click==7.1.1              # via brightsky (setup.py)
@@ -19,6 +20,7 @@ lxml==4.5.0               # via parsel
 parsel==1.5.2             # via brightsky (setup.py)
 psycopg2-binary==2.8.5    # via brightsky (setup.py)
 python-dateutil==2.8.1    # via brightsky (setup.py)
+pytz==2020.1              # via astral
 redis==3.4.1              # via huey
 requests==2.23.0          # via brightsky (setup.py)
 sentry-sdk==0.14.3        # via brightsky (setup.py)

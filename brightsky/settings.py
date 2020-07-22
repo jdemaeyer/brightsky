@@ -6,6 +6,10 @@ from dateutil.tz import tzutc
 
 CORS_ALLOWED_ORIGINS = []
 DATABASE_URL = 'postgres://localhost'
+ICON_CLOUDY_THRESHOLD = 80
+ICON_PARTLY_CLOUDY_THRESHOLD = 25
+ICON_RAIN_THRESHOLD = 0.5
+ICON_WIND_THRESHOLD = 10.8
 IGNORED_CURRENT_OBSERVATIONS_STATIONS = ['K386']
 KEEP_DOWNLOADS = False
 MIN_DATE = datetime.datetime(2010, 1, 1, tzinfo=tzutc())
@@ -31,6 +35,7 @@ _SETTING_PARSERS = {
 
     bool: _make_bool,
     datetime.datetime: _make_date,
+    float: float,
     list: _make_list,
 }
 

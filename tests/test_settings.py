@@ -28,3 +28,11 @@ def test_settings_parses_environment_date():
     assert Settings().MAX_DATE is None
     with environ(BRIGHTSKY_MAX_DATE='2000-01-02'):
         assert Settings().MAX_DATE == expected
+
+
+def test_settings_parses_environment_float():
+    assert isinstance(Settings().ICON_RAIN_THRESHOLD, float)
+    with environ(BRIGHTSKY_ICON_RAIN_THRESHOLD='0'):
+        assert Settings().ICON_RAIN_THRESHOLD == float('0')
+    with environ(BRIGHTSKY_ICON_RAIN_THRESHOLD='1.5'):
+        assert Settings().ICON_RAIN_THRESHOLD == float('1.5')
