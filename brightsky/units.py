@@ -14,6 +14,10 @@ def kelvin_to_celsius(temperature):
     return round(temperature - 273.15, 2)
 
 
+def km_to_m(distance):
+    return distance * 1000
+
+
 def kmh_to_ms(speed):
     return round(speed / 3.6, 1)
 

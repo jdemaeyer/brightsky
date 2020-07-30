@@ -19,7 +19,7 @@ from brightsky.export import DBExporter, SYNOPExporter
 from brightsky.settings import settings
 from brightsky.units import (
     celsius_to_kelvin, current_observations_weather_code_to_condition,
-    eighths_to_percent, hpa_to_pa, kmh_to_ms, minutes_to_seconds,
+    eighths_to_percent, hpa_to_pa, km_to_m, kmh_to_ms, minutes_to_seconds,
     synop_current_weather_code_to_condition,
     synop_form_of_precipitation_code_to_condition,
     synop_past_weather_code_to_condition)
@@ -333,6 +333,7 @@ class CurrentObservationsParser(Parser):
         'pressure_msl': hpa_to_pa,
         'sunshine': minutes_to_seconds,
         'temperature': celsius_to_kelvin,
+        'visibility': km_to_m,
         'wind_speed': kmh_to_ms,
         'wind_gust_speed': kmh_to_ms,
     }
