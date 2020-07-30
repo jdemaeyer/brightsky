@@ -1,12 +1,14 @@
 from setuptools import setup
 
+import brightsky
+
 
 with open('README.md') as f:
     long_description = f.read()
 
 setup(
     name='brightsky',
-    version='0.9.6',
+    version=brightsky.__version__,
     author='Jakob de Maeyer',
     author_email='jakob@naboa.de',
     description="JSON API for DWD's open weather data.",
