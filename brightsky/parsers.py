@@ -340,6 +340,7 @@ class CurrentObservationsParser(Parser):
     IGNORED_VALUES = {
         'cloud_cover': ['112', '113', '126'],
         'relative_humidity': ['101', '107'],
+        'sunshine': ['282'],
     }
 
     def should_skip(self):
