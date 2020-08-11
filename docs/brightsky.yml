@@ -478,7 +478,11 @@ components:
           description: Relative humidity at timestamp
           type: number
           example: 40
-        sunshine:
+        sunshine_30:
+          description: Sunshine duration during previous 30 minutes
+          type: number
+          example: 1080
+        sunshine_60:
           description: Sunshine duration during previous 60 minutes
           type: number
           example: 2100
