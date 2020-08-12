@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Bright Sky &ndash; Demo</title>
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,700;1,400;1,700&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.0/css/bulma.min.css" type="text/css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.10/css/weather-icons.min.css" type="text/css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.10/css/weather-icons.min.css" type="text/css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@7.2.0/dist/css/autoComplete.min.css" type="text/css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/LorDOniX/json-viewer/src/json-viewer.css" type="text/css">
+  <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@7.2.0/dist/js/autoComplete.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/LorDOniX/json-viewer/src/json-viewer.js"></script>
+
+  <style>
+    html {
+      background-color: #f9f9f9;
+    }
+
+    body {
+      padding: 35px;
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    .is-vertical-center {
+      display: flex;
+      align-items: center;
+    }
+
+    .params {
+      width: 100%;
+      margin: 25px auto;
+    }
+
+    .params .card {
+      border-radius: 20px;
+    }
+
+    .weather .media {
+      padding: 0 2rem;
+    }
+
+    .weather figure {
+      font-size: 6rem;
+      margin-bottom: -2rem;
+    }
+
+    .weather-details {
+      font-size: 0.9rem;
+    }
+
+    .weather-details i {
+      text-align: center;
+      width: 20px;
+      margin-right: 7px;
+    }
+
+    .weather .level-item i {
+      margin: .4rem 0;
+      font-size: 2rem;
+    }
+
+    #no-weather-info {
+      top: 48px;
+      background-image: repeating-linear-gradient(-45deg,
+          transparent,
+          transparent 20px,
+          rgba(0, 0, 0, .2) 20px,
+          rgba(0, 0, 0, .2) 40px);
+    }
+
+    #no-weather-info .notification {
+      margin: 0 auto;
+      border-radius: 10px;
+      padding: 20px 40px;
+    }
+
+    #autoComplete_list {
+      position: absolute;
+    }
+
+    .response pre {
+      background-color: #fff;
+      padding: 0;
+      font-size: .75em;
+    }
+  </style>
+
+  <script type="module">
+    const BRIGHTSKY_URL = 'https://api.brightsky.dev/';
+
+    const jsonViewer = new JSONViewer();
+    document.getElementById('response-json').appendChild(jsonViewer.getContainer());
+
+    function dailyTotal(weather, key) {
+      return weather.reduce((total, record) => total + (record[key] || 0), 0.);
+    }
+
+    function dailyAvg(weather, key) {
+      return dailyTotal(weather, key) / weather.length;
+    }
+
+    function dailyMax(weather, key) {
+      return weather.reduce((max, record) => record[key] >= (max || record[key]) ? record[key] : max, null);
+    }
+
+    function dailyMin(weather, key) {
+      return weather.reduce((min, record) => record[key] <= (min || record[key]) ? record[key] : min, null);
+    }
+ 
+    function mode(arr) {
+      return arr.sort((a,b) =>
+          arr.filter(v => v===a).length
+        - arr.filter(v => v===b).length
+      ).pop();
+    }
+
+    function setProperty(id, value) {
+      const el = document.getElementById(`weather-${id}`);
+      el.innerHTML = value;
+    }
+
+    async function getWeather() {
+      const lat = Number(document.getElementById('lat').value);
+      const lon = Number(document.getElementById('lon').value);
+      const date = document.getElementById('date').valueAsDate;
+      updateLink(lat, lon, date);
+      updateHeader(lat, lon, date); 
+      const data = await fetchWeather(lat, lon, date);
+      jsonViewer.showJSON(data, -1, 2);
+      if (data.weather && data.weather.length > 0) {
+        document.getElementById('no-weather-info').classList.add('is-hidden');
+        updateSummary(data);
+        updateHourly(data);
+        document.querySelectorAll('#response-json pre > ul > li > ul > li > a')[12].click();
+      } else {
+        document.getElementById('no-weather-info').classList.remove('is-hidden');
+      }
+    }
+
+    async function fetchWeather(lat, lon, date) {
+      const dateStr = date.toISOString().split('T')[0];
+      const url = BRIGHTSKY_URL + `weather?lat=${lat}&lon=${lon}&date=${dateStr}&tz=Europe/Berlin`;
+      const response = await fetch(url);
+      const data = await response.json();
+      return data;
+    }
+
+    function updateLink(lat, lon, date) {
+      const dateStr = date.toISOString().split('T')[0];
+      document.getElementById('url-lat').innerHTML = lat;
+      document.getElementById('url-lon').innerHTML = lon;
+      document.getElementById('url-date').innerHTML = dateStr;
+      document.getElementById('params-url').href = `${ BRIGHTSKY_URL }weather?lat=${lat}&lon=${lon}&date=${dateStr}`;
+    }
+
+    function updateHeader(lat, lon, date) {
+      setProperty('today', date.toLocaleString('en-us', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'}));
+      const yesterday = new Date(date);
+      yesterday.setDate(date.getDate() - 1);
+      const tomorrow = new Date(date);
+      tomorrow.setDate(date.getDate() + 1);
+      setProperty('yesterday', yesterday.toLocaleString('en-us', {day: 'numeric', month: 'long'}));
+      setProperty('tomorrow', tomorrow.toLocaleString('en-us', {day: 'numeric', month: 'long'}));
+    }
+
+    const ICON_MAPPING = {
+      'clear-day': 'wi-day-sunny',
+      'clear-night': 'wi-night-clear',
+      'partly-cloudy-day': 'wi-day-cloudy',
+      'partly-cloudy-night': 'wi-night-cloudy',
+      'cloudy': 'wi-cloud',
+      'fog': 'wi-fog',
+      'wind': 'wi-strong-wind',
+      'rain': 'wi-rain',
+      'sleet': 'wi-sleet',
+      'snow': 'wi-snow',
+      'hail': 'wi-hail',
+      'thunderstorm': 'wi-thunderstorm',
+    }
+
+    function updateSummary(data) {
+      const sourceName = data.sources[0].station_name.replace(
+        /\B\w/g,
+        (txt) => txt.charAt(0).toLowerCase(),
+      );
+      const maxTemp = dailyMax(data.weather, 'temperature');
+      const minTemp = dailyMin(data.weather, 'temperature');
+      const maxPrecipitation = dailyMax(data.weather, 'precipitation');
+      const avgWindSpeed = dailyAvg(data.weather, 'wind_speed');
+      const totalSunshine = dailyTotal(data.weather, 'sunshine');
+      const totalSunshineHours = Math.floor(totalSunshine / 60);
+      const totalSunshineMinutes = Math.floor(totalSunshine - 60 * totalSunshineHours);
+      const avgCloudCover = dailyAvg(data.weather, 'cloud_cover');
+      const avgPressure = dailyAvg(data.weather, 'pressure_msl');
+      setProperty('station-name', sourceName);
+      setProperty('max-temp', maxTemp.toFixed(1));
+      setProperty('min-temp', minTemp.toFixed(1));
+      setProperty('max-precipitation', maxPrecipitation.toFixed(1));
+      setProperty('avg-wind-speed', avgWindSpeed.toFixed(1));
+      setProperty('total-sunshine', `${totalSunshineHours}:${(totalSunshineMinutes < 10 ? '0' : '') + totalSunshineMinutes}`);
+      setProperty('avg-cloud-cover', avgCloudCover.toFixed(0));
+      setProperty('avg-pressure', avgPressure.toFixed(1));
+      const icons = data.weather.map((record) => record.icon.replace('-night', '-day'));
+      document.getElementById('weather-day-icon').className = `wi ${ ICON_MAPPING[mode(icons)] }`;
+    }
+
+    function updateHourly(data) {
+      var hourly = '';
+      for (let i = 4; i < data.weather.length - 1; i += 4) {
+        var weather = data.weather[i];
+        var timestamp = new Date(weather.timestamp).toLocaleTimeString('en-us', {hour12: false, hour: 'numeric', minute: 'numeric'});
+        hourly += `
+          <div class="level-item has-text-centered">
+            <div>
+              <p class="heading">${ timestamp }</p>
+              <p>
+                <i class="wi ${ ICON_MAPPING[weather.icon] }"></i><br>
+                ${ weather.temperature.toFixed(0) } °C 
+              </p>
+            </div>
+          </div>
+        `;
+      }
+      setProperty('hourly', hourly);
+    }
+
+    new autoComplete({
+      data: {
+        src: async () => {
+          const resp = await fetch('cities.json');
+          const data = await resp.json();
+          return data;
+        },
+        key: ["name"],
+        cache: true,
+      },
+      placeHolder: "Search cities...",
+      maxResults: 5,
+      resultsList: {
+        render: true
+      },
+      onSelection: function(feedback) {
+        const place = feedback.selection.value;
+        document.getElementById('autoComplete').blur();
+        document.getElementById('autoComplete').value = '';
+        document.getElementById('autoComplete').setAttribute('placeholder', place.name);
+        document.getElementById('lat').value = place.lat;
+        document.getElementById('lon').value = place.lon;
+        getWeather();
+      },
+    });
+
+    const dateInput = document.getElementById('date')
+    document.getElementById('lat').addEventListener('input', getWeather);
+    document.getElementById('lon').addEventListener('input', getWeather);
+    dateInput.addEventListener('input', getWeather);
+    dateInput.valueAsDate = new Date();
+    document.getElementById('weather-yesterday-link').addEventListener('click', () => { dateInput.stepDown(); getWeather() });
+    document.getElementById('weather-tomorrow-link').addEventListener('click', () => { dateInput.stepUp(); getWeather() });
+
+    getWeather();
+  </script>
+</head>
+
+<body>
+
+  <div class="columns is-variable is-6">
+    <div class="column">
+
+      <div class="content has-text-centered">
+        <h3>Welcome to Bright Sky's online demo!</h3>
+        <p>First, pick a location and a date:</p>
+      </div>
+
+      <div class="params">
+        <div class="card">
+          <div class="card-content">
+            <div class="columns is-multiline">
+              <div class="column is-one-quarter">
+                <div class="field">
+                  <label class="label">Latitude</label>
+                  <div class="control">
+                    <input id="lat" class="input" type="text" value="52.0" autocomplete="off">
+                  </div>
+                </div>
+              </div>
+              <div class="column is-one-quarter">
+                <div class="field">
+                  <label class="label">Longitude</label>
+                  <div class="control">
+                    <input id="lon" class="input" type="text" value="7.6" autocomplete="off">
+                  </div>
+                </div>
+              </div>
+              <div class="column is-half">
+                <div class="field">
+                  <label class="label">Date</label>
+                  <div class="control">
+                    <input id="date" class="input" type="date" min="2010-01-01" autocomplete="off">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="search" class="has-text-centered">
+              <input id="autoComplete">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content has-text-centered">
+        <p>Neat! Now, querying Bright Sky to get the weather for this location and date in a machine-readable format is as simple as opening this URL:</p>
+        <pre>
+<a id="params-url" href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-08-12">https://api.brightsky.dev/
+weather?lat=<strong id="url-lat">52</strong>&lon=<strong id="url-lon">7.6</strong>&date=<strong id="url-date">2020-08-12</strong></a></pre>
+        <p>
+          Notice how the parameters you entered are used in the <code>lat=</code>, <code>lon=</code>, and <code>date=</code> parts at the end of the URL!
+        </p>
+        <p>
+          On the right you'll find an interactive preview of Bright Sky's response <img src="img/arrow_right.svg" style="display: inline-block; margin-left: .3rem; height: 2rem; margin-bottom: -10px;">
+        </p>
+        <p>
+          And this is how a simple weather app could visualize it <img src="img/arrow_down.svg" style="display: inline-block; margin-left: .3rem; height: 1.5rem; margin-bottom: -8px;">
+        </p>
+      </div>
+
+      <div id="weather" class="card weather">
+        <header class="card-header has-background-link-light">
+          <a id="weather-yesterday-link" class="card-header-icon is-size-7">
+            &#8592; <span id="weather-yesterday" style="margin-left: 5px">26 July</span>
+          </a>
+          <p class="card-header-title has-text-grey has-text-centered" style="display: block">
+            <span id="weather-today">Monday, 27 July 2020</span>
+          </p>
+          <a id="weather-tomorrow-link" class="card-header-icon is-size-7">
+            <span id="weather-tomorrow" style="margin-right: 5px">28 July</span> &#8594;
+          </a>
+        </header>
+        <div class="card-content">
+          <div id="no-weather-info" class="is-overlay is-vertical-center is-hidden">
+            <div class="notification is-warning has-text-centered">
+              No data available.
+            </div>
+          </div>
+          <div class="media">
+            <div class="media-content">
+              <p class="title is-3">
+                <span title="Maximum temperature"><span id="weather-max-temp">19.3</span> °C</span>
+                <span class="has-text-grey-lighter">· <span title="Minimum temperature"><span id="weather-min-temp">14.3</span> °C</span></span>
+              </p>
+              <p class="subtitle is-5" title="Weather station name"><span id="weather-station-name">Münster/Osnabrück</span></p>
+              <div class="weather-details has-text-grey">
+                <span title="Maximum hourly precipitation">
+                  <i class="wi wi-umbrella"></i><span id="weather-max-precipitation">0.4</span> mm/h
+                </span><br>
+                <span title="Average wind speed">
+                  <i class="wi wi-strong-wind"></i><span id="weather-avg-wind-speed">9</span> km/h
+                </span><br>
+                <span title="Total sunshine duration">
+                  <i class="wi wi-day-sunny"></i><span id="weather-total-sunshine">6:49</span> h
+                </span><br>
+                <span title="Average cloud cover">
+                  <i class="wi wi-cloudy"></i><span id="weather-avg-cloud-cover">72</span> %
+                </span><br>
+                <span title="Average atmospheric pressure, reduced to mean sea level">
+                  <i class="wi wi-barometer"></i><span id="weather-avg-pressure">1022.3</span> hPa
+                </span><br>
+              </div>
+            </div>
+            <div class="media-right" style="margin: auto 0">
+              <figure>
+                <i id="weather-day-icon" class="wi wi-day-cloudy"></i>
+              </figure>
+            </div>
+          </div>
+          <div id="weather-hourly" class="level is-mobile"></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="column">
+
+      <div class="card response">
+
+        <header class="card-header has-background-link-light">
+          <p class="card-header-title has-text-grey has-text-centered" style="display: block">
+            Response from Bright Sky
+          </p>
+        </header>
+
+        <div class="card-content">
+          <div id="response-json"></div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
