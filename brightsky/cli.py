@@ -28,24 +28,26 @@ def parse_date_arg(ctx, param, value):
 
 @click.group()
 @click.option(
-    '--migrate', help='Migrate database before running command',
+    '--migrate', help='Migrate database before running command.',
     is_flag=True, is_eager=True, expose_value=False, callback=migrate_callback)
 def cli():
     pass
 
 
-@cli.command(help='Apply all pending database migrations')
+@cli.command()
 def migrate():
+    """Apply all pending database migrations."""
     db.migrate()
 
 
-@cli.command(help='Parse a forecast or observations file')
+@cli.command()
 @click.option('--path', help='Local file path to observations file')
 @click.option('--url', help='URL of observations file')
 @click.option(
     '--export/--no-export', default=False,
     help='Export parsed records to database')
 def parse(path, url, export):
+    """Parse a forecast or observations file."""
     if not path and not url:
         raise click.ClickException('Please provide either --path or --url')
     records = tasks.parse(path=path, url=url, export=export)
@@ -53,23 +55,26 @@ def parse(path, url, export):
         dump_records(records)
 
 
-@cli.command(help='Detect updated files on DWD Open Data Server')
+@cli.command()
 @click.option(
     '--enqueue/--no-enqueue', default=False,
     help='Enqueue updated files for processing by the worker')
 def poll(enqueue):
+    """Detect updated files on DWD Open Data Server."""
     files = tasks.poll(enqueue=enqueue)
     if not enqueue:
         dump_records(files)
 
 
-@cli.command(help='Clean expired forecast and observations from database')
+@cli.command()
 def clean():
+    """Clean expired forecast and observations from database."""
     tasks.clean()
 
 
-@cli.command(help='Start brightsky worker')
+@cli.command()
 def work():
+    """Start brightsky worker."""
     from brightsky.worker import huey
     huey.flush()
     config = ConsumerConfig(worker_type='thread', workers=2*cpu_count()+1)
@@ -78,12 +83,13 @@ def work():
     consumer.run()
 
 
-@cli.command(help='Start brightsky API webserver')
+@cli.command()
 @click.option('--bind', default='127.0.0.1:5000', help='Bind address')
 @click.option(
     '--reload/--no-reload', default=False,
     help='Reload server on source code changes')
 def serve(bind, reload):
+    """Start brightsky API webserver."""
     from brightsky.web import StandaloneApplication
     StandaloneApplication(
         'brightsky.web:app',
