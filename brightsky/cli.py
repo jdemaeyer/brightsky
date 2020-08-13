@@ -1,12 +1,11 @@
-import datetime
 import json
 from multiprocessing import cpu_count
 
 import click
-from dateutil.tz import tzutc
+from falcon.testing import simulate_get
 from huey.consumer_options import ConsumerConfig
 
-from brightsky import db, tasks, query
+from brightsky import db, tasks
 from brightsky.utils import parse_date
 
 
@@ -99,48 +98,46 @@ def serve(bind, reload):
     ).run()
 
 
-@cli.command('query', help='Retrieve weather records')
-@click.argument('date', required=False, callback=parse_date_arg)
-@click.argument('lat', required=False, type=float)
-@click.argument('lon', required=False, type=float)
-@click.argument('last-date', required=False, callback=parse_date_arg)
-@click.option(
-    '--dwd-station-id', help='Query by DWD station ID instead of lat/lon')
-@click.option(
-    '--wmo-station-id', help='Query by DWD station ID instead of lat/lon')
-@click.option(
-    '--source-id', type=int, help='Query by source ID instead of lat/lon')
-@click.option(
-    '--max-dist', type=int, default=50000,
-    help='Maximum distance to observation location, in meters')
-def query_weather(
-        date, lat, lon, last_date, dwd_station_id, wmo_station_id, source_id,
-        max_dist):
-    if not date:
-        date = datetime.datetime.now(tzutc()).replace(
-            hour=0, minute=0, second=0, microsecond=0)
-    result = query.weather(
-        date, last_date=last_date, lat=lat, lon=lon,
-        dwd_station_id=dwd_station_id, wmo_station_id=wmo_station_id,
-        source_id=source_id, max_dist=max_dist)
-    print(json.dumps(result, default=str))
+@cli.command(context_settings={'ignore_unknown_options': True})
+@click.argument('endpoint')
+@click.argument('parameters', nargs=-1, type=click.UNPROCESSED)
+def query(endpoint, parameters):
+    """Query API and print JSON response.
+
+    Parameters must be supplied as --name value or --name=value. See
+    https://brightsky.dev/docs/ for the available endpoints and arguments.
+
+    \b
+    Examples:
+    python -m brightsky query weather --lat 52 --lon 7.6 --date 2018-08-13
+    python -m brightsky query current_weather --lat=52 --lon=7.6
+    """
+    from brightsky.web import app
+    if not app._router.find(f'/{endpoint}'):
+        raise click.UsageError(f"Unknown endpoint '{endpoint}'")
+    resp = simulate_get(app, f'/{endpoint}', params=_parse_params(parameters))
+    print(json.dumps(resp.json))
 
 
-@cli.command('sources', help='Retrieve observation sources')
-@click.argument('lat', required=False, type=float)
-@click.argument('lon', required=False, type=float)
-@click.option(
-    '--dwd-station-id', help='Query by DWD station ID instead of lat/lon')
-@click.option(
-    '--wmo-station-id', help='Query by DWD station ID instead of lat/lon')
-@click.option(
-    '--source-id', type=int, help='Query by source ID instead of lat/lon')
-@click.option(
-    '--max-dist', type=int, default=50000,
-    help='Maximum distance to observation location, in meters')
-def query_sources(
-        lat, lon, dwd_station_id, wmo_station_id, source_id, max_dist):
-    result = query.sources(
-        lat=lat, lon=lon, dwd_station_id=dwd_station_id,
-        wmo_station_id=wmo_station_id, source_id=source_id, max_dist=max_dist)
-    print(json.dumps(result, default=str))
+def _parse_params(parameters):
+    # I'm sure there's a function in click or argparse somewhere that does this
+    # but I can't find it
+    usage = "Supply API parameters as --name value or --name=value"
+    params = {}
+    param_name = None
+    for param in parameters:
+        if param_name is None:
+            if not param.startswith('--'):
+                raise click.UsageError(usage)
+            param = param[2:]
+            if '=' in param:
+                name, value = param.split('=', 1)
+                params[name] = value
+            else:
+                param_name = param
+        else:
+            params[param_name] = param
+            param_name = None
+    if param_name is not None:
+        raise click.UsageError(usage)
+    return params
