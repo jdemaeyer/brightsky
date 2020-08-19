@@ -337,11 +337,6 @@ class CurrentObservationsParser(Parser):
         'wind_speed': kmh_to_ms,
         'wind_gust_speed': kmh_to_ms,
     }
-    IGNORED_VALUES = {
-        'cloud_cover': ['112', '113', '126'],
-        'relative_humidity': ['101', '107'],
-        'sunshine': ['282'],
-    }
 
     def should_skip(self):
         return self.path.endswith(tuple(
@@ -375,7 +370,6 @@ class CurrentObservationsParser(Parser):
             element: (
                 None
                 if row[column] == '---'
-                or row[column] in self.IGNORED_VALUES.get(element, [])
                 else float(row[column].replace(',', '.')))
             for column, element in self.ELEMENTS.items()
         }
@@ -384,12 +378,27 @@ class CurrentObservationsParser(Parser):
             '%d.%m.%y %H:%M'
         ).replace(tzinfo=tzutc())
         self.convert_units(record)
+        self.sanitize_record(record)
         return record
 
     def convert_units(self, record):
         for element, converter in self.CONVERTERS.items():
             if record[element] is not None:
                 record[element] = converter(record[element])
+
+    def sanitize_record(self, record):
+        if record['cloud_cover'] and record['cloud_cover'] > 100:
+            self.logger.warning(
+                "Ignoring unphysical cloud cover value: %s", record)
+            record['cloud_cover'] = None
+        if record['relative_humidity'] and record['relative_humidity'] > 100:
+            self.logger.warning(
+                "Ignoring unphysical relative humidity value: %s", record)
+            record['relative_humidity'] = None
+        if record['sunshine'] and record['sunshine'] > 3600:
+            self.logger.warning(
+                "Ignoring unphysical sunshine value: %s", record)
+            record['sunshine'] = None
 
     def load_location(self, wmo_station_id):
         rows = fetch(
