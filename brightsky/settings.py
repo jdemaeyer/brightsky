@@ -27,6 +27,8 @@ def _make_date(date_str):
 
 
 def _make_list(list_str, separator=','):
+    if not list_str:
+        return []
     return list_str.split(separator)
 
 
