@@ -1,5 +1,7 @@
 import datetime
 
+from dateutil.tz import tzutc
+
 from brightsky.db import fetch
 
 
@@ -12,6 +14,10 @@ def weather(
         wmo_station_id=None, source_id=None, max_dist=50000):
     if not last_date:
         last_date = date + datetime.timedelta(days=1)
+    if not date.tzinfo:
+        date = date.replace(tzinfo=tzutc())
+    if not last_date.tzinfo:
+        last_date = last_date.replace(tzinfo=tzutc())
     sources_rows = sources(
         lat=lat, lon=lon, dwd_station_id=dwd_station_id, source_id=source_id,
         wmo_station_id=wmo_station_id, max_dist=max_dist,
