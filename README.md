@@ -85,3 +85,18 @@ can set up a more lightweight development environment as follows:
 
 You should now be able to directly run `brightsky` commands via `python -m
 brightsky`, and changes to the source code should be effective immediately.
+
+
+### Tests
+
+Large parts of our test suite run against a real Postgres database. By default,
+these tests will be skipped. To enable them, make sure the
+`BRIGHTSKY_TEST_DATABASE_URL` environment variable is set when calling `tox`,
+e.g. via:
+```
+BRIGHTSKY_TEST_DATABASE_URL=postgres://postgres:pgpass@localhost/brightsky_test tox
+```
+
+Beware that adding this environment variable to your `.env` file will not work
+as that file is not read by `tox`. The database will be **dropped and
+recreated** on every test run, so don't use your normal Bright Sky database. ;)
