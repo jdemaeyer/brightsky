@@ -91,8 +91,6 @@ def dwd_fingerprint(path):
 
 def parse_date(date_str):
     d = dateutil.parser.parse(date_str)
-    if not d.tzinfo:
-        d.replace(tzinfo=tzutc())
     return d
 
 
