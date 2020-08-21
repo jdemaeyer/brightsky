@@ -1,4 +1,5 @@
 import datetime
+from unittest.mock import patch
 
 from dateutil.tz import tzutc
 
@@ -47,3 +48,27 @@ def test_dwdpoller_parse(data_dir):
             'file_size': v[2],
         }
         for k, v in expected.items()]
+
+
+def test_dwdpoller_poll_ignores_parsed_files(db, data_dir):
+    poller = DWDPoller()
+    poller.urls = ['http://example.com/']
+    url = 'http://example.com/stundenwerte_FF_00011_akt.zip'
+    with open(data_dir / 'dwd_opendata_index.html') as f:
+        resp_text = f.read()
+    config = {'get.return_value.text': resp_text}
+    with patch('brightsky.polling.requests', **config):
+        urls = [info['url'] for info in poller.poll()]
+        with db.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO parsed_files (
+                    url, last_modified, file_size, parsed_at)
+                VALUES (%s, %s, %s, current_timestamp)
+                """,
+                (url, '2020-03-29 08:55', 70523))
+        db.commit()
+        new_urls = [info['url'] for info in poller.poll()]
+        assert url in urls
+        assert url not in new_urls
+        assert len(new_urls) == len(urls) - 1

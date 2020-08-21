@@ -36,3 +36,13 @@ def test_settings_parses_environment_float():
         assert Settings().ICON_RAIN_THRESHOLD == float('0')
     with environ(BRIGHTSKY_ICON_RAIN_THRESHOLD='1.5'):
         assert Settings().ICON_RAIN_THRESHOLD == float('1.5')
+
+
+def test_settings_parses_environment_list():
+    assert isinstance(Settings().CORS_ALLOWED_ORIGINS, list)
+    with environ(BRIGHTSKY_CORS_ALLOWED_ORIGINS=''):
+        assert Settings().CORS_ALLOWED_ORIGINS == []
+    with environ(BRIGHTSKY_CORS_ALLOWED_ORIGINS='a'):
+        assert Settings().CORS_ALLOWED_ORIGINS == ['a']
+    with environ(BRIGHTSKY_CORS_ALLOWED_ORIGINS='a,b,c'):
+        assert Settings().CORS_ALLOWED_ORIGINS == ['a', 'b', 'c']

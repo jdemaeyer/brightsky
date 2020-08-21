@@ -162,6 +162,22 @@ def test_current_observation_parser(data_dir):
     }
 
 
+def test_current_observation_parser_loads_station_data_from_db(db, data_dir):
+    source = {
+        'observation_type': 'forecast',
+        'lat': 52.12,
+        'lon': 7.62,
+        'height': 5.,
+        'wmo_station_id': '01049',
+        'station_name': 'Münster',
+    }
+    db.insert('sources', [source])
+    p = CurrentObservationsParser(path=data_dir / 'observations_current.csv')
+    record = next(p.parse())
+    for field in ('lat', 'lon', 'height', 'station_name'):
+        assert record[field] == source[field]
+
+
 def test_observations_parser_parses_metadata(data_dir):
     p = WindObservationsParser(
         path=data_dir / 'observations_recent_FF_akt.zip')
