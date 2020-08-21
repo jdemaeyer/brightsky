@@ -80,6 +80,7 @@ def dwd_fingerprint(path):
         os.path.getmtime(path)
     ).replace(
         second=0,
+        microsecond=0,
         tzinfo=tzlocal()
     ).astimezone(tzutc())
     return {
