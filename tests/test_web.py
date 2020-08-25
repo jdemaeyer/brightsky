@@ -3,6 +3,7 @@ import datetime
 import pytest
 from dateutil.tz import tzutc
 
+import brightsky
 from brightsky.export import DBExporter, SYNOPExporter
 
 
@@ -430,3 +431,11 @@ def test_current_weather_response(synop_data, api, db):
     }
     for k, v in expected_weather.items():
         assert resp.json['weather'][k] == v, k
+
+
+def test_status_response(api):
+    resp = api.simulate_get('/')
+    assert resp.status_code == 200
+    assert resp.json['name'] == 'brightsky'
+    assert resp.json['version'] == brightsky.__version__
+    assert resp.json['status'] == 'ok'

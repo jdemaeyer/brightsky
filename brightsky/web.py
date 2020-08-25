@@ -8,6 +8,7 @@ from dateutil.tz import gettz
 from gunicorn.app.base import BaseApplication
 from gunicorn.util import import_app
 
+import brightsky
 from brightsky import query
 from brightsky.settings import settings
 from brightsky.units import convert_record, CONVERTERS
@@ -218,11 +219,22 @@ class SourcesResource(BrightskyResource):
         resp.media = result
 
 
+class StatusResource:
+
+    def on_get(self, req, resp):
+        resp.media = {
+            'name': 'brightsky',
+            'version': brightsky.__version__,
+            'status': 'ok',
+        }
+
+
 cors = falcon_cors.CORS(allow_origins_list=settings.CORS_ALLOWED_ORIGINS)
 
 app = falcon.API(middleware=[cors.middleware])
 app.req_options.auto_parse_qs_csv = True
 
+app.add_route('/', StatusResource())
 app.add_route('/weather', WeatherResource())
 app.add_route('/current_weather', CurrentWeatherResource())
 app.add_route('/synop', SynopResource())
