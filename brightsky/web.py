@@ -228,6 +228,9 @@ class StatusResource:
             'status': 'ok',
         }
 
+    def on_head(self, req, resp):
+        pass
+
 
 cors = falcon_cors.CORS(allow_origins_list=settings.CORS_ALLOWED_ORIGINS)
 
