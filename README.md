@@ -6,17 +6,17 @@
 [![PyPI Release](https://img.shields.io/pypi/v/brightsky)](https://pypi.org/project/brightsky/)
 [![Docker Hub Release](https://img.shields.io/docker/v/jdemaeyer/brightsky/latest?label=docker)](https://hub.docker.com/r/jdemaeyer/brightsky)
 
-**JSON API for DWD's open weather data.**
+### JSON API for DWD's open weather data.
 
 The DWD ([Deutscher Wetterdienst](https://www.dwd.de/)), as Germany's
 meteorological service, publishes a myriad of meteorological observations and
 calculations as part of their [Open Data
 program](https://www.dwd.de/DE/leistungen/opendata/opendata.html).
 
-**Bright Sky** is an open-source project aiming to make some of the more
-popular data — in particular weather observations from the DWD station network
-and weather forecasts from the MOSMIX model — available in a free, simple JSON
-API.
+[**Bright Sky**](https://brightsky.dev/) is an open-source project aiming to
+make some of the more popular data — in particular weather observations from
+the DWD station network and weather forecasts from the MOSMIX model — available
+in a free, simple JSON API.
 
 
 ### Looking for something specific?
