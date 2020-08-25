@@ -221,6 +221,8 @@ class SourcesResource(BrightskyResource):
 
 class StatusResource:
 
+    cors = falcon_cors.CORS(allow_all_origins=True)
+
     def on_get(self, req, resp):
         resp.media = {
             'name': 'brightsky',
