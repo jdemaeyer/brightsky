@@ -5,6 +5,7 @@ from contextlib import contextmanager
 import falcon
 import falcon_cors
 from dateutil.tz import gettz
+from falcon.errors import HTTPInvalidParam
 from gunicorn.app.base import BaseApplication
 from gunicorn.util import import_app
 
@@ -34,6 +35,10 @@ class BrightskyResource:
             'lat', required=required, min_value=-90, max_value=90)
         lon = req.get_param_as_float(
             'lon', required=required, min_value=-180, max_value=180)
+        if lat != lat:
+            raise HTTPInvalidParam('The value cannot be NaN', 'lat')
+        elif lon != lon:
+            raise HTTPInvalidParam('The value cannot be NaN', 'lon')
         return lat, lon
 
     def parse_source_ids(self, req):
