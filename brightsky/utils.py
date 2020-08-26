@@ -31,6 +31,8 @@ def configure_logging():
 
 
 def load_dotenv(path='.env'):
+    if not int(os.getenv('BRIGHTSKY_LOAD_DOTENV', 1)):
+        return
     with suppress(FileNotFoundError):
         with open(path) as f:
             for line in f:

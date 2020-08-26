@@ -17,7 +17,8 @@ from falcon.testing import TestClient
 
 from brightsky import db, tasks
 from brightsky.settings import settings
-from brightsky.utils import configure_logging, load_dotenv
+from brightsky.utils import configure_logging
+from brightsky.web import app
 
 
 logger = logging.getLogger('benchmark')
@@ -39,7 +40,6 @@ def _time(description, precision=0, unit='s'):
 
 @lru_cache
 def get_client():
-    from brightsky.web import app
     return TestClient(app)
 
 
@@ -216,6 +216,5 @@ def query_():
 
 
 if __name__ == '__main__':
-    load_dotenv()
     configure_logging()
     cli()

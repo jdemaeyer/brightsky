@@ -7,6 +7,8 @@ from huey.consumer_options import ConsumerConfig
 
 from brightsky import db, tasks
 from brightsky.utils import parse_date
+from brightsky.web import app, StandaloneApplication
+from brightsky.worker import huey
 
 
 def dump_records(it):
@@ -74,7 +76,6 @@ def clean():
 @cli.command()
 def work():
     """Start brightsky worker."""
-    from brightsky.worker import huey
     huey.flush()
     config = ConsumerConfig(worker_type='thread', workers=2*cpu_count()+1)
     config.validate()
@@ -89,7 +90,6 @@ def work():
     help='Reload server on source code changes')
 def serve(bind, reload):
     """Start brightsky API webserver."""
-    from brightsky.web import StandaloneApplication
     StandaloneApplication(
         'brightsky.web:app',
         bind=bind,
@@ -112,7 +112,6 @@ def query(endpoint, parameters):
     python -m brightsky query weather --lat 52 --lon 7.6 --date 2018-08-13
     python -m brightsky query current_weather --lat=52 --lon=7.6
     """
-    from brightsky.web import app
     if not app._router.find(f'/{endpoint}'):
         raise click.UsageError(f"Unknown endpoint '{endpoint}'")
     resp = simulate_get(app, f'/{endpoint}', params=_parse_params(parameters))

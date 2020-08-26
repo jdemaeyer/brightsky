@@ -3,6 +3,8 @@ import os
 
 from dateutil.tz import tzutc
 
+from brightsky.utils import load_dotenv
+
 
 CORS_ALLOWED_ORIGINS = []
 DATABASE_URL = 'postgres://localhost'
@@ -50,6 +52,7 @@ class Settings(dict):
         self.loaded = False
 
     def load(self):
+        load_dotenv()
         for k, v in globals().items():
             if k.isupper() and not k.startswith('_'):
                 self[k] = v
