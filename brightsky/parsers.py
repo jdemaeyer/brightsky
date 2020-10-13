@@ -136,8 +136,15 @@ class MOSMIXParser(Parser):
         wmo_station_id = station_sel.css('name::text').extract_first()
         dwd_station_id = wmo_id_to_dwd(wmo_station_id)
         station_name = station_sel.css('description::text').extract_first()
-        lon, lat, height = station_sel.css(
-            'coordinates::text').extract_first().split(',')
+        try:
+            lon, lat, height = station_sel.css(
+                'coordinates::text').extract_first().split(',')
+        except AttributeError:
+            self.logger.warning(
+                "Ignoring station without coordinates, WMO ID '%s', DWD ID "
+                "'%s', name '%s'",
+                wmo_station_id, dwd_station_id, station_name)
+            return []
         records = {'timestamp': timestamps}
         for element, column in self.ELEMENTS.items():
             values_str = station_sel.css(
