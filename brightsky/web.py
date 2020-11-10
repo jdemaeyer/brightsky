@@ -237,7 +237,10 @@ class StatusResource:
         pass
 
 
-cors = falcon_cors.CORS(allow_origins_list=settings.CORS_ALLOWED_ORIGINS)
+cors = falcon_cors.CORS(
+    allow_origins_list=settings.CORS_ALLOWED_ORIGINS,
+    allow_headers_list=settings.CORS_ALLOWED_HEADERS,
+    allow_all_methods=True)
 
 app = falcon.API(middleware=[cors.middleware])
 app.req_options.auto_parse_qs_csv = True

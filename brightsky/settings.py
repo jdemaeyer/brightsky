@@ -7,6 +7,7 @@ from brightsky.utils import load_dotenv
 
 
 CORS_ALLOWED_ORIGINS = []
+CORS_ALLOWED_HEADERS = []
 DATABASE_URL = 'postgres://localhost'
 ICON_CLOUDY_THRESHOLD = 80
 ICON_PARTLY_CLOUDY_THRESHOLD = 25
