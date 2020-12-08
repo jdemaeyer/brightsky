@@ -204,7 +204,7 @@ def sources(
         if isinstance(source_id, list):
             where = "id IN %(source_id_tuple)s"
             order_by = (
-                "array_position(%(source_id)s, source_id), observation_type")
+                "array_position(%(source_id)s, id), observation_type")
             params['source_id_tuple'] = tuple(source_id)
         else:
             where = "id = %(source_id)s"
