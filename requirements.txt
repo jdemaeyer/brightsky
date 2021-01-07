@@ -16,7 +16,7 @@ gunicorn==20.0.4          # via brightsky (setup.py)
 huey[redis]==2.3.0        # via brightsky (setup.py)
 humanfriendly==8.2        # via coloredlogs
 idna==2.10                # via requests
-lxml==4.5.2               # via parsel
+lxml==4.6.2               # via parsel
 parsel==1.6.0             # via brightsky (setup.py)
 psycopg2-binary==2.8.5    # via brightsky (setup.py)
 python-dateutil==2.8.1    # via brightsky (setup.py)
