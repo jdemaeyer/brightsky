@@ -11,7 +11,7 @@ def is_subset(subset_dict, full_dict):
 
 @contextmanager
 def dict_override(d, **overrides):
-    original = {k: d[k] for k, v in d.items() if k in d}
+    original = {k: d[k] for k, v in overrides.items() if k in d}
     d.update(overrides)
     try:
         yield
