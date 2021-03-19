@@ -53,7 +53,7 @@ six==1.15.0
     #   parsel
     #   python-dateutil
     #   w3lib
-urllib3==1.26.2
+urllib3==1.26.3
     # via
     #   requests
     #   sentry-sdk
