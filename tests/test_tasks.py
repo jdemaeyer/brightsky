@@ -1,5 +1,6 @@
 import datetime
 
+import pytest
 from dateutil.tz import tzutc
 
 from brightsky.export import DBExporter, SYNOPExporter
@@ -108,6 +109,7 @@ def test_clean_deletes_expired_forecast_current_synop_records(db):
     assert [r['temperature'] for r in rows] == [60., 70.]
 
 
+@pytest.mark.skip("Temporarily disabled until issue #108 is resolved")
 def test_clean_deletes_expired_recent_records(db):
     now = datetime.datetime.utcnow().replace(
         minute=0, second=0, microsecond=0, tzinfo=tzutc())
