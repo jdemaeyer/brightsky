@@ -74,39 +74,6 @@ def clean():
     }
     with get_connection() as conn:
         with conn.cursor() as cur:
-            # XXX: This assumes that the DWD will upload 'historical' records
-            #      for ALL weather parameters at the same time. If this turns
-            #      out to be false we should merge the 'historical' and
-            #      'recent' observation types into a single one, otherwise we
-            #      will have periods where 'historical' records miss certain
-            #      weather parameters, and we cannot fall back to the 'recent'
-            #      records as they are gone.
-            logger.info("Deleting obsolete 'recent' weather records")
-            cur.execute(
-                """
-                SELECT
-                    s_recent.id,
-                    s_historical.last_record AS threshold
-                FROM sources s_recent
-                JOIN sources s_historical ON (
-                    s_recent.wmo_station_id = s_historical.wmo_station_id AND
-                    s_recent.dwd_station_id = s_historical.dwd_station_id)
-                WHERE
-                    s_recent.observation_type = 'recent' AND
-                    s_historical.observation_type = 'historical' AND
-                    s_recent.first_record < s_historical.last_record
-                """)
-            for row in cur.fetchall():
-                logger.debug(
-                    "Deleting records for source %d prior to %s",
-                    row['id'], row['threshold'])
-                cur.execute(
-                    """
-                    DELETE FROM weather
-                    WHERE source_id = %s AND timestamp < %s
-                    """,
-                    (row['id'], row['threshold']))
-            conn.commit()
             logger.info(
                 'Deleting expired weather records: %s', expiry_intervals)
             for table, table_expires in expiry_intervals.items():
