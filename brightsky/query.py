@@ -68,8 +68,12 @@ def _weather(date, last_date, source_id, not_null=None):
     return _make_dicts(fetch(sql, params))
 
 
-# Not available in MOSMIX
-IGNORED_MISSING_FIELDS = {'wind_gust_direction', 'relative_humidity'}
+IGNORED_MISSING_FIELDS = {
+    # Not available in MOSMIX
+    'wind_gust_direction', 'relative_humidity',
+    # Missing for many stations during nighttime
+    'sunshine',
+}
 
 
 def _fill_missing_fields(weather_rows, date, last_date, source_ids):
