@@ -28,7 +28,7 @@ SOURCES = [
         'wmo_station_id': '10315',
     },
     {
-        'observation_type': 'recent',
+        'observation_type': 'historical',
         'lat': 52.1344,
         'lon': 7.6969,
         'height': 47.8,
@@ -303,7 +303,7 @@ def test_weather_source_selection(data, api):
     observation_types = {
         s['id']: s['observation_type'] for s in resp.json['sources']}
     for w in resp.json['weather'][:28]:
-        assert observation_types[w['source_id']] == 'recent'
+        assert observation_types[w['source_id']] == 'historical'
     for w in resp.json['weather'][28:36]:
         assert observation_types[w['source_id']] == 'current'
     for w in resp.json['weather'][36:]:

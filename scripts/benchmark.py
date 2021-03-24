@@ -148,7 +148,7 @@ def query_():
                 FROM sources
                 WHERE observation_type = %s
                 """,
-                ('recent',))
+                ('historical',))
             rows = random.choices(cur.fetchall(), k=100)
             station_kwargs = [
                 {'dwd_station_id': row['dwd_station_id']} for row in rows]

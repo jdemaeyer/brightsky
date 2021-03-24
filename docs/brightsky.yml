@@ -11,12 +11,12 @@ info:
 
     ## Data Origin
 
-    Data with the observation types `current`, `recent`, and `historical` is published by [DWD's extensive network of observation stations](https://www.dwd.de/DE/leistungen/klimadatendeutschland/stationsliste.html). The difference between these three types lies only in the level of quality assurance that the DWD has provided (see the [DWD's Climate Data Center README](https://opendata.dwd.de/climate_environment/CDC/Readme_intro_CDC_ftp.txt)). Data with observation type `forecast` comes from [MOSMIX](https://www.dwd.de/EN/research/weatherforecasting/met_applications/nwp_applications/mosmix_application.html).
+    Data with the observation types `current` and `historical` is published by [DWD's extensive network of observation stations](https://www.dwd.de/DE/leistungen/klimadatendeutschland/stationsliste.html). The difference between these two types lies only in the level of quality assurance that the DWD has provided (see the [DWD's Climate Data Center README](https://opendata.dwd.de/climate_environment/CDC/Readme_intro_CDC_ftp.txt)). Data with observation type `forecast` comes from [MOSMIX](https://www.dwd.de/EN/research/weatherforecasting/met_applications/nwp_applications/mosmix_application.html).
 
     All source files can be found on DWD's [Open Data Server](https://www.dwd.de/EN/ourservices/opendata/opendata.html):
     <table>
       <tr><th>Observation Type</th><th>Location</th></tr>
-      <tr><td><code>historical</code> / <code>recent</code></td><td><a href="https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/">https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/</a></td></tr>
+      <tr><td><code>historical</code></td><td><a href="https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/">https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/</a></td></tr>
       <tr><td><code>current</code></td><td><a href="https://opendata.dwd.de/weather/weather_reports/poi/">https://opendata.dwd.de/weather/weather_reports/poi/</a></td></tr>
       <tr><td><code>forecast</code></td><td><a href="https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/all_stations/kml/">https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/all_stations/kml/</a></td></tr>
     </table>
@@ -35,7 +35,7 @@ info:
 
     The DWD provides data from an extensive network of own and third-party meteorological observation stations, located mainly but not exclusively in Germany. Each of these is identified by a station ID. In an ideal world, these stations would provide an endless stream of one record of "historical weather" and one record of "forecasted weather" per hour. Sadly (and I am sure to much nuisance for the DWD), in the real world, stations have outages and measurement errors, and sometimes even move. Moreover, the weather forecasts come from a model that is not tied to any physical observation station locations, and predicts the meteorological parameters at a whole bunch of additional locations (which each get their own station ID).
 
-    To accomodate these real-world complications, Bright Sky internally uses a concept of _sources_. Each source is a unique combination of location and observation type. Hence, each physical observation station (with a single station ID) will typically correspond to five sources in Bright Sky: one for each of the five observation types `forecast`, `synop`, `current`, `recent`, and `historical`. If the station has moved during its lifetime, you may even find more than one source for the same station ID and observation type.
+    To accomodate these real-world complications, Bright Sky internally uses a concept of _sources_. Each source is a unique combination of location and observation type. Hence, each physical observation station (with a single station ID) will typically correspond to four sources in Bright Sky: one for each of the four observation types `forecast`, `synop`, `current`, and `historical`. If the station has moved during its lifetime, you may even find more than one source for the same station ID and observation type.
 
     Bright Sky's _source IDs_ have no meaning in the real world. They should be treated as the technical artifact they are, and not even relied on to stay constant (although they likely will within each major release of Bright Sky).
 
@@ -123,7 +123,7 @@ paths:
                       dwd_station_id: '01766'
                       wmo_station_id: '10315'
                       station_name: Münster/Osnabrück
-                      observation_type: recent
+                      observation_type: historical
                       lat: 52.1344
                       lon: 7.6969
                       height: 47.8
@@ -338,7 +338,7 @@ paths:
                       dwd_station_id: '01766'
                       wmo_station_id: '10315'
                       station_name: Münster/Osnabrück
-                      observation_type: recent
+                      observation_type: historical
                       lat: 52.1344
                       lon: 7.6969
                       height: 47.8
@@ -606,8 +606,8 @@ components:
         observation_type:
           description: Source type
           type: string
-          example: 'recent'
-          enum: ['forecast', 'synop', 'current', 'recent', 'historical']
+          example: 'historical'
+          enum: ['forecast', 'synop', 'current', 'historical']
         lat:
           description: Station latitude, in decimal degrees
           type: number

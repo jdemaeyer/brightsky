@@ -447,11 +447,10 @@ class ObservationsParser(Parser):
         with zipfile.ZipFile(self.path) as zf:
             dwd_station_id = self.parse_station_id(zf)
             wmo_station_id = dwd_id_to_wmo(dwd_station_id)
-            observation_type = self.parse_observation_type()
             lat_lon_history = self.parse_lat_lon_history(zf, dwd_station_id)
             for record in self.parse_records(zf, lat_lon_history):
                 yield {
-                    'observation_type': observation_type,
+                    'observation_type': 'historical',
                     'dwd_station_id': dwd_station_id,
                     'wmo_station_id': wmo_station_id,
                     **record
@@ -462,15 +461,6 @@ class ObservationsParser(Parser):
             if (m := re.match(r'Metadaten_Geographie_(\d+)\.txt', filename)):
                 return m.group(1)
         raise ValueError(f"Unable to parse station ID for {self.path}")
-
-    def parse_observation_type(self):
-        filename = os.path.basename(self.path)
-        if filename.endswith('_akt.zip'):
-            return 'recent'
-        elif filename.endswith('_hist.zip'):
-            return 'historical'
-        raise ValueError(
-            f'Unable to determine observation type from path "{self.path}"')
 
     def parse_lat_lon_history(self, zf, dwd_station_id):
         with zf.open(f'Metadaten_Geographie_{dwd_station_id}.txt') as f:
@@ -671,9 +661,6 @@ class WindGustsObservationsParser(ObservationsParser):
 
     def parse_reader(self, filename, reader, lat_lon_history):
         hour_values = []
-        # First row is at :00, which we will already have filled up with
-        # the last :50 entry of another file (see below)
-        next(reader)
         for row in reader:
             timestamp = datetime.datetime.strptime(
                 row['MESS_DATUM'], '%Y%m%d%H%M').replace(tzinfo=tzutc())
@@ -688,14 +675,6 @@ class WindGustsObservationsParser(ObservationsParser):
                 yield self._make_record(
                     timestamp, hour_values, filename, lat_lon_history)
                 hour_values.clear()
-        observation_type = self.parse_observation_type()
-        if observation_type == 'historical' and timestamp.minute == 50:
-            # Not 100 % accurate but better than taking only the :00 value of
-            # another file. For observation_type 'recent', we'll get a proper
-            # midnight value from the 'current' observation
-            yield self._make_record(
-                timestamp + datetime.timedelta(minutes=10),
-                hour_values, filename, lat_lon_history)
 
     def _make_record(self, timestamp, hour_values, filename, lat_lon_history):
         lat, lon, height, station_name = self._station_params(

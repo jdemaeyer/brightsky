@@ -8,7 +8,7 @@ from brightsky.export import DBExporter, SYNOPExporter
 
 SOURCES = [
     {
-        'observation_type': 'recent',
+        'observation_type': 'historical',
         'lat': 10.1,
         'lon': 20.2,
         'height': 30.3,
@@ -17,7 +17,7 @@ SOURCES = [
         'station_name': 'Münster',
     },
     {
-        'observation_type': 'recent',
+        'observation_type': 'historical',
         'lat': 40.4,
         'lon': 50.5,
         'height': 60.6,
@@ -26,7 +26,7 @@ SOURCES = [
         'station_name': 'Aurich',
     },
     {
-        'observation_type': 'recent',
+        'observation_type': 'historical',
         'lat': 60.6,
         'lon': 70.7,
         'height': 80.8,

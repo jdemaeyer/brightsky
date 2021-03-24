@@ -182,7 +182,7 @@ def test_observations_parser_parses_metadata(data_dir):
     p = WindObservationsParser(
         path=data_dir / 'observations_recent_FF_akt.zip')
     metadata = {
-        'observation_type': 'recent',
+        'observation_type': 'historical',
         'source': (
             'Observations:Recent:produkt_ff_stunde_20180915_20200317_04911.txt'
         ),
@@ -195,13 +195,6 @@ def test_observations_parser_parses_metadata(data_dir):
     }
     for record in p.parse():
         assert is_subset(metadata, record)
-
-
-def test_observations_parser_parses_historical_observation_type(data_dir):
-    p = PressureObservationsParser(
-        path=data_dir / 'observations_recent_P0_hist.zip')
-    for record in p.parse():
-        assert record['observation_type'] == 'historical'
 
 
 def test_observations_parser_handles_missing_values(data_dir):
@@ -339,11 +332,10 @@ def test_wind_gusts_observations_parser(data_dir):
     _test_parser(
         WindGustsObservationsParser,
         data_dir / 'observations_recent_extrema_wind_akt.zip',
-        {'timestamp': '2018-12-03 01:00',
-         'wind_gust_speed': 6.9, 'wind_gust_direction': 210},
+        {'timestamp': '2018-12-03 00:00',
+         'wind_gust_speed': 6.3, 'wind_gust_direction': 210},
         {'timestamp': '2020-06-04 23:00',
          'wind_gust_speed': 6.2, 'wind_gust_direction': 270},
-        count=9,
         meta_path=data_dir / 'observations_recent_extrema_wind_akt_meta.zip'
     )
 
