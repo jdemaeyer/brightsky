@@ -6,6 +6,8 @@ from dateutil.tz import tzutc
 from brightsky.utils import load_dotenv
 
 
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_HEADERS = False
 CORS_ALLOWED_ORIGINS = []
 CORS_ALLOWED_HEADERS = []
 DATABASE_URL = 'postgres://localhost'

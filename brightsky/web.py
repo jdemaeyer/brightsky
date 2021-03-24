@@ -239,7 +239,9 @@ class StatusResource:
 
 cors = falcon_cors.CORS(
     allow_origins_list=settings.CORS_ALLOWED_ORIGINS,
+    allow_all_origins=settings.CORS_ALLOW_ALL_ORIGINS,
     allow_headers_list=settings.CORS_ALLOWED_HEADERS,
+    allow_all_headers=settings.CORS_ALLOW_ALL_HEADERS,
     allow_all_methods=True)
 
 app = falcon.API(middleware=[cors.middleware])
