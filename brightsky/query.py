@@ -21,7 +21,7 @@ def weather(
     sources_rows = sources(
         lat=lat, lon=lon, dwd_station_id=dwd_station_id, source_id=source_id,
         wmo_station_id=wmo_station_id, max_dist=max_dist,
-        observation_types=['historical', 'recent', 'current', 'forecast'],
+        observation_types=['historical', 'current', 'forecast'],
         date=date, last_date=last_date)['sources']
     primary_source_ids = {}
     for row in sources_rows:
