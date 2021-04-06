@@ -31,7 +31,7 @@ setup(
         'astral',
         'click',
         'coloredlogs',
-        'falcon',
+        'falcon==2.*',
         'falcon-cors',
         'gunicorn',
         'huey[redis]',

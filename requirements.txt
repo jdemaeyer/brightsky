@@ -24,7 +24,7 @@ falcon==2.0.0
     # via
     #   brightsky (setup.py)
     #   falcon-cors
-gunicorn==20.0.4
+gunicorn==20.1.0
     # via brightsky (setup.py)
 huey[redis]==2.3.1
     # via brightsky (setup.py)
@@ -32,7 +32,7 @@ humanfriendly==9.1
     # via coloredlogs
 idna==2.10
     # via requests
-lxml==4.6.2
+lxml==4.6.3
     # via parsel
 parsel==1.6.0
     # via brightsky (setup.py)
