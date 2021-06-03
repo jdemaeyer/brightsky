@@ -51,11 +51,9 @@ info:
       - [DWD Open Data FAQ (German)](https://www.dwd.de/DE/leistungen/opendata/faqs_opendata.html)
       - [DWD Copyright information](https://www.dwd.de/EN/service/copyright/copyright_artikel.html)
 
-    ## Contact
-
   contact:
     email: jakob@naboa.de
-    name: Bright Sky
+    name: Jakob de Maeyer
     url: 'https://brightsky.dev/'
   license:
     name: MIT License
