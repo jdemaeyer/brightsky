@@ -6,13 +6,13 @@
 #
 astral==2.2
     # via brightsky (setup.py)
-certifi==2020.12.5
+certifi==2021.5.30
     # via
     #   requests
     #   sentry-sdk
 chardet==4.0.0
     # via requests
-click==7.1.2
+click==8.0.1
     # via brightsky (setup.py)
 coloredlogs==15.0
     # via brightsky (setup.py)
@@ -26,7 +26,7 @@ falcon==2.0.0
     #   falcon-cors
 gunicorn==20.1.0
     # via brightsky (setup.py)
-huey[redis]==2.3.1
+huey[redis]==2.3.2
     # via brightsky (setup.py)
 humanfriendly==9.1
     # via coloredlogs
@@ -46,14 +46,14 @@ redis==3.5.3
     # via huey
 requests==2.25.1
     # via brightsky (setup.py)
-sentry-sdk==1.0.0
+sentry-sdk==1.1.0
     # via brightsky (setup.py)
-six==1.15.0
+six==1.16.0
     # via
     #   parsel
     #   python-dateutil
     #   w3lib
-urllib3==1.26.4
+urllib3==1.26.5
     # via
     #   requests
     #   sentry-sdk
