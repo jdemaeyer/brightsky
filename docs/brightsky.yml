@@ -606,6 +606,14 @@ components:
           type: string
           example: 'historical'
           enum: ['forecast', 'synop', 'current', 'historical']
+        first_record:
+          allOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - description: Timestamp of first available record for this source
+        last_record:
+          allOf:
+            - $ref: '#/components/schemas/Timestamp'
+            - description: Timestamp of latest available record for this source
         lat:
           description: Station latitude, in decimal degrees
           type: number
