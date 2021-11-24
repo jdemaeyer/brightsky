@@ -10,7 +10,7 @@ certifi==2021.10.8
     # via
     #   requests
     #   sentry-sdk
-charset-normalizer==2.0.7
+charset-normalizer==2.0.8
     # via requests
 click==8.0.3
     # via brightsky (setup.py)
@@ -38,7 +38,7 @@ lxml==4.6.4
     # via parsel
 parsel==1.6.0
     # via brightsky (setup.py)
-psycopg2-binary==2.9.2
+psycopg2-binary==2.8.6
     # via brightsky (setup.py)
 python-dateutil==2.8.2
     # via brightsky (setup.py)

@@ -36,7 +36,7 @@ setup(
         'gunicorn',
         'huey[redis]',
         'parsel',
-        'psycopg2-binary',
+        'psycopg2-binary<2.9',
         'python-dateutil',
         'requests',
         'sentry-sdk',
