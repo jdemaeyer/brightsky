@@ -34,10 +34,12 @@ setup(
         'falcon==2.*',
         'falcon-cors',
         'gunicorn',
-        'huey[redis]',
+        'huey',
         'parsel',
         'psycopg2-binary<2.9',
         'python-dateutil',
+        # huey is incompatible with redis4
+        'redis<4',
         'requests',
         'sentry-sdk',
     ],

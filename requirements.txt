@@ -18,8 +18,6 @@ coloredlogs==15.0.1
     # via brightsky (setup.py)
 cssselect==1.1.0
     # via parsel
-deprecated==1.2.13
-    # via redis
 falcon==2.0.0
     # via
     #   brightsky (setup.py)
@@ -28,7 +26,7 @@ falcon-cors==1.1.7
     # via brightsky (setup.py)
 gunicorn==20.1.0
     # via brightsky (setup.py)
-huey[redis]==2.4.1
+huey==2.4.1
     # via brightsky (setup.py)
 humanfriendly==10.0
     # via coloredlogs
@@ -44,8 +42,8 @@ python-dateutil==2.8.2
     # via brightsky (setup.py)
 pytz==2021.3
     # via astral
-redis==4.0.2
-    # via huey
+redis==3.5.3
+    # via brightsky (setup.py)
 requests==2.26.0
     # via brightsky (setup.py)
 sentry-sdk==1.5.0
@@ -61,8 +59,6 @@ urllib3==1.26.7
     #   sentry-sdk
 w3lib==1.22.0
     # via parsel
-wrapt==1.13.3
-    # via deprecated
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
