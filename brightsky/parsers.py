@@ -228,7 +228,7 @@ class SYNOPParser(Parser):
 
     def parse(self):
         with bz2.open(self.path) as f:
-            if next(f).startswith(b'no messages found'):
+            if not f.read(1):
                 return
             f.seek(0)
             message_blocks = json.load(f)['messages']
