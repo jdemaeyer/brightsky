@@ -32,7 +32,7 @@ humanfriendly==10.0
     # via coloredlogs
 idna==3.3
     # via requests
-lxml==4.6.4
+lxml==4.6.5
     # via parsel
 parsel==1.6.0
     # via brightsky (setup.py)
