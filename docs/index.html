@@ -69,6 +69,26 @@
     .logos img {
       height: 100px; }
   </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // We've handled roughly 140 million requests in 2021, and maybe 20 million
+      // in 2021. Currently there are about 1.2 million requests a day (as per
+      // 2022-01-04).
+      const startDate = new Date(2022, 0, 1);
+      var reqCount = Math.floor(
+        159_923_281 + (new Date() - startDate) / 86_400_000 * 1_200_000);
+
+      const counterInterval = 86_400_000 / 1_200_000;
+      const counterSpan = document.getElementById('req-count')
+
+      function updateCounter() {
+        counterSpan.innerHTML = (reqCount++).toLocaleString('en');
+      }
+
+      setInterval(updateCounter, counterInterval);
+    });
+  </script>
 </head>
 
 <body>
@@ -150,9 +170,17 @@ $ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21
     Bright Sky is free-to-use for all purposes. As it solely provides an additional method to access the DWD's meteorological data, the <a href="https://www.dwd.de/EN/service/copyright/copyright_artikel.html">DWD's Terms of Use</a> apply to all data you retrieve through the API.
   </p>
 
+  <h4>Funding</h4>
+  <p>
+    Bright Sky now handles more than a million requests per day, and in total has served about <strong id="req-count">150,000,000</strong> requests since its launch.
+  </p>
+  <p>
+    I try to keep it alive, fast, and free-of-charge with the help of awesome sponsors on GitHub. <a href="https://github.com/sponsors/jdemaeyer">Maybe you feel like joining them?</a>
+  </p>
+
   <h4>Acknowledgements</h4>
   <p>
-    Bright Sky's development is boosted by the priceless guidance and support of the <a href="https://www.okfn.de/">Open Knowledge Foundation</a>'s <a href="https://prototypefund.de/">Prototype Fund</a> program, and is generously funded by Germany's <a href="https://www.bmbf.de/">Federal Ministry of Education and Research</a>. Obvious as it may be, it should be mentioned that none of this would be possible without the painstaking, never-ending effort of the <a href="https://www.dwd.de/">Deutscher Wetterdienst</a>.
+    Bright Sky's initial development was boosted by the priceless guidance and support of the <a href="https://www.okfn.de/">Open Knowledge Foundation</a>'s <a href="https://prototypefund.de/">Prototype Fund</a> program, and generously funded by Germany's <a href="https://www.bmbf.de/">Federal Ministry of Education and Research</a>. Obvious as it may be, it should be mentioned that none of this would be possible without the painstaking, never-ending effort of the <a href="https://www.dwd.de/">Deutscher Wetterdienst</a>.
   </p>
 
   <div class="logos">
