@@ -66,7 +66,7 @@ class BrightskyResource:
                 last_date = parse_date(last_date_str)
             else:
                 last_date = None
-        except ValueError:
+        except (ValueError, OverflowError):
             raise falcon.HTTPBadRequest(
                 description='Please supply dates in ISO 8601 format')
         return date, last_date
