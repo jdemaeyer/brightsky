@@ -124,6 +124,10 @@ def current_weather(
     used_source_ids = [weather['source_id']]
     if fallback:
         missing_fields = [k for k, v in weather.items() if v is None]
+        # XXX: Hotfix until https://github.com/jdemaeyer/brightsky/issues/124
+        #      is properly resolved
+        missing_fields = [
+            f for f in missing_fields if not f.startswith('precipitation')]
         fallback_weather = _current_weather(
             source_ids, not_null=missing_fields)
         if fallback_weather:
