@@ -36,7 +36,7 @@ setup(
         'gunicorn',
         'huey',
         'parsel',
-        'psycopg2-binary<2.9',
+        'psycopg2-binary',
         'python-dateutil',
         # huey is incompatible with redis4
         'redis<4',

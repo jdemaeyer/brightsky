@@ -25,19 +25,22 @@ def _database():
     postgres_url = f'postgres://{url.netloc}'
     db_name = url.path.lstrip('/')
     assert db_name
-    with psycopg2.connect(postgres_url) as conn:
-        conn.autocommit = True
-        with conn.cursor() as cur:
-            cur.execute(f'DROP DATABASE IF EXISTS {db_name}')
-            cur.execute(f'CREATE DATABASE {db_name}')
+    conn = psycopg2.connect(postgres_url)
+    conn.autocommit = True
+    with conn.cursor() as cur:
+        cur.execute(f'DROP DATABASE IF EXISTS {db_name}')
+        cur.execute(f'CREATE DATABASE {db_name}')
+    conn.close()
     migrate()
     yield
     if hasattr(get_connection, '_pool'):
         get_connection._pool.closeall()
-    with psycopg2.connect(postgres_url) as conn:
-        conn.autocommit = True
-        with conn.cursor() as cur:
-            cur.execute(f'DROP DATABASE {db_name}')
+    conn = psycopg2.connect(postgres_url)
+    conn.autocommit = True
+    conn.autocommit = True
+    with conn.cursor() as cur:
+        cur.execute(f'DROP DATABASE {db_name}')
+    conn.close()
 
 
 @attr.s
