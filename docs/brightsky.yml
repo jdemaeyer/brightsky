@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Bright Sky
-  version: 1.0.13
+  version: 1.0.14
   description: |
     <h2>JSON API for DWD's open weather data.</h2>
 
