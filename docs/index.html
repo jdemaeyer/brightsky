@@ -22,7 +22,7 @@
       margin-bottom: .75em; }
 
     pre {
-      margin: 100px 0;
+      margin: 75px 0;
       font-size: .8em;
       padding-left: 3em; }
 
@@ -30,32 +30,46 @@
       font-style: normal;
       color: #52b788; }
 
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .buttons a {
+      flex: 1 1 0;
+    }
+
     a.boxed {
       display: inline-block;
-      border: 1px solid #2c8898;
+      background-color: #fafbfc;
+      border: 1px solid rgba(27,31,35,.25);
       border-radius: 5px;
+      color: #24292e;
+      text-align: center;
+      font-size: 1.6rem;
       padding: 5px 10px;
-      margin: 0 10px;
-      min-width: 160px;
+      margin: 0;
+      transition: background-color .2s cubic-bezier(0.3, 0, 0.5, 1);
     }
 
     a.boxed:hover {
-      background-color: #faeff5;
-      border-color: #982c61;
+      background-color: #f3f4f6;
+      transition-duration: .1s;
     }
 
     a.boxed img {
       height: 1em;
       position: relative;
       top: .1em;
-      margin-right: 7px; }
+      margin-right: 8px; }
 
     .subtitle {
       margin-top: -.75em;
       font-weight: 400; }
 
     .hero {
-      margin: 100px 0;
+      margin: 100px 0 75px;
       text-align: center; }
 
     .hero .subtitle {
@@ -96,9 +110,12 @@
   <div class="hero">
     <h1>Bright Sky</h1>
     <h5 class="subtitle">JSON API for DWD's open weather data.</h5>
-    <a href="docs/" class="boxed"><img src="img/book.svg">API Docs</a>
-    <a href="demo/" class="boxed"><img src="img/eye.svg">Demo</a>
-    <a href="https://github.com/jdemaeyer/brightsky/" class="boxed"><img src="img/github.svg">Source Code</a>
+    <div class="buttons">
+      <a href="docs/" class="boxed"><img src="img/book.svg">Docs</a>
+      <a href="demo/" class="boxed"><img src="img/eye.svg">Demo</a>
+      <a href="https://github.com/jdemaeyer/brightsky/" class="boxed"><img src="img/github.svg">Source</a>
+      <a href="https://github.com/sponsors/jdemaeyer/" class="boxed"><img src="img/heart.svg">Sponsor</a>
+    </div>
   </div>
 
   <pre>
