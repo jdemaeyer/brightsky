@@ -3,7 +3,6 @@ import logging
 import os
 import re
 from contextlib import contextmanager, suppress
-from multiprocessing import cpu_count
 
 import psycopg2
 from psycopg2.extras import DictCursor
@@ -18,11 +17,8 @@ logger = logging.getLogger(__name__)
 @contextmanager
 def get_connection():
     if not hasattr(get_connection, '_pool'):
-        if 'gunicorn' in os.getenv('SERVER_SOFTWARE', ''):
-            # gunicorn sync workers are single-threaded
-            minconn = 1
-        else:
-            minconn = 2*cpu_count()+1
+        # gunicorn sync workers are single-threaded
+        minconn = 1 if 'gunicorn' in os.getenv('SERVER_SOFTWARE', '') else 3
         get_connection._pool = ThreadedConnectionPool(
             minconn, minconn, settings.DATABASE_URL, cursor_factory=DictCursor)
     pool = get_connection._pool

@@ -77,7 +77,7 @@ def clean():
 def work():
     """Start brightsky worker."""
     huey.flush()
-    config = ConsumerConfig(worker_type='thread', workers=2*cpu_count()+1)
+    config = ConsumerConfig(worker_type='thread', workers=3)
     config.validate()
     consumer = huey.create_consumer(**config.values)
     consumer.run()
