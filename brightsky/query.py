@@ -31,7 +31,8 @@ def weather(
     source_ids = [row['id'] for row in sources_rows]
     if len(weather_rows) < int((last_date - date).total_seconds()) // 3600:
         weather_rows = _weather(date, last_date, source_ids)
-    _fill_missing_fields(weather_rows, date, last_date, source_ids)
+    _fill_missing_fields(weather_rows, date, last_date, source_ids, True)
+    _fill_missing_fields(weather_rows, date, last_date, source_ids, False)
     used_source_ids = {row['source_id'] for row in weather_rows}
     used_source_ids.update(
         source_id
@@ -43,7 +44,7 @@ def weather(
     }
 
 
-def _weather(date, last_date, source_id, not_null=None):
+def _weather(date, last_date, source_id, not_null=None, not_null_or=False):
     params = {
         'date': date,
         'last_date': last_date,
@@ -58,7 +59,9 @@ def _weather(date, last_date, source_id, not_null=None):
     else:
         where += " AND source_id = %(source_id)s"
     if not_null:
-        where += ''.join(f" AND {element} IS NOT NULL" for element in not_null)
+        glue = ' OR ' if not_null_or else ' AND '
+        constraint = glue.join(f"{x} IS NOT NULL" for x in not_null)
+        where += f" AND ({constraint})"
     sql = f"""
         SELECT DISTINCT ON (timestamp) *
         FROM weather
@@ -76,7 +79,7 @@ IGNORED_MISSING_FIELDS = {
 }
 
 
-def _fill_missing_fields(weather_rows, date, last_date, source_ids):
+def _fill_missing_fields(weather_rows, date, last_date, source_ids, partial):
     incomplete_rows = []
     missing_fields = set()
     for row in weather_rows:
@@ -89,20 +92,20 @@ def _fill_missing_fields(weather_rows, date, last_date, source_ids):
     if incomplete_rows:
         min_date = incomplete_rows[0][0]['timestamp']
         max_date = incomplete_rows[-1][0]['timestamp']
-        # NOTE: If there are multiple missing fields we may be missing out on
-        #       a "better" fallback if there are preferred sources that have
-        #       one (but not all) of the missing fields. However, this lets us
-        #       get by with using the basic weather query, and with performing
-        #       it only one extra time.
         fallback_rows = {
             row['timestamp']: row
             for row in _weather(
-                min_date, max_date, source_ids, not_null=missing_fields)
+                min_date,
+                max_date,
+                source_ids,
+                not_null=missing_fields,
+                not_null_or=partial,
+            )
         }
         for row, fields in incomplete_rows:
             fallback_row = fallback_rows.get(row['timestamp'])
             if fallback_row:
-                row['fallback_source_ids'] = {}
+                row.setdefault('fallback_source_ids', {})
                 for f in fields:
                     row[f] = fallback_row[f]
                     row['fallback_source_ids'][f] = fallback_row['source_id']
