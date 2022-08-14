@@ -136,10 +136,10 @@ def query_():
     random.seed(1)
     location_kwargs = [
         {
-            'lat': random.uniform(47.30, 54.98),
-            'lon': random.uniform(5.99, 15.02),
+            'lat': 47.30 + (i % 30) * (54.98 - 47.30) / 29,
+            'lon': 5.99 + (i // 30) * (15.02 - 5.99) / 29,
         }
-        for _ in range(100)]
+        for i in range(900)]
     with db.get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -160,43 +160,43 @@ def query_():
                 WHERE observation_type = 'current'
                 """)
             today = cur.fetchone()['max'].date().isoformat()
-    date = '2020-02-14'
-    last_date = '2020-02-21'
+    date = '2022-08-13'
+    last_date = '2022-08-20'
 
     def _test_with_kwargs(kwargs_list):
-        with _time('  100  one-day queries, sequential', precision=2):
+        with _time('  900  one-day queries, sequential', precision=2):
             _query_sequential('/weather', kwargs_list, date=date)
-        with _time('  100  one-day queries, parallel:  ', precision=2):
+        with _time('  900  one-day queries, parallel:  ', precision=2):
             _query_parallel('/weather', kwargs_list, date=date)
-        with _time('  100 one-week queries, sequential', precision=2):
+        with _time('  900 one-week queries, sequential', precision=2):
             _query_sequential(
                 '/weather', kwargs_list, date=date, last_date=last_date)
-        with _time('  100 one-week queries, parallel:  ', precision=2):
+        with _time('  900 one-week queries, parallel:  ', precision=2):
             _query_parallel(
                 '/weather', kwargs_list, date=date, last_date=last_date)
 
     click.echo('Sources by lat/lon:')
-    with _time('  100  queries, sequential:        ', precision=2):
+    with _time('  900  queries, sequential:        ', precision=2):
         _query_sequential('/sources', location_kwargs)
-    with _time('  100  queries, parallel:          ', precision=2):
+    with _time('  900  queries, parallel:          ', precision=2):
         _query_parallel('/sources', location_kwargs)
     click.echo('\nSources by station:')
-    with _time('  100  queries, sequential:        ', precision=2):
+    with _time('  900  queries, sequential:        ', precision=2):
         _query_sequential('/sources', station_kwargs)
-    with _time('  100  queries, parallel:          ', precision=2):
+    with _time('  900  queries, parallel:          ', precision=2):
         _query_parallel('/sources', station_kwargs)
     click.echo('\nSources by source:')
-    with _time('  100  queries, sequential:        ', precision=2):
+    with _time('  900  queries, sequential:        ', precision=2):
         _query_sequential('/sources', source_kwargs)
-    with _time('  100  queries, parallel:          ', precision=2):
+    with _time('  900  queries, parallel:          ', precision=2):
         _query_parallel('/sources', source_kwargs)
 
     click.echo('\nWeather by lat/lon:')
     _test_with_kwargs(location_kwargs)
     click.echo('\nWeather by lat/lon, today:')
-    with _time('  100  one-day queries, sequential', precision=2):
+    with _time('  900  one-day queries, sequential', precision=2):
         _query_sequential('/weather', location_kwargs, date=today)
-    with _time('  100  one-day queries, parallel:  ', precision=2):
+    with _time('  900  one-day queries, parallel:  ', precision=2):
         _query_parallel('/weather', location_kwargs, date=today)
     click.echo('\nWeather by station:')
     _test_with_kwargs(station_kwargs)
@@ -204,14 +204,14 @@ def query_():
     _test_with_kwargs(source_kwargs)
 
     click.echo('\nCurrent weather by lat/lon:')
-    with _time('  100  queries, sequential:        ', precision=2):
+    with _time('  900  queries, sequential:        ', precision=2):
         _query_sequential('/current_weather', location_kwargs)
-    with _time('  100  queries, parallel:          ', precision=2):
+    with _time('  900  queries, parallel:          ', precision=2):
         _query_parallel('/current_weather', location_kwargs)
     click.echo('\nCurrent weather by station:')
-    with _time('  100  queries, sequential:        ', precision=2):
+    with _time('  900  queries, sequential:        ', precision=2):
         _query_sequential('/current_weather', station_kwargs)
-    with _time('  100  queries, parallel:          ', precision=2):
+    with _time('  900  queries, parallel:          ', precision=2):
         _query_parallel('/current_weather', station_kwargs)
 
 
