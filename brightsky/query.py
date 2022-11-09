@@ -81,13 +81,12 @@ def _fill_missing_fields(weather_rows, date, last_date, source_ids, partial):
     incomplete_rows = []
     missing_fields = set()
     for row in weather_rows:
-        missing_row_fields = set(
-            k for k, v in row.items() if v is None
-        ).difference(IGNORED_MISSING_FIELDS)
-        if missing_row_fields:
+        missing_row_fields = set(k for k, v in row.items() if v is None)
+        relevant_fields = missing_row_fields.difference(IGNORED_MISSING_FIELDS)
+        if relevant_fields:
             incomplete_rows.append((row, missing_row_fields))
-            missing_fields.update(missing_row_fields)
-    if incomplete_rows:
+            missing_fields.update(relevant_fields)
+    if missing_fields:
         min_date = incomplete_rows[0][0]['timestamp']
         max_date = incomplete_rows[-1][0]['timestamp']
         fallback_rows = {
@@ -105,6 +104,8 @@ def _fill_missing_fields(weather_rows, date, last_date, source_ids, partial):
             if fallback_row:
                 row.setdefault('fallback_source_ids', {})
                 for f in fields:
+                    if fallback_row[f] is None:
+                        continue
                     row[f] = fallback_row[f]
                     row['fallback_source_ids'][f] = fallback_row['source_id']
 
