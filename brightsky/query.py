@@ -74,8 +74,6 @@ def _weather(date, last_date, source_id, not_null=None, not_null_or=False):
 IGNORED_MISSING_FIELDS = {
     # Not available in MOSMIX
     'wind_gust_direction', 'relative_humidity',
-    # Missing for many stations during nighttime
-    'sunshine',
 }
 
 
