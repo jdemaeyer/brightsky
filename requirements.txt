@@ -6,7 +6,7 @@
 #
 astral==2.2
     # via brightsky (setup.py)
-certifi==2022.6.15
+certifi==2022.12.7
     # via
     #   requests
     #   sentry-sdk
