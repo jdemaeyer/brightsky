@@ -2,7 +2,7 @@
 
 [![API Status](https://img.shields.io/website?down_message=offline&label=api&up_message=online&url=https%3A%2F%2Fapi.brightsky.dev%2F)](https://api.brightsky.dev/)
 [![Docs Status](https://img.shields.io/website?down_message=offline&label=docs&up_message=online&url=https%3A%2F%2Fbrightsky.dev%2Fdocs%2F)](https://brightsky.dev/docs/)
-[![Build Status](https://img.shields.io/github/workflow/status/jdemaeyer/brightsky/Continuous%20Integration)](https://github.com/jdemaeyer/brightsky/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/jdemaeyer/brightsky/main.yml)](https://github.com/jdemaeyer/brightsky/actions)
 [![PyPI Release](https://img.shields.io/pypi/v/brightsky)](https://pypi.org/project/brightsky/)
 [![Docker Hub Release](https://img.shields.io/docker/v/jdemaeyer/brightsky/latest?label=docker)](https://hub.docker.com/r/jdemaeyer/brightsky)
 
