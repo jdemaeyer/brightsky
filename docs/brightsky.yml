@@ -669,19 +669,25 @@ components:
       in: query
       description: DWD station ID, typically five alphanumeric characters, e.g. `P0036`. You can supply multiple station IDs separated by commas, ordered from highest to lowest priority.
       schema:
-        type: string
+        type: array
+        items:
+          type: string
     wmo_station_id:
       name: wmo_station_id
       in: query
       description: WMO station ID, typically five digits, e.g. `10315`. You can supply multiple station IDs separated by commas, ordered from highest to lowest priority.
       schema:
-        type: string
+        type: array
+        items:
+          type: string
     source_id:
       name: source_id
       in: query
       description: Bright Sky source ID, as retrieved from the `sources` endpoint, e.g. `1234`. You can supply multiple source IDs separated by commas, ordered from highest to lowest priority.
       schema:
-        type: integer
+        type: array
+        items:
+          type: integer
     max_dist:
       name: max_dist
       in: query
