@@ -38,8 +38,7 @@ setup(
         'parsel',
         'psycopg2-binary',
         'python-dateutil',
-        # huey is incompatible with redis4
-        'redis<4',
+        'redis',
         'requests',
         'sentry-sdk',
     ],
