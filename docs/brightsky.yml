@@ -672,6 +672,7 @@ components:
         type: array
         items:
           type: string
+      explode: false
     wmo_station_id:
       name: wmo_station_id
       in: query
@@ -680,6 +681,7 @@ components:
         type: array
         items:
           type: string
+      explode: false
     source_id:
       name: source_id
       in: query
@@ -688,6 +690,7 @@ components:
         type: array
         items:
           type: integer
+      explode: false
     max_dist:
       name: max_dist
       in: query
