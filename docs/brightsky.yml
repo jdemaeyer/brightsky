@@ -503,7 +503,7 @@ components:
           description: Sunshine duration during previous 10 minutes
           type: number
           nullable: true
-          example: 1080
+          example: 240
         sunshine_30:
           description: Sunshine duration during previous 30 minutes
           type: number
