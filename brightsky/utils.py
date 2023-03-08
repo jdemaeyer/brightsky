@@ -92,8 +92,17 @@ def dwd_fingerprint(path):
 
 
 def parse_date(date_str):
-    d = dateutil.parser.parse(date_str)
-    return d
+    try:
+        return dateutil.parser.isoparse(date_str)
+    except ValueError as e:
+        # Auto-correct common error of not encoding '+' as '%2b' in URL
+        handled_errors = [
+            'Inconsistent use of colon separator',
+            'Unused components in ISO string',
+        ]
+        if e.args and e.args[0] in handled_errors and date_str.count(' ') == 1:
+            return parse_date(date_str.replace(' ', '+'))
+        raise e from None
 
 
 @lru_cache
