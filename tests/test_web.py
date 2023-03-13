@@ -1,10 +1,14 @@
 import datetime
 
+import falcon
 import pytest
 from dateutil.tz import tzutc
 
 import brightsky
 from brightsky.export import DBExporter, SYNOPExporter
+from brightsky.web import make_app
+
+from .utils import settings
 
 
 SOURCES = [
@@ -439,3 +443,28 @@ def test_status_response(api):
     assert resp.json['name'] == 'brightsky'
     assert resp.json['version'] == brightsky.__version__
     assert resp.json['status'] == 'ok'
+
+
+def test_cors(synop_data, db):
+    def _get_response(**kwargs):
+        api = falcon.testing.TestClient(make_app())
+        return api.simulate_get('/current_weather?lat=52&lon=7.6', **kwargs)
+
+    example_com = 'http://example.com'
+    brightsky_dev = 'https://brightsky.dev'
+
+    with settings(CORS_ALLOW_ALL_ORIGINS=True):
+        resp = _get_response(headers={'Origin': example_com})
+        assert resp.headers['access-control-allow-origin'] == '*'
+
+    with settings(CORS_ALLOWED_ORIGINS=[example_com, brightsky_dev]):
+        resp = _get_response(headers={'Origin': example_com})
+        assert resp.headers['access-control-allow-origin'] == example_com
+        resp = _get_response(headers={'Origin': brightsky_dev})
+        assert resp.headers['access-control-allow-origin'] == brightsky_dev
+
+    with settings(CORS_ALLOWED_ORIGINS=[brightsky_dev]):
+        resp = _get_response(headers={'Origin': example_com})
+        assert 'access-control-allow-origin' not in resp.headers
+        resp = _get_response(headers={'Origin': brightsky_dev})
+        assert resp.headers['access-control-allow-origin'] == brightsky_dev

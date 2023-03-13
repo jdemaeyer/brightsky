@@ -234,21 +234,29 @@ class StatusResource:
         pass
 
 
-cors = falcon_cors.CORS(
-    allow_origins_list=settings.CORS_ALLOWED_ORIGINS,
-    allow_all_origins=settings.CORS_ALLOW_ALL_ORIGINS,
-    allow_headers_list=settings.CORS_ALLOWED_HEADERS,
-    allow_all_headers=settings.CORS_ALLOW_ALL_HEADERS,
-    allow_all_methods=True)
+def make_cors_middleware():
+    cors = falcon_cors.CORS(
+        allow_origins_list=settings.CORS_ALLOWED_ORIGINS,
+        allow_all_origins=settings.CORS_ALLOW_ALL_ORIGINS,
+        allow_headers_list=settings.CORS_ALLOWED_HEADERS,
+        allow_all_headers=settings.CORS_ALLOW_ALL_HEADERS,
+        allow_all_methods=True,
+    )
+    return cors.middleware
 
-app = falcon.API(middleware=[cors.middleware])
-app.req_options.auto_parse_qs_csv = True
 
-app.add_route('/', StatusResource())
-app.add_route('/weather', WeatherResource())
-app.add_route('/current_weather', CurrentWeatherResource())
-app.add_route('/synop', SynopResource())
-app.add_route('/sources', SourcesResource())
+def make_app():
+    app = falcon.API(middleware=[make_cors_middleware()])
+    app.req_options.auto_parse_qs_csv = True
+    app.add_route('/', StatusResource())
+    app.add_route('/weather', WeatherResource())
+    app.add_route('/current_weather', CurrentWeatherResource())
+    app.add_route('/synop', SynopResource())
+    app.add_route('/sources', SourcesResource())
+    return app
+
+
+app = make_app()
 
 
 class StandaloneApplication(BaseApplication):
