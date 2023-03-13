@@ -1,0 +1,6 @@
+[tool.ruff]
+select = ["E", "F"]
+line-length = 79
+
+[tool.ruff.isort]
+lines-after-imports = 2
