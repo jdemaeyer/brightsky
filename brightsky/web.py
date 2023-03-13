@@ -3,7 +3,6 @@ import sys
 from contextlib import contextmanager
 
 import falcon
-import falcon_cors
 from dateutil.tz import gettz
 from falcon.errors import HTTPInvalidParam
 from gunicorn.app.base import BaseApplication
@@ -201,8 +200,10 @@ class SynopResource(WeatherResource):
     def query(self, *args, **kwargs):
         kwargs.pop('max_dist')
         if any(kwargs.pop(param) for param in ['lat', 'lon']):
-            raise falcon.HTTPBadRequest(
-                "Querying by lat/lon is not supported for the synop endpoint")
+            description = (
+                "Querying by lat/lon is not supported for the synop endpoint"
+            )
+            raise falcon.HTTPBadRequest(description=description)
         return query.synop(*args, **kwargs)
 
 
@@ -235,18 +236,24 @@ class StatusResource:
 
 
 def make_cors_middleware():
-    cors = falcon_cors.CORS(
-        allow_origins_list=settings.CORS_ALLOWED_ORIGINS,
-        allow_all_origins=settings.CORS_ALLOW_ALL_ORIGINS,
-        allow_headers_list=settings.CORS_ALLOWED_HEADERS,
-        allow_all_headers=settings.CORS_ALLOW_ALL_HEADERS,
-        allow_all_methods=True,
+    cors_origins = (
+        '*'
+        if settings.CORS_ALLOW_ALL_ORIGINS
+        else settings.CORS_ALLOWED_ORIGINS
     )
-    return cors.middleware
+    cors_headers = (
+        '*'
+        if settings.CORS_ALLOW_ALL_HEADERS
+        else settings.CORS_ALLOWED_HEADERS
+    )
+    return falcon.CORSMiddleware(
+        allow_origins=cors_origins,
+        expose_headers=cors_headers,
+    )
 
 
 def make_app():
-    app = falcon.API(middleware=[make_cors_middleware()])
+    app = falcon.App(middleware=[make_cors_middleware()])
     app.req_options.auto_parse_qs_csv = True
     app.add_route('/', StatusResource())
     app.add_route('/weather', WeatherResource())

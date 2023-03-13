@@ -20,11 +20,7 @@ coloredlogs==15.0.1
     # via brightsky (setup.py)
 cssselect==1.2.0
     # via parsel
-falcon==2.0.0
-    # via
-    #   brightsky (setup.py)
-    #   falcon-cors
-falcon-cors==1.1.7
+falcon==3.1.1
     # via brightsky (setup.py)
 gunicorn==20.1.0
     # via brightsky (setup.py)
@@ -52,7 +48,7 @@ sentry-sdk==1.16.0
     # via brightsky (setup.py)
 six==1.16.0
     # via python-dateutil
-urllib3==1.26.14
+urllib3==1.26.15
     # via
     #   requests
     #   sentry-sdk
