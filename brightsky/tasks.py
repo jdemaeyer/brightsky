@@ -46,9 +46,12 @@ def poll(enqueue=False):
             parser_cls = get_parser(os.path.basename(url))
             process(url, priority=parser_cls.PRIORITY)
             enqueued += 1
+        queue_size = len([t for t in huey.pending() if t.name == 'process'])
         logger.info(
             'Enqueued %d updated files for processing. Queue size: %d',
-            enqueued, enqueued + len(pending_urls))
+            enqueued,
+            queue_size,
+        )
     return updated_files
 
 
