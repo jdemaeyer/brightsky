@@ -20,9 +20,8 @@ def parse(url):
             kwarg: download(extra_url, tmpdir)[0]
             for kwarg, extra_url in parser.get_extra_urls(path).items()
         }
-        records = list(parser.parse(path, **extra))
-    exporter = parser.exporter()
-    exporter.export(records, fingerprint=fingerprint)
+        exporter = parser.exporter()
+        exporter.export(parser.parse(path, **extra), fingerprint=fingerprint)
 
 
 def poll(enqueue=False):

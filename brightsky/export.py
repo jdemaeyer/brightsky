@@ -1,5 +1,6 @@
 import functools
 import logging
+from itertools import islice
 from threading import Lock
 
 from psycopg2 import sql
@@ -9,6 +10,12 @@ from brightsky.db import get_connection
 
 
 logger = logging.getLogger(__name__)
+
+
+def batched(it, batch_size):
+    it = iter(it)
+    while batch := tuple(islice(it, batch_size)):
+        yield batch
 
 
 class DBExporter:
@@ -56,14 +63,20 @@ class DBExporter:
 
     sources_update_lock = Lock()
 
+    BATCH_SIZE = 10000
+
     def export(self, records, fingerprint=None):
-        records = self.prepare_records(records)
-        sources = self.prepare_sources(records)
         with get_connection() as conn:
-            source_map = self.update_sources(conn, sources)
-            self.update_weather(conn, source_map, records)
+            for batch in batched(records, self.BATCH_SIZE):
+                self.export_batch(conn, batch)
             if fingerprint:
                 self.update_parsed_files(conn, fingerprint)
+
+    def export_batch(self, conn, batch):
+        records = self.prepare_records(batch)
+        sources = self.prepare_sources(batch)
+        source_map = self.update_sources(conn, sources)
+        self.update_weather(conn, source_map, records)
 
     def prepare_records(self, records):
         return records
