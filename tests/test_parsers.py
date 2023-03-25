@@ -4,7 +4,7 @@ from dateutil.tz import tzutc
 
 from brightsky.parsers import (
     CloudCoverObservationsParser, CurrentObservationsParser,
-    DewPointObservationsParser, get_parser, MOSMIXParser,
+    DewPointObservationsParser, get_parser, MOSMIXSParser,
     PrecipitationObservationsParser, PressureObservationsParser,
     SunshineObservationsParser, SYNOPParser, TemperatureObservationsParser,
     VisibilityObservationsParser, WindGustsObservationsParser,
@@ -14,8 +14,8 @@ from .utils import is_subset, settings
 
 
 def test_mosmix_parser(data_dir):
-    p = MOSMIXParser(path=data_dir / 'MOSMIX_S.kmz')
-    records = list(p.parse())
+    p = MOSMIXSParser()
+    records = list(p.parse(data_dir / 'MOSMIX_S.kmz'))
     assert len(records) == 240
     assert records[0] == {
         'observation_type': 'forecast',
@@ -64,8 +64,8 @@ def test_mosmix_parser(data_dir):
 
 
 def test_synop_parser(data_dir):
-    p = SYNOPParser(path=data_dir / 'synop.json.bz2')
-    records = list(p.parse())
+    p = SYNOPParser()
+    records = list(p.parse(data_dir / 'synop.json.bz2'))
     assert len(records) == 3
     assert records[0] == {
         'observation_type': 'synop',
@@ -113,8 +113,9 @@ def test_synop_parser(data_dir):
 
 
 def test_current_observation_parser(data_dir):
-    p = CurrentObservationsParser(path=data_dir / 'observations_current.csv')
-    records = list(p.parse(10.1, 20.2, 30.3, 'Muenster'))
+    p = CurrentObservationsParser()
+    path = data_dir / 'observations_current.csv'
+    records = list(p.parse(path, 10.1, 20.2, 30.3, 'Muenster'))
     assert len(records) == 25
     assert records[0] == {
         'observation_type': 'current',
@@ -172,15 +173,14 @@ def test_current_observation_parser_loads_station_data_from_db(db, data_dir):
         'station_name': 'Münster',
     }
     db.insert('sources', [source])
-    p = CurrentObservationsParser(path=data_dir / 'observations_current.csv')
-    record = next(p.parse())
+    p = CurrentObservationsParser()
+    record = next(p.parse(data_dir / 'observations_current.csv'))
     for field in ('lat', 'lon', 'height', 'station_name'):
         assert record[field] == source[field]
 
 
 def test_observations_parser_parses_metadata(data_dir):
-    p = WindObservationsParser(
-        path=data_dir / 'observations_recent_FF_akt.zip')
+    p = WindObservationsParser()
     metadata = {
         'observation_type': 'historical',
         'source': (
@@ -193,31 +193,29 @@ def test_observations_parser_parses_metadata(data_dir):
         'wmo_station_id': '10788',
         'station_name': 'Straubing',
     }
-    for record in p.parse():
+    for record in p.parse(data_dir / 'observations_recent_FF_akt.zip'):
         assert is_subset(metadata, record)
 
 
 def test_observations_parser_handles_missing_values(data_dir):
-    p = WindObservationsParser(
-        path=data_dir / 'observations_recent_FF_akt.zip')
-    records = list(p.parse())
+    p = WindObservationsParser()
+    records = list(p.parse(data_dir / 'observations_recent_FF_akt.zip'))
     assert records[5]['wind_direction'] == 90
     assert records[5]['wind_speed'] is None
 
 
 def test_observations_parser_handles_ignored_values(data_dir):
-    p = WindObservationsParser(
-        path=data_dir / 'observations_recent_FF_akt.zip')
+    p = WindObservationsParser()
     p.ignored_values = {'wind_direction': ['80']}
-    records = list(p.parse())
+    records = list(p.parse(path=data_dir / 'observations_recent_FF_akt.zip'))
     assert records[0]['wind_direction'] is None
     assert records[0]['wind_speed'] == 1.6
 
 
 def test_observations_parser_handles_location_changes(data_dir):
-    p = WindObservationsParser(
-        path=data_dir / 'observations_recent_FF_location_change_akt.zip')
-    records = list(p.parse())
+    p = WindObservationsParser()
+    path = data_dir / 'observations_recent_FF_location_change_akt.zip'
+    records = list(p.parse(path))
     assert is_subset(
         {'lat': 48.8275, 'lon': 12.5597, 'height': 350.5}, records[0])
     assert is_subset(
@@ -225,33 +223,33 @@ def test_observations_parser_handles_location_changes(data_dir):
 
 
 def test_observations_parser_skips_file_if_out_of_range(data_dir):
-    p = PressureObservationsParser(
-        path=data_dir / 'observations_19950901_20150817_hist.zip')
-    assert not p.should_skip()
+    p = PressureObservationsParser()
+    path = data_dir / 'observations_19950901_20150817_hist.zip'
+    assert not p.skip_path(path)
     with settings(
         MIN_DATE=datetime.datetime(2016, 1, 1, tzinfo=tzutc()),
     ):
-        assert p.should_skip()
+        assert p.skip_path(path)
     with settings(
         MAX_DATE=datetime.datetime(1995, 1, 1, tzinfo=tzutc()),
     ):
-        assert p.should_skip()
+        assert p.skip_path(path)
 
 
 def test_observations_parser_skips_rows_if_before_cutoff(data_dir):
-    p = WindObservationsParser(
-        path=data_dir / 'observations_recent_FF_akt.zip')
+    p = WindObservationsParser()
+    path = data_dir / 'observations_recent_FF_akt.zip'
     with settings(
         MIN_DATE=datetime.datetime(2019, 1, 1, tzinfo=tzutc()),
     ):
-        records = list(p.parse())
+        records = list(p.parse(path))
         assert len(records) == 5
         assert records[0]['timestamp'] == datetime.datetime(
             2019, 4, 20, 21, tzinfo=tzutc())
     with settings(
         MAX_DATE=datetime.datetime(2019, 1, 1, tzinfo=tzutc()),
     ):
-        records = list(p.parse())
+        records = list(p.parse(path))
         assert len(records) == 5
         assert records[-1]['timestamp'] == datetime.datetime(
             2018, 9, 15, 4, tzinfo=tzutc())
@@ -259,8 +257,7 @@ def test_observations_parser_skips_rows_if_before_cutoff(data_dir):
 
 def _test_parser(
         cls, path, first, last, count=10, first_idx=0, last_idx=-1, **kwargs):
-    p = cls(path=path, **kwargs)
-    records = list(p.parse())
+    records = list(cls().parse(path, **kwargs))
     first['timestamp'] = datetime.datetime.strptime(
         first['timestamp'], '%Y-%m-%d %H:%M').replace(tzinfo=tzutc())
     last['timestamp'] = datetime.datetime.strptime(
@@ -360,9 +357,8 @@ def test_pressure_observations_parser(data_dir):
 
 
 def test_pressure_observations_parser_approximates_pressure_msl(data_dir):
-    p = PressureObservationsParser(
-        path=data_dir / 'observations_recent_P0_hist.zip')
-    records = list(p.parse())
+    p = PressureObservationsParser()
+    records = list(p.parse(data_dir / 'observations_recent_P0_hist.zip'))
     # The actual reduced pressure deleted from the test observation file was
     # 1023.0 hPa
     assert records[4]['pressure_msl'] == 102260
@@ -386,7 +382,7 @@ def test_get_parser():
         'stundenwerte_TD_01766.zip': DewPointObservationsParser,
         'stundenwerte_TU_00161_akt.zip': TemperatureObservationsParser,
         'stundenwerte_VV_00161_akt.zip': VisibilityObservationsParser,
-        'MOSMIX_S_LATEST_240.kmz': MOSMIXParser,
+        'MOSMIX_S_LATEST_240.kmz': MOSMIXSParser,
         'K611_-BEOB.csv': CurrentObservationsParser,
         synop_with_timestamp: SYNOPParser,
         synop_latest: None,

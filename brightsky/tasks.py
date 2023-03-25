@@ -1,35 +1,28 @@
 import logging
 import os
+import tempfile
 
 from brightsky.db import get_connection
 from brightsky.parsers import get_parser
 from brightsky.polling import DWDPoller
-from brightsky.utils import dwd_fingerprint
+from brightsky.utils import download
 from brightsky.worker import huey, process
 
 
 logger = logging.getLogger('brightsky')
 
 
-def parse(path=None, url=None, export=False):
-    if not path and not url:
-        raise ValueError('Please provide either path or url')
-    parser_cls = get_parser(os.path.basename(path or url))
-    parser = parser_cls(path=path, url=url)
-    if url:
-        parser.download()
-        fingerprint = {
-            'url': url,
-            **dwd_fingerprint(parser.path),
+def parse(url):
+    parser = get_parser(os.path.basename(url))()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path, fingerprint = download(url, tmpdir)
+        extra = {
+            kwarg: download(extra_url, tmpdir)[0]
+            for kwarg, extra_url in parser.get_extra_urls(path).items()
         }
-    else:
-        fingerprint = None
-    records = list(parser.parse())
-    parser.cleanup()
-    if export:
-        exporter = parser.exporter()
-        exporter.export(records, fingerprint=fingerprint)
-    return records
+        records = list(parser.parse(path, **extra))
+    exporter = parser.exporter()
+    exporter.export(records, fingerprint=fingerprint)
 
 
 def poll(enqueue=False):

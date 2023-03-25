@@ -96,7 +96,7 @@ def api():
 
 def pytest_configure(config):
     # Dirty mock so we don't download the station list on every test run
-    from brightsky.utils import _converter
+    from dwdparse.stations import _converter
     # Must contain all stations that we use in test data
     _converter.dwd_to_wmo = {
         'XXX': '01028',

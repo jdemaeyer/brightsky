@@ -30,75 +30,39 @@ You can use the free [public Bright Sky instance](https://brightsky.dev/)!
 Check out the [infrastructure
 repo](https://github.com/jdemaeyer/brightsky-infrastructure/)!
 
-#### I want to parse DWD weather files or contribute to Bright Sky's source code
+#### I want to parse DWD weather files from the command line or in Python
+
+The parsing core for Bright Sky is maintained in a separate package named
+[`dwdparse`](https://github.com/jdemaeyer/dwdparse), which has no dependencies
+outside the standard library. If you find that's not quite serving your needs,
+check out [`wetterdienst`](https://github.com/earthobservations/wetterdienst).
+
+#### I want to contribute to Bright Sky's source code
 
 Read on. :)
 
 
+### On Bright Sky's versioning
+
+Starting from version 2.0, where we extracted the parsing core into a [separate
+package](https://github.com/jdemaeyer/dwdparse), Bright Sky is **no longer
+intended to be used as a Python library**, but only as the service available at
+[`brightsky.dev`](https://brightsky.dev/).
+
+Consequentially, we adjust our version numbers from the _perspective of that
+service and its users_ – i.e., we will increase the major version number only
+when we introduce backwards-incompatible (or otherwise very major) changes to
+the actual JSON API interface, e.g. by changing URLs or parameters. This means
+that **increases of the minor version number may introduce
+backwards-incompatible changes to the internals of the `brightsky` package,
+including the database structure**. If you use `brightsky` as a Python library,
+please version-pin to a minor version, e.g. by putting `brightsky==2.0.*` in
+your `requirements.txt`.
+
+
 ## Quickstart
 
-There are three main ways to use this package:
-
-* parsing DWD files from the command line,
-* parsing DWD files from Python code, or
-* running a complete API instance.
-
-
-### Stand-alone DWD file parsing
-
-1. Install the `brightsky` package from PyPI:
-   ```
-   pip install brightsky
-   ```
-
-2. Call Bright Sky's `parse` command, providing your target file either via
-   `--path` (if it is a local file):
-   ```
-   python -m brightsky parse --path stundenwerte_TU_01766_akt.zip
-   ```
-   or `--url` (if the file should be downloaded first):
-   ```
-   python -m brightsky parse --url https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/stundenwerte_TU_01766_akt.zip
-   ```
-
-This will output a newline-separated list of JSON records. Note that all
-numerical weather data will be converted to SI units.
-
-
-### Parsing DWD files from Python code
-
-1. Install the `brightsky` package from PyPI:
-   ```
-   pip install brightsky
-   ```
-
-2. In Python, import one of the `brightsky` parsers (or the `get_parser`
-   utility function) from `brightsky.parsers`, initialize it with `path` or
-   `url`, and call it's `parse()` method. This will return an iterable over
-   weather records:
-   ```python
-   DWD_FILE_URL = (
-       'https://opendata.dwd.de/climate_environment/CDC/observations_germany/'
-       'climate/hourly/air_temperature/recent/stundenwerte_TU_01766_akt.zip')
-
-   # Either auto-detect the correct parser from the filename
-   from brightsky.parsers import get_parser
-   parser_class = get_parser(DWD_FILE_URL.split('/')[-1])
-   parser = parser_class(url=DWD_FILE_URL)
-
-   # Or pick the parser class yourself
-   from brightsky.parsers import TemperatureObservationsParser
-   parser = TemperatureObservationsParser(url=DWD_FILE_URL)
-
-
-   parser.download()  # Not necessary if you supply a local path
-   for record in parser.parse():
-       print(record)
-   parser.cleanup()  # If you wish to delete any downloaded files
-   ```
-
-
-### Running a full-fledged instance
+### Running a full-fledged API instance
 
 _Note: These instructions are aimed at running a Bright Sky instance for
 development and testing. Check out our [infrastructure

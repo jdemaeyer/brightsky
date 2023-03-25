@@ -2,10 +2,12 @@ import json
 from multiprocessing import cpu_count
 
 import click
+import dwdparse
 from falcon.testing import simulate_get
 from huey.consumer_options import ConsumerConfig
 
 from brightsky import db, tasks
+from brightsky.parsers import get_parser
 from brightsky.utils import parse_date
 from brightsky.web import app, StandaloneApplication
 from brightsky.worker import huey
@@ -42,18 +44,47 @@ def migrate():
 
 
 @cli.command()
-@click.option('--path', help='Local file path to observations file')
-@click.option('--url', help='URL of observations file')
+@click.option('--path', hidden=True)
+@click.option('--url', hidden=True)
 @click.option(
-    '--export/--no-export', default=False,
-    help='Export parsed records to database')
-def parse(path, url, export):
-    """Parse a forecast or observations file."""
-    if not path and not url:
-        raise click.ClickException('Please provide either --path or --url')
-    records = tasks.parse(path=path, url=url, export=export)
-    if not export:
-        dump_records(records)
+    '--export/--no-export',
+    default=False,
+    hidden=True,
+)
+@click.argument(
+    'targets',
+    required=False,
+    nargs=-1,
+    metavar='TARGET [TARGET ...]',
+)
+def parse(path, url, export, targets):
+    """Parse and store observations/forecasts from a URL."""
+    # TODO: In v2.2, mark `targets` as required, remove `path`, `url`, and
+    #       `export`, and keep only the `elif targets` branch of this function.
+    if path or url:
+        if path:
+            records = dwdparse.parse(path)
+        elif url:
+            records = dwdparse.parse_url(url)
+        if export:
+            exporter = get_parser(path or url).exporter()
+            exporter.export(list(records))
+        else:
+            dump_records(records)
+        click.echo(
+            click.style(
+                "WARNING: Parsing DWD files with `python -m brightsky parse` "
+                "without exporting to a database is no longer supported and "
+                "will be removed in version 2.2. Use `dwdparse` instead.",
+                fg='red',
+            ),
+            err=True,
+        )
+    elif targets:
+        for target in targets:
+            tasks.parse(target)
+    else:
+        raise click.ClickException('Please provide at least one target')
 
 
 @cli.command()

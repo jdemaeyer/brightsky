@@ -31,6 +31,7 @@ setup(
         'astral',
         'click',
         'coloredlogs',
+        'dwdparse',
         'falcon>=3',
         'gunicorn',
         'huey',

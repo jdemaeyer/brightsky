@@ -20,6 +20,8 @@ coloredlogs==15.0.1
     # via brightsky (setup.py)
 cssselect==1.2.0
     # via parsel
+dwdparse==0.9.1
+    # via brightsky (setup.py)
 falcon==3.1.1
     # via brightsky (setup.py)
 gunicorn==20.1.0

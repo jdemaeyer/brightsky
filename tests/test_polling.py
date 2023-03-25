@@ -29,7 +29,7 @@ def test_dwdpoller_parse(data_dir):
         '/dir/stundenwerte_N_00162_akt.zip': (
             'CloudCoverObservationsParser', '2020-03-29 09:01', 70166),
         '/dir/MOSMIX_S_LATEST_240.kmz': (
-            'MOSMIXParser', '2020-03-29 10:21', 38067304),
+            'MOSMIXSParser', '2020-03-29 10:21', 38067304),
         '/dir/K611_-BEOB.csv': (
             'CurrentObservationsParser', '2020-04-06 10:38', 7343),
         '/dir/10minutenwerte_extrema_wind_01766_now.zip': (

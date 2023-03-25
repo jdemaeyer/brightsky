@@ -1,11 +1,18 @@
+import logging
+import resource
+import threading
 import time
 
+from dwdparse.stations import load_stations
 from huey import crontab, PriorityRedisHuey
 from huey.api import TaskLock as TaskLock_
 from huey.exceptions import TaskLockedException
 
 from brightsky import tasks
 from brightsky.settings import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class ExpiringLocksHuey(PriorityRedisHuey):
@@ -44,6 +51,18 @@ huey = ExpiringLocksHuey(
 )
 
 
+@huey.periodic_task(crontab(minute='42', hour='3'), priority=40)
+@huey.on_startup()
+def update_stations():
+    with update_stations._lock:
+        if time.time() - update_stations._last_update < 60:
+            return
+        load_stations()
+        update_stations._last_update = time.time()
+update_stations._lock = threading.Lock()  # noqa: E305
+update_stations._last_update = 0
+
+
 @huey.task()
 def process(url):
     with huey.lock_task(url):
@@ -59,3 +78,9 @@ def poll():
 @huey.periodic_task(crontab(minute='23'), priority=0)
 def clean():
     tasks.clean()
+
+
+@huey.periodic_task(crontab(), priority=100)
+def log_health():
+    max_mem = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    logger.info(f"Maximum memory usage: {max_mem:,} MiB")

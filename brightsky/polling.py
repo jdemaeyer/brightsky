@@ -74,7 +74,7 @@ class DWDPoller:
                     match.group(1)).replace(tzinfo=tzutc())
                 file_size = int(match.group(2))
                 parser_cls = get_parser(link)
-                if parser_cls and not parser_cls(url=link_url).should_skip():
+                if parser_cls and not parser_cls().skip_path(link):
                     files.append({
                         'url': link_url,
                         'parser': parser_cls.__name__,

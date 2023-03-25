@@ -4,6 +4,7 @@ from contextlib import contextmanager
 
 import falcon
 from dateutil.tz import gettz
+from dwdparse.units import convert_record, CONVERTERS
 from falcon.errors import HTTPInvalidParam
 from gunicorn.app.base import BaseApplication
 from gunicorn.util import import_app
@@ -11,7 +12,6 @@ from gunicorn.util import import_app
 import brightsky
 from brightsky import query
 from brightsky.settings import settings
-from brightsky.units import convert_record, CONVERTERS
 from brightsky.utils import parse_date, sunrise_sunset
 
 
