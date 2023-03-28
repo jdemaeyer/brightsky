@@ -66,7 +66,7 @@ update_stations._last_update = 0
 @huey.task()
 def process(url):
     with huey.lock_task(url):
-        tasks.parse(url=url, export=True)
+        tasks.parse(url)
 
 
 @huey.periodic_task(
