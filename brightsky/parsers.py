@@ -44,7 +44,7 @@ class ObservationsBrightSkyMixin(BrightSkyMixin):
         return False
 
 
-class MOSMIXSParser(BrightSkyMixin, dwdparse.parsers.MOSMIXSParser):
+class MOSMIXParser(BrightSkyMixin, dwdparse.parsers.MOSMIXParser):
 
     PRIORITY = 20
 
@@ -165,7 +165,7 @@ class PressureObservationsParser(
 
 def get_parser(filename):
     parsers = {
-        r'MOSMIX_S_LATEST_240\.kmz$': MOSMIXSParser,
+        r'MOSMIX_S_LATEST_240\.kmz$': MOSMIXParser,
         r'Z__C_EDZW_\d+_.*\.json\.bz2$': SYNOPParser,
         r'\w{5}-BEOB\.csv$': CurrentObservationsParser,
         'stundenwerte_FF_': WindObservationsParser,

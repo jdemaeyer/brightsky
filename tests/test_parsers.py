@@ -4,7 +4,7 @@ from dateutil.tz import tzutc
 
 from brightsky.parsers import (
     CloudCoverObservationsParser, CurrentObservationsParser,
-    DewPointObservationsParser, get_parser, MOSMIXSParser,
+    DewPointObservationsParser, get_parser, MOSMIXParser,
     PrecipitationObservationsParser, PressureObservationsParser,
     SunshineObservationsParser, SYNOPParser, TemperatureObservationsParser,
     VisibilityObservationsParser, WindGustsObservationsParser,
@@ -14,7 +14,7 @@ from .utils import is_subset, settings
 
 
 def test_mosmix_parser(data_dir):
-    p = MOSMIXSParser()
+    p = MOSMIXParser()
     records = list(p.parse(data_dir / 'MOSMIX_S.kmz'))
     assert len(records) == 240
     assert records[0] == {
@@ -382,7 +382,7 @@ def test_get_parser():
         'stundenwerte_TD_01766.zip': DewPointObservationsParser,
         'stundenwerte_TU_00161_akt.zip': TemperatureObservationsParser,
         'stundenwerte_VV_00161_akt.zip': VisibilityObservationsParser,
-        'MOSMIX_S_LATEST_240.kmz': MOSMIXSParser,
+        'MOSMIX_S_LATEST_240.kmz': MOSMIXParser,
         'K611_-BEOB.csv': CurrentObservationsParser,
         synop_with_timestamp: SYNOPParser,
         synop_latest: None,
