@@ -14,6 +14,8 @@ from brightsky.parsers import get_parser
 class DWDPoller:
 
     urls = [
+        'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L/'
+        'all_stations/kml/',
         'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/'
         'all_stations/kml/',
         'https://opendata.dwd.de/weather/weather_reports/synoptic/germany/'

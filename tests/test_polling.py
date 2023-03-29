@@ -28,6 +28,8 @@ def test_dwdpoller_parse(data_dir):
             'VisibilityObservationsParser', '2020-03-29 09:03', 70168),
         '/dir/stundenwerte_N_00162_akt.zip': (
             'CloudCoverObservationsParser', '2020-03-29 09:01', 70166),
+        '/dir/MOSMIX_L_LATEST.kmz': (
+            'MOSMIXParser', '2020-03-29 09:57', 91636300),
         '/dir/MOSMIX_S_LATEST_240.kmz': (
             'MOSMIXParser', '2020-03-29 10:21', 38067304),
         '/dir/K611_-BEOB.csv': (

@@ -56,10 +56,22 @@ class DBExporter:
         'observation_type', 'lat', 'lon', 'height', 'dwd_station_id',
         'wmo_station_id', 'station_name']
     ELEMENT_FIELDS = [
-        'cloud_cover', 'condition', 'dew_point', 'precipitation',
-        'pressure_msl', 'relative_humidity', 'sunshine', 'temperature',
-        'visibility', 'wind_direction', 'wind_speed', 'wind_gust_direction',
-        'wind_gust_speed']
+        'cloud_cover',
+        'condition',
+        'dew_point',
+        'precipitation',
+        'precipitation_probability',
+        'precipitation_probability_6h',
+        'pressure_msl',
+        'relative_humidity',
+        'sunshine',
+        'temperature',
+        'visibility',
+        'wind_direction',
+        'wind_speed',
+        'wind_gust_direction',
+        'wind_gust_speed',
+    ]
 
     sources_update_lock = Lock()
 
