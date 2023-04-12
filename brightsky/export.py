@@ -64,6 +64,7 @@ class DBExporter:
         'precipitation_probability_6h',
         'pressure_msl',
         'relative_humidity',
+        'solar',
         'sunshine',
         'temperature',
         'visibility',
@@ -194,14 +195,35 @@ class SYNOPExporter(DBExporter):
         'REFRESH MATERIALIZED VIEW CONCURRENTLY current_weather')
 
     ELEMENT_FIELDS = [
-        'cloud_cover', 'condition', 'dew_point', 'precipitation_10',
-        'precipitation_30', 'precipitation_60', 'pressure_msl',
-        'relative_humidity', 'sunshine_10', 'sunshine_30', 'sunshine_60',
-        'temperature', 'visibility', 'wind_direction_10', 'wind_direction_30',
-        'wind_direction_60', 'wind_speed_10', 'wind_speed_30', 'wind_speed_60',
-        'wind_gust_direction_10', 'wind_gust_direction_30',
-        'wind_gust_direction_60', 'wind_gust_speed_10', 'wind_gust_speed_30',
-        'wind_gust_speed_60']
+        'cloud_cover',
+        'condition',
+        'dew_point',
+        'precipitation_10',
+        'precipitation_30',
+        'precipitation_60',
+        'pressure_msl',
+        'relative_humidity',
+        'solar_10',
+        'solar_30',
+        'solar_60',
+        'sunshine_10',
+        'sunshine_30',
+        'sunshine_60',
+        'temperature',
+        'visibility',
+        'wind_direction_10',
+        'wind_direction_30',
+        'wind_direction_60',
+        'wind_speed_10',
+        'wind_speed_30',
+        'wind_speed_60',
+        'wind_gust_direction_10',
+        'wind_gust_direction_30',
+        'wind_gust_direction_60',
+        'wind_gust_speed_10',
+        'wind_gust_speed_30',
+        'wind_gust_speed_60',
+    ]
 
     synop_update_lock = Lock()
 

@@ -39,6 +39,7 @@ def test_mosmix_parser(data_dir):
         'wind_speed': 8.75,
         'wind_gust_speed': None,
         'condition': 'snow',
+        'solar': None,
     }
     assert records[-1] == {
         'observation_type': 'forecast',
@@ -62,6 +63,7 @@ def test_mosmix_parser(data_dir):
         'wind_speed': 7.72,
         'wind_gust_speed': None,
         'condition': 'dry',
+        'solar': None,
     }
     assert records[2]['precipitation_probability_6h'] == 49
 
@@ -141,6 +143,7 @@ def test_current_observation_parser(data_dir):
         'wind_speed': 3.9,
         'wind_gust_speed': 5.8,
         'condition': None,
+        'solar': None,
     }
     assert records[15] == {
         'observation_type': 'current',
@@ -163,6 +166,7 @@ def test_current_observation_parser(data_dir):
         'wind_speed': 3.9,
         'wind_gust_speed': 7.2,
         'condition': None,
+        'solar': None,
     }
 
 

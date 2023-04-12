@@ -40,6 +40,8 @@ def test_dwdpoller_parse(data_dir):
             'WindGustsObservationsParser', '2020-06-08 04:27', 519692),
         '/dir/10minutenwerte_extrema_wind_01766_20100101_20191231_hist.zip': (
             'WindGustsObservationsParser', '2020-04-09 09:16', 3661729),
+        '/dir/10minutenwerte_SOLAR_01766_akt.zip': (
+            'SolarRadiationObservationsParser', '2023-04-12 00:50', 367557),
     }
     assert list(DWDPoller().parse('/dir/', resp_text)) == [
         {

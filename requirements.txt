@@ -20,7 +20,7 @@ coloredlogs==15.0.1
     # via brightsky (setup.py)
 cssselect==1.2.0
     # via parsel
-dwdparse[lean]==0.9.4
+dwdparse[lean]==0.9.5
     # via brightsky (setup.py)
 falcon==3.1.1
     # via brightsky (setup.py)

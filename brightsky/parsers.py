@@ -128,6 +128,13 @@ class PrecipitationObservationsParser(
     pass
 
 
+class SolarRadiationObservationsParser(
+    ObservationsBrightSkyMixin,
+    dwdparse.parsers.SolarRadiationObservationsParser,
+):
+    pass
+
+
 class VisibilityObservationsParser(
     ObservationsBrightSkyMixin,
     dwdparse.parsers.VisibilityObservationsParser,
@@ -177,6 +184,7 @@ def get_parser(filename):
         'stundenwerte_TU_': TemperatureObservationsParser,
         'stundenwerte_VV_': VisibilityObservationsParser,
         '10minutenwerte_extrema_wind_': WindGustsObservationsParser,
+        '10minutenwerte_SOLAR_': SolarRadiationObservationsParser,
     }
     for pattern, parser in parsers.items():
         if re.match(pattern, filename):
