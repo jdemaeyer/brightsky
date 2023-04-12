@@ -36,11 +36,11 @@ ijson==3.2.0.post0
     # via dwdparse
 lxml==4.9.2
     # via parsel
-packaging==23.0
+packaging==23.1
     # via parsel
 parsel==1.7.0
     # via brightsky (setup.py)
-psycopg2-binary==2.9.5
+psycopg2-binary==2.9.6
     # via brightsky (setup.py)
 python-dateutil==2.8.2
     # via brightsky (setup.py)
@@ -48,7 +48,7 @@ redis==4.5.4
     # via brightsky (setup.py)
 requests==2.28.2
     # via brightsky (setup.py)
-sentry-sdk==1.16.0
+sentry-sdk==1.19.1
     # via brightsky (setup.py)
 six==1.16.0
     # via python-dateutil
