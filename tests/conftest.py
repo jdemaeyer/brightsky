@@ -1,9 +1,10 @@
 import os
 import time
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlparse
 
-import attr
 import falcon.testing
 import psycopg2
 import pytest
@@ -43,11 +44,11 @@ def _database():
     conn.close()
 
 
-@attr.s
+@dataclass
 class TestConnection:
     """Wrapper for database connection with some rough convenience functions"""
 
-    conn = attr.ib()
+    conn: Any
 
     def insert(self, table, rows):
         with self.cursor() as cur:
