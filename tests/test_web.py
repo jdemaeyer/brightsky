@@ -368,6 +368,21 @@ def test_weather_icon(data, api):
         assert record['icon'] == condition['_expected_icon']
 
 
+def test_weather_compress(data, api):
+    resp = api.simulate_get(
+        '/weather?lat=52&lon=7.6&date=2020-08-20'
+        '&compress=temperature,visibility',
+    )
+    assert resp.status_code == 200
+    assert isinstance(resp.json, list)
+    assert len(resp.json) == 25
+    assert resp.json[0] == [21.2, 40000]
+    resp = api.simulate_get(
+        '/weather?lat=52&lon=7.6&date=2020-08-20&compress=temperature,unknown',
+    )
+    assert resp.status_code == 400
+
+
 def test_synop_disallows_lat_lon(data, api):
     resp = api.simulate_get(
         '/synop',
@@ -435,6 +450,18 @@ def test_current_weather_response(synop_data, api, db):
     }
     for k, v in expected_weather.items():
         assert resp.json['weather'][k] == v, k
+
+
+def test_current_weather_compress(synop_data, api, db):
+    resp = api.simulate_get(
+        '/current_weather?lat=52&lon=7.6&compress=temperature,visibility',
+    )
+    assert resp.status_code == 200
+    assert resp.json == [22.9, 35000]
+    resp = api.simulate_get(
+        '/current_weather?lat=52&lon=7.6&compress=temperature,unknown',
+    )
+    assert resp.status_code == 400
 
 
 def test_status_response(api):

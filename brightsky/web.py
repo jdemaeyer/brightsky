@@ -87,6 +87,9 @@ class BrightskyResource:
                 description="'units' must be in %s" % (self.ALLOWED_UNITS,))
         return units
 
+    def parse_compress(self, req):
+        return req.get_param_as_list('compress')
+
     def process_timestamp(self, row, key, timezone):
         if not row[key]:
             return
@@ -98,6 +101,14 @@ class BrightskyResource:
         for source in sources:
             self.process_timestamp(source, 'first_record', timezone)
             self.process_timestamp(source, 'last_record', timezone)
+
+    def compress(self, row, params):
+        try:
+            return [row[p] for p in params]
+        except KeyError:
+            invalid = [p for p in params if p not in row]
+            raise falcon.HTTPBadRequest(
+                description=f"Invalid parameters for 'compress': {invalid}")
 
 
 class WeatherResource(BrightskyResource):
@@ -112,6 +123,7 @@ class WeatherResource(BrightskyResource):
         max_dist = self.parse_max_dist(req)
         timezone = self.parse_timezone(req)
         units = self.parse_units(req)
+        compress = self.parse_compress(req)
         if timezone:
             if not date.tzinfo:
                 date = date.replace(tzinfo=timezone)
@@ -128,6 +140,11 @@ class WeatherResource(BrightskyResource):
         source_map = {s['id']: s for s in result['sources']}
         for row in result['weather']:
             self.process_row(row, units, timezone, source_map)
+        if compress:
+            result = [
+                self.compress(row, compress)
+                for row in result['weather']
+            ]
         resp.media = result
 
     def query(self, *args, **kwargs):
@@ -181,6 +198,7 @@ class CurrentWeatherResource(WeatherResource):
         max_dist = self.parse_max_dist(req)
         timezone = self.parse_timezone(req)
         units = self.parse_units(req)
+        compress = self.parse_compress(req)
         with convert_exceptions():
             result = query.current_weather(
                 lat=lat, lon=lon, dwd_station_id=dwd_station_id,
@@ -189,6 +207,8 @@ class CurrentWeatherResource(WeatherResource):
         self.process_sources(result['sources'])
         source_map = {s['id']: s for s in result['sources']}
         self.process_row(result['weather'], units, timezone, source_map)
+        if compress:
+            result = self.compress(result['weather'], compress)
         resp.media = result
 
 
