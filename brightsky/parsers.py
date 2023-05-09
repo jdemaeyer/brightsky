@@ -3,10 +3,12 @@ import datetime
 import re
 
 import dwdparse.parsers
+import numpy as np
 from dateutil.tz import tzutc
+from isal import isal_zlib as zlib
 
 from brightsky.db import fetch
-from brightsky.export import DBExporter, SYNOPExporter
+from brightsky.export import DBExporter, RADOLANExporter, SYNOPExporter
 from brightsky.settings import settings
 
 
@@ -170,8 +172,29 @@ class PressureObservationsParser(
     pass
 
 
+class RADOLANParser(BrightSkyMixin, dwdparse.parsers.RADOLANParser):
+
+    PRIORITY = 30
+    exporter = RADOLANExporter
+
+    def process_raw_data(self, raw):
+        # XXX: Unlike with the other weather parameters, because of it's large
+        #      size, we're storing the radar data in a half-raw state and
+        #      performing some final processing during runtime. This brings
+        #      down the response time for retrieving one full radar scan
+        #      (single timestamp, 1200x1100 pixels) from 1.5 seconds to about
+        #      1 ms, mainly because of the reduced data transfer when fetching
+        #      the scan from the database. An important caveat of this is that
+        #      we are replacing `None` with `0`!
+        data = np.array(raw, dtype='i2')
+        data[data > 4095] = 0
+        data = np.flipud(data.reshape((1200, 1100)))
+        return zlib.compress(np.ascontiguousarray(data))
+
+
 def get_parser(filename):
     parsers = {
+        r'DE1200_RV': RADOLANParser,
         r'MOSMIX_(S|L)_LATEST(_240)?\.kmz$': MOSMIXParser,
         r'Z__C_EDZW_\d+_.*\.json\.bz2$': SYNOPParser,
         r'\w{5}-BEOB\.csv$': CurrentObservationsParser,

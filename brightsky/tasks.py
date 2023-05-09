@@ -64,8 +64,10 @@ def clean():
             'synop': '30 hours',
         },
     }
+    radar_expiry_interval = '6 hours'
     parsed_files_expiry_intervals = {
         '%/Z__C_EDZW_%': '1 week',
+        '%/DE1200_RV%': '1 week',
     }
     with get_connection() as conn:
         with conn.cursor() as cur:
@@ -104,6 +106,17 @@ def clean():
                     WHERE sources.id = record_range.source_id;
                     """)
                 conn.commit()
+            logger.info('Deleting expired radar records')
+            cur.execute(
+                """
+                DELETE FROM radar WHERE
+                    timestamp < current_timestamp - %s::interval;
+                """,
+                (radar_expiry_interval,),
+            )
+            conn.commit()
+            if cur.rowcount:
+                logger.info('Deleted %d outdated radar records', cur.rowcount)
             logger.info(
                 'Deleting expired parsed files: %s',
                 parsed_files_expiry_intervals)

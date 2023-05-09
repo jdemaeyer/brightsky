@@ -1,16 +1,21 @@
+import base64
 import importlib
 import sys
 from contextlib import contextmanager
+from functools import partial
 
 import falcon
+import orjson
 from dateutil.tz import gettz
 from dwdparse.units import convert_record, CONVERTERS
+from falcon import media
 from falcon.errors import HTTPInvalidParam
 from gunicorn.app.base import BaseApplication
 from gunicorn.util import import_app
 
 import brightsky
 from brightsky import query
+from brightsky.db import fetch
 from brightsky.settings import settings
 from brightsky.utils import parse_date, sunrise_sunset
 
@@ -23,6 +28,12 @@ def convert_exceptions():
         raise falcon.HTTPBadRequest(description=str(e))
     except LookupError as e:
         raise falcon.HTTPNotFound(description=str(e))
+
+
+def orjson_encode_default(o):
+    if isinstance(o, (bytes, memoryview)):
+        return base64.b64encode(o).decode('ascii')
+    raise TypeError
 
 
 class BrightskyResource:
@@ -92,7 +103,6 @@ class BrightskyResource:
             return
         if timezone:
             row[key] = row[key].astimezone(timezone)
-        row[key] = row[key].isoformat()
 
     def process_sources(self, sources, timezone=None):
         for source in sources:
@@ -207,6 +217,73 @@ class SynopResource(WeatherResource):
         return query.synop(*args, **kwargs)
 
 
+class RadarResource(BrightskyResource):
+
+    ALLOWED_FORMATS = ['compressed', 'bytes', 'plain']
+
+    def on_get(self, req, resp):
+        fmt = self.parse_format(req)
+        if fmt == 'compressed':
+            # Prevent traefik from gzipping the pre-compressed content
+            resp.set_header('Content-Encoding', 'identity')
+        else:
+            self.force_compression(req)
+        if not req.get_param('date'):
+            date = fetch(
+                "select max(timestamp) - '3 hours'::interval from radar"
+            )[0][0]
+            print(date)
+            last_date = None
+        else:
+            date, last_date = self.parse_date_range(req)
+        timezone = self.parse_timezone(req)
+        if timezone:
+            if not date.tzinfo:
+                date = date.replace(tzinfo=timezone)
+            if last_date and not last_date.tzinfo:
+                last_date = last_date.replace(tzinfo=timezone)
+        bbox = self.parse_bbox(req)
+        with convert_exceptions():
+            result = query.radar(date, last_date=last_date, fmt=fmt, bbox=bbox)
+        for row in result['radar']:
+            self.process_timestamp(row, 'timestamp', timezone)
+        resp.media = result
+
+    def force_compression(self, req):
+        # traefik has no support for brotli or deflate
+        if 'gzip' not in req.headers.get('ACCEPT-ENCODING', ''):
+            description = (
+                "Requests to the radar endpoint with format 'plain' or "
+                "'bytes' must accept gzip encoding"
+            )
+            raise falcon.HTTPBadRequest(description=description)
+
+    def parse_format(self, req):
+        fmt = req.get_param('format', default='compressed').lower()
+        if fmt not in self.ALLOWED_FORMATS:
+            description = "'format' must be in %s" % (self.ALLOWED_FORMATS,)
+            raise falcon.HTTPBadRequest(description=description)
+        return fmt
+
+    def parse_bbox(self, req):
+        if bbox := req.get_param_as_list('bbox'):
+            if len(bbox) == 1 and ',' in bbox[0]:
+                # Request contained URL-encoded commas
+                bbox = bbox[0].split(',')
+            try:
+                if len(bbox) != 4:
+                    raise ValueError
+                bbox = [int(x) for x in bbox]
+                return bbox
+            except ValueError:
+                description = (
+                    "The 'bbox' parameter must be a comma-separated list of "
+                    "four integers: top, left, bottom, right (edges are "
+                    "inclusive)."
+                )
+                raise falcon.HTTPBadRequest(description=description)
+
+
 class SourcesResource(BrightskyResource):
 
     def on_get(self, req, resp):
@@ -255,10 +332,18 @@ def make_cors_middleware():
 def make_app():
     app = falcon.App(middleware=[make_cors_middleware()])
     app.req_options.auto_parse_qs_csv = True
+    app.resp_options.media_handlers['application/json'] = media.JSONHandler(
+        dumps=partial(
+            orjson.dumps,
+            default=orjson_encode_default,
+            option=orjson.OPT_SERIALIZE_NUMPY,
+        ),
+    )
     app.add_route('/', StatusResource())
     app.add_route('/weather', WeatherResource())
     app.add_route('/current_weather', CurrentWeatherResource())
     app.add_route('/synop', SynopResource())
+    app.add_route('/radar', RadarResource())
     app.add_route('/sources', SourcesResource())
     return app
 

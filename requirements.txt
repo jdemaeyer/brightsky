@@ -20,7 +20,7 @@ coloredlogs==15.0.1
     # via brightsky (setup.py)
 cssselect==1.2.0
     # via parsel
-dwdparse[lean]==0.9.5
+dwdparse[lean]==0.9.6
     # via brightsky (setup.py)
 falcon==3.1.1
     # via brightsky (setup.py)
@@ -34,10 +34,16 @@ idna==3.4
     # via requests
 ijson==3.2.0.post0
     # via dwdparse
+isal==1.1.0
+    # via brightsky (setup.py)
 jmespath==1.0.1
     # via parsel
 lxml==4.9.2
     # via parsel
+numpy==1.24.3
+    # via brightsky (setup.py)
+orjson==3.8.11
+    # via brightsky (setup.py)
 packaging==23.1
     # via parsel
 parsel==1.8.1

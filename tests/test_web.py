@@ -1,11 +1,15 @@
+import base64
 import datetime
+import zlib
 
 import falcon
+import numpy as np
 import pytest
 from dateutil.tz import tzutc
 
 import brightsky
-from brightsky.export import DBExporter, SYNOPExporter
+from brightsky.export import DBExporter, RADOLANExporter, SYNOPExporter
+from brightsky.parsers import RADOLANParser
 from brightsky.web import make_app
 
 from .utils import settings
@@ -207,6 +211,12 @@ def data(db):
 @pytest.fixture
 def synop_data(db):
     SYNOPExporter().export(SYNOP_RECORDS)
+
+
+@pytest.fixture
+def radar_data(db, data_dir):
+    p = RADOLANParser()
+    RADOLANExporter().export(p.parse(data_dir / 'DE1200_RV2305081330.tar.bz2'))
 
 
 def test_sources_required_parameters(data, api):
@@ -435,6 +445,84 @@ def test_current_weather_response(synop_data, api, db):
     }
     for k, v in expected_weather.items():
         assert resp.json['weather'][k] == v, k
+
+
+def test_radar_response(radar_data, api):
+    resp = api.simulate_get('/radar?date=2023-05-08T11:30')
+    assert resp.status_code == 200
+    assert len(resp.json['radar']) == 1
+
+
+def _get_radar_data(api, fmt, bbox=False):
+    url = f'/radar?date=2023-05-08T13:30&format={fmt}'
+    if bbox:
+        url += '&bbox=1117,334,1121,338'
+    resp = api.simulate_get(url, headers={'Accept-Encoding': 'gzip'})
+    assert resp.status_code == 200
+    return resp.json['radar'][0]['precipitation_5']
+
+
+def _check_radar_data(data):
+    if len(data) == 5:
+        clip = data
+    else:
+        assert sum(sum(row) for row in data) == 564030
+        clip = [
+            row[334:339]
+            for row in data[1117:1122]
+        ]
+    assert clip == [
+        [3, 5, 2, 1, 3],
+        [2, 3, 3, 0, 0],
+        [3, 4, 1, 0, 3],
+        [0, 8, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+    ]
+
+
+def test_radar_response_compressed(radar_data, api):
+    raw = _get_radar_data(api, 'compressed')
+    data = np.frombuffer(
+        zlib.decompress(base64.b64decode(raw)),
+        dtype='i2',
+    ).reshape(
+        (1200, 1100),
+    ).tolist()
+    _check_radar_data(data)
+    raw = _get_radar_data(api, 'compressed', bbox=True)
+    clip = np.frombuffer(
+        zlib.decompress(base64.b64decode(raw)),
+        dtype='i2',
+    ).reshape(
+        (5, 5),
+    ).tolist()
+    _check_radar_data(clip)
+
+
+def test_radar_response_bytes(radar_data, api):
+    raw = _get_radar_data(api, 'bytes')
+    data = np.frombuffer(
+        base64.b64decode(raw),
+        dtype='i2',
+    ).reshape(
+        (1200, 1100),
+    ).tolist()
+    _check_radar_data(data)
+    raw = _get_radar_data(api, 'bytes', bbox=True)
+    clip = np.frombuffer(
+        base64.b64decode(raw),
+        dtype='i2',
+    ).reshape(
+        (5, 5),
+    ).tolist()
+    _check_radar_data(clip)
+
+
+def test_radar_response_plain(radar_data, api):
+    data = _get_radar_data(api, 'plain')
+    _check_radar_data(data)
+    clip = _get_radar_data(api, 'plain', bbox=True)
+    _check_radar_data(clip)
 
 
 def test_status_response(api):

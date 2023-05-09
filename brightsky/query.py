@@ -1,6 +1,8 @@
 import datetime
 
+import numpy as np
 from dateutil.tz import tzutc
+from isal import isal_zlib as zlib
 
 from brightsky.db import fetch
 
@@ -191,6 +193,53 @@ def synop(
         'weather': _make_dicts(fetch(sql, params)),
         'sources': _make_dicts(sources_rows),
     }
+
+
+def radar(date, last_date=None, fmt='compressed', bbox=None):
+    if not last_date:
+        last_date = date + datetime.timedelta(hours=2)
+    sql = """
+        SELECT *
+        FROM radar
+        WHERE timestamp BETWEEN %(date)s AND %(last_date)s
+        ORDER BY timestamp
+        """
+    params = {
+        'date': date,
+        'last_date': last_date,
+    }
+    rows = fetch(sql, params)
+    if fmt == 'plain':
+        for row in rows:
+            row['precipitation_5'] = _load_radar(row['precipitation_5'], bbox)
+    elif fmt == 'bytes':
+        for row in rows:
+            row['precipitation_5'] = memoryview(
+                _load_radar(row['precipitation_5'], bbox),
+            )
+    elif fmt == 'compressed' and bbox:
+        for row in rows:
+            row['precipitation_5'] = zlib.compress(
+                _load_radar(row['precipitation_5'], bbox),
+            )
+    elif fmt != 'compressed':
+        raise ValueError("Unknown format: '%s'" % fmt)
+    return {
+        'radar': _make_dicts(rows),
+    }
+
+
+def _load_radar(raw, bbox, width=1100, height=1200):
+    precip = np.frombuffer(
+        zlib.decompress(raw),
+        dtype='i2',
+    ).reshape((height, width))
+    if bbox:
+        top, left, bottom, right = bbox
+        precip = precip[top:bottom+1, left:right+1]
+        # Arrays must be C-contiguous for orjson and zlib
+        precip = np.ascontiguousarray(precip).reshape(precip.shape)
+    return precip
 
 
 def sources(

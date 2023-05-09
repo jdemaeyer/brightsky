@@ -51,6 +51,7 @@ class DBExporter:
                 {conflict_updates};
     """)
     UPDATE_WEATHER_CONFLICT_UPDATE = '{field} = EXCLUDED.{field}'
+    UPDATE_WEATHER_VALUES_TEMPLATE = '(%(timestamp)s, %(source_id)s, {values})'
     UPDATE_WEATHER_CLEANUP = None
     SOURCE_FIELDS = [
         'observation_type', 'lat', 'lon', 'height', 'dwd_station_id',
@@ -89,7 +90,8 @@ class DBExporter:
         records = self.prepare_records(batch)
         sources = self.prepare_sources(batch)
         source_map = self.update_sources(conn, sources)
-        self.update_weather(conn, source_map, records)
+        self.map_source_ids(records, source_map)
+        self.update_weather(conn, records)
 
     def prepare_records(self, records):
         return records
@@ -127,9 +129,11 @@ class DBExporter:
             for row, source_key in zip(rows, sources)
         }
 
-    def update_weather(self, conn, source_map, records):
+    def map_source_ids(self, records, source_map):
         for r in records:
             r['source_id'] = source_map[r['source']]
+
+    def update_weather(self, conn, records):
         for fields, records in self.make_batches(records).items():
             logger.info(
                 "Exporting %d records with fields %s",
@@ -146,7 +150,7 @@ class DBExporter:
                     for f in fields),
             )
             template = sql.SQL(
-                "(%(timestamp)s, %(source_id)s, {values})"
+                self.UPDATE_WEATHER_VALUES_TEMPLATE,
             ).format(
                 values=sql.SQL(', ').join(
                     sql.Placeholder(f) for f in fields),
@@ -248,3 +252,24 @@ class SYNOPExporter(DBExporter):
     def update_weather(self, *args, **kwargs):
         with self.synop_update_lock:
             super().update_weather(*args, **kwargs)
+
+
+class RADOLANExporter(DBExporter):
+
+    WEATHER_TABLE = 'radar'
+    UPDATE_WEATHER_STMT = sql.SQL("""
+        INSERT INTO {weather_table} (timestamp, {fields})
+        VALUES %s
+        ON CONFLICT
+            ON CONSTRAINT {constraint} DO UPDATE SET
+                {conflict_updates};
+    """)
+    UPDATE_WEATHER_VALUES_TEMPLATE = '(%(timestamp)s, {values})'
+    ELEMENT_FIELDS = [
+        'precipitation_5',
+        'source',
+    ]
+
+    def export_batch(self, conn, batch):
+        records = self.prepare_records(batch)
+        self.update_weather(conn, records)
