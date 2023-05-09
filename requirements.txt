@@ -6,9 +6,7 @@
 #
 astral==3.2
     # via brightsky (setup.py)
-async-timeout==4.0.2
-    # via redis
-certifi==2022.12.7
+certifi==2023.5.7
     # via
     #   requests
     #   sentry-sdk
@@ -42,7 +40,7 @@ lxml==4.9.2
     # via parsel
 numpy==1.24.3
     # via brightsky (setup.py)
-orjson==3.8.11
+orjson==3.8.12
     # via brightsky (setup.py)
 packaging==23.1
     # via parsel
@@ -52,15 +50,15 @@ psycopg2-binary==2.9.6
     # via brightsky (setup.py)
 python-dateutil==2.8.2
     # via brightsky (setup.py)
-redis==4.5.4
+redis==4.5.5
     # via brightsky (setup.py)
 requests==2.30.0
     # via brightsky (setup.py)
-sentry-sdk==1.21.1
+sentry-sdk==1.22.2
     # via brightsky (setup.py)
 six==1.16.0
     # via python-dateutil
-urllib3==2.0.2
+urllib3==1.26.15
     # via
     #   requests
     #   sentry-sdk
