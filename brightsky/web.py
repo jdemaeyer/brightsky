@@ -232,7 +232,6 @@ class RadarResource(BrightskyResource):
             date = fetch(
                 "select max(timestamp) - '3 hours'::interval from radar"
             )[0][0]
-            print(date)
             last_date = None
         else:
             date, last_date = self.parse_date_range(req)
