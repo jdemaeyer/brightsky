@@ -525,6 +525,58 @@ def test_radar_response_plain(radar_data, api):
     _check_radar_data(clip)
 
 
+def test_radar_response_geometry(radar_data, api):
+    resp = api.simulate_get('/radar?date=2023-05-08T11:30')
+    assert resp.json['geometry']['type'] == 'Geometry'
+    assert 'latlon_position' not in resp.json
+    expected_coords = [
+        (1.4633, 55.86209),
+        (3.56699, 45.69643),
+        (16.58087, 45.68461),
+        (18.73162, 55.84544),
+    ]
+    for p, exp_p in zip(resp.json['geometry']['coordinates'], expected_coords):
+        assert p[0] == pytest.approx(exp_p[0])
+        assert p[1] == pytest.approx(exp_p[1])
+
+
+def test_radar_response_bbox_geometry(radar_data, api):
+    resp = api.simulate_get(
+        '/radar?date=2023-05-08T11:30&lat=52&lon=7.6&distance=200000',
+    )
+    assert resp.json['geometry']['type'] == 'Geometry'
+    expected_coords = [
+        (4.54411, 53.61306),
+        (5.04988, 50.17614),
+        (10.37685, 50.31264),
+        (10.41558, 53.76658),
+    ]
+    for p, exp_p in zip(resp.json['geometry']['coordinates'], expected_coords):
+        assert p[0] == pytest.approx(exp_p[0])
+        assert p[1] == pytest.approx(exp_p[1])
+    assert resp.json['latlon_position']['x'] == pytest.approx(200.244)
+    assert resp.json['latlon_position']['y'] == pytest.approx(200.088)
+
+
+def test_radar_response_bbox_geometry_near_edge(radar_data, api):
+    resp = api.simulate_get(
+        '/radar?date=2023-05-08T11:30&lat=52&lon=2.6&distance=200000'
+        '&fmt=plain',
+    )
+    assert resp.json['geometry']['type'] == 'Geometry'
+    expected_coords = [
+        (2.00507, 53.70663),
+        (2.74712, 50.28395),
+        (5.6003, 50.47017),
+        (5.14662, 53.91603),
+    ]
+    for p, exp_p in zip(resp.json['geometry']['coordinates'], expected_coords):
+        assert p[0] == pytest.approx(exp_p[0])
+        assert p[1] == pytest.approx(exp_p[1])
+    assert resp.json['latlon_position']['x'] == pytest.approx(14.326)
+    assert resp.json['latlon_position']['y'] == pytest.approx(200.489)
+
+
 def test_status_response(api):
     resp = api.simulate_get('/')
     assert resp.status_code == 200

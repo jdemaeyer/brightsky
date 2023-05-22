@@ -1,8 +1,10 @@
 import datetime
+from functools import cached_property
 
 import numpy as np
 from dateutil.tz import tzutc
 from isal import isal_zlib as zlib
+from pyproj import CRS, Transformer
 
 from brightsky.db import fetch
 
@@ -195,9 +197,31 @@ def synop(
     }
 
 
-def radar(date, last_date=None, fmt='compressed', bbox=None):
+def radar(
+        date, last_date=None, lat=None, lon=None, distance=200000,
+        fmt='compressed', bbox=None):
+    extra = {}
     if not last_date:
         last_date = date + datetime.timedelta(hours=2)
+    if lat or lon:
+        if not lat and lon:
+            raise ValueError("Please supply either both lat and lon, or none")
+        x, y = _transformer.to_xy(lat, lon)
+        if not -0.5 <= x <= 1099.5 or not -0.5 <= y <= 1199.5:
+            raise LookupError("lat/lon lies outside the radar data range")
+        center_x = int(round(x))
+        center_y = int(round(y))
+        pixels = distance // 1000
+        bbox = (
+            max(center_y - pixels, 0),
+            max(center_x - pixels, 0),
+            min(center_y + pixels, 1199),
+            min(center_x + pixels, 1099),
+        )
+        extra['latlon_position'] = {
+            'x': round(x - bbox[1], 3),
+            'y': round(y - bbox[0], 3),
+        }
     sql = """
         SELECT *
         FROM radar
@@ -226,6 +250,8 @@ def radar(date, last_date=None, fmt='compressed', bbox=None):
         raise ValueError("Unknown format: '%s'" % fmt)
     return {
         'radar': _make_dicts(rows),
+        'geometry': _transformer.bbox_to_geometry(bbox),
+        **extra,
     }
 
 
@@ -240,6 +266,55 @@ def _load_radar(raw, bbox, width=1100, height=1200):
         # Arrays must be C-contiguous for orjson and zlib
         precip = np.ascontiguousarray(precip).reshape(precip.shape)
     return precip
+
+
+class RadarCoordinatesTransformer:
+
+    PROJ_STR = (
+        "+proj=stere +lat_0=90 +lat_ts=60 +lon_0=10 +a=6378137 "
+        "+b=6356752.3142451802 +no_defs +x_0=543196.83521776402 "
+        "+y_0=3622588.8619310018"
+    )
+
+    @cached_property
+    def de1200(self):
+        return CRS.from_proj4(self.PROJ_STR)
+
+    @cached_property
+    def wgs84_to_de1200(self):
+        return Transformer.from_crs(4326, self.de1200)
+
+    @cached_property
+    def de1200_to_wgs84(self):
+        return Transformer.from_crs(self.de1200, 4326)
+
+    def to_xy(self, lat, lon):
+        x, y = self.wgs84_to_de1200.transform(lat, lon)
+        return round(x) / 1000, -round(y) / 1000
+
+    def to_latlon(self, x, y):
+        lat, lon = self.de1200_to_wgs84.transform(x * 1000, -y * 1000)
+        return round(lat, 5), round(lon, 5)
+
+    def to_lonlat(self, x, y):
+        return tuple(reversed(self.to_latlon(x, y)))
+
+    def bbox_to_geometry(self, bbox):
+        if not bbox:
+            bbox = (0, 0, 1199, 1099)
+        top, left, bottom, right = bbox
+        return {
+            'type': 'Geometry',
+            'coordinates': [
+                self.to_lonlat(left - .5, top - .5),
+                self.to_lonlat(left - .5, bottom + .5),
+                self.to_lonlat(right + .5, bottom + .5),
+                self.to_lonlat(right + .5, top - .5),
+            ],
+        }
+
+
+_transformer = RadarCoordinatesTransformer()
 
 
 def sources(

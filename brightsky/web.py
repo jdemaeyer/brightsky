@@ -222,6 +222,12 @@ class RadarResource(BrightskyResource):
     ALLOWED_FORMATS = ['compressed', 'bytes', 'plain']
 
     def on_get(self, req, resp):
+        lat, lon = self.parse_location(req)
+        distance = req.get_param_as_int(
+            'distance',
+            min_value=0,
+            default=200000,
+        )
         fmt = self.parse_format(req)
         if fmt == 'compressed':
             # Prevent traefik from gzipping the pre-compressed content
@@ -243,7 +249,15 @@ class RadarResource(BrightskyResource):
                 last_date = last_date.replace(tzinfo=timezone)
         bbox = self.parse_bbox(req)
         with convert_exceptions():
-            result = query.radar(date, last_date=last_date, fmt=fmt, bbox=bbox)
+            result = query.radar(
+                date,
+                last_date=last_date,
+                lat=lat,
+                lon=lon,
+                distance=distance,
+                fmt=fmt,
+                bbox=bbox,
+            )
         for row in result['radar']:
             self.process_timestamp(row, 'timestamp', timezone)
         resp.media = result

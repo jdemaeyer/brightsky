@@ -40,6 +40,7 @@ setup(
         'orjson',
         'parsel',
         'psycopg2-binary',
+        'pyproj',
         'python-dateutil',
         'redis',
         'requests',
