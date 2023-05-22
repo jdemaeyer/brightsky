@@ -17,6 +17,6 @@ if __name__ == '__main__':
         sentry_sdk.init(
             dsn=os.getenv('SENTRY_DSN'),
             traces_sample_rate=_getenv_float('SENTRY_TRACES_SAMPLE_RATE'),
-            profiles_sample_rate=_getenv_float('PROFILES_TRACES_SAMPLE_RATE'),
+            profiles_sample_rate=_getenv_float('SENTRY_PROFILES_SAMPLE_RATE'),
         )
     cli(prog_name='python -m brightsky')
