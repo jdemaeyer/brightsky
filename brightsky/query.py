@@ -203,9 +203,7 @@ def radar(
     extra = {}
     if not last_date:
         last_date = date + datetime.timedelta(hours=2)
-    if lat or lon:
-        if not lat and lon:
-            raise ValueError("Please supply either both lat and lon, or none")
+    if lat is not None and lon is not None:
         x, y = _transformer.to_xy(lat, lon)
         if not -0.5 <= x <= 1099.5 or not -0.5 <= y <= 1199.5:
             raise LookupError("lat/lon lies outside the radar data range")

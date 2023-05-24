@@ -9,7 +9,6 @@ import orjson
 from dateutil.tz import gettz
 from dwdparse.units import convert_record, CONVERTERS
 from falcon import media
-from falcon.errors import HTTPInvalidParam
 from gunicorn.app.base import BaseApplication
 from gunicorn.util import import_app
 
@@ -46,9 +45,13 @@ class BrightskyResource:
         lon = req.get_param_as_float(
             'lon', required=required, min_value=-180, max_value=180)
         if lat != lat:
-            raise HTTPInvalidParam('The value cannot be NaN', 'lat')
+            raise falcon.HTTPInvalidParam("The value cannot be NaN", 'lat')
         elif lon != lon:
-            raise HTTPInvalidParam('The value cannot be NaN', 'lon')
+            raise falcon.HTTPInvalidParam("The value cannot be NaN", 'lon')
+        if (lat is None) != (lon is None):
+            raise falcon.HTTPBadRequest(
+                description="Please supply either both lat and lon, or none",
+            )
         return lat, lon
 
     def parse_source_ids(self, req):

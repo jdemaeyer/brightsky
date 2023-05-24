@@ -451,6 +451,9 @@ def test_radar_response(radar_data, api):
     resp = api.simulate_get('/radar?date=2023-05-08T11:30')
     assert resp.status_code == 200
     assert len(resp.json['radar']) == 1
+    assert api.simulate_get('/radar?lat=52').status_code == 400
+    assert api.simulate_get('/radar?lon=7.6').status_code == 400
+    assert api.simulate_get('/radar?lat=52&lon=7.6').status_code == 200
 
 
 def _get_radar_data(api, fmt, bbox=False):
