@@ -304,7 +304,7 @@ class RadarCoordinatesTransformer:
             bbox = (0, 0, 1199, 1099)
         top, left, bottom, right = bbox
         return {
-            'type': 'Geometry',
+            'type': 'Polygon',
             'coordinates': [
                 self.to_lonlat(left - .5, top - .5),
                 self.to_lonlat(left - .5, bottom + .5),

@@ -527,7 +527,7 @@ def test_radar_response_plain(radar_data, api):
 
 def test_radar_response_geometry(radar_data, api):
     resp = api.simulate_get('/radar?date=2023-05-08T11:30')
-    assert resp.json['geometry']['type'] == 'Geometry'
+    assert resp.json['geometry']['type'] == 'Polygon'
     assert 'latlon_position' not in resp.json
     expected_coords = [
         (1.4633, 55.86209),
@@ -544,7 +544,7 @@ def test_radar_response_bbox_geometry(radar_data, api):
     resp = api.simulate_get(
         '/radar?date=2023-05-08T11:30&lat=52&lon=7.6&distance=200000',
     )
-    assert resp.json['geometry']['type'] == 'Geometry'
+    assert resp.json['geometry']['type'] == 'Polygon'
     expected_coords = [
         (4.54411, 53.61306),
         (5.04988, 50.17614),
@@ -563,7 +563,7 @@ def test_radar_response_bbox_geometry_near_edge(radar_data, api):
         '/radar?date=2023-05-08T11:30&lat=52&lon=2.6&distance=200000'
         '&fmt=plain',
     )
-    assert resp.json['geometry']['type'] == 'Geometry'
+    assert resp.json['geometry']['type'] == 'Polygon'
     expected_coords = [
         (2.00507, 53.70663),
         (2.74712, 50.28395),
