@@ -1,5 +1,6 @@
 import os
 
+from brightsky import __version__
 from brightsky.cli import cli
 from brightsky.utils import configure_logging, load_dotenv
 
@@ -16,6 +17,7 @@ if __name__ == '__main__':
         import sentry_sdk
         sentry_sdk.init(
             dsn=os.getenv('SENTRY_DSN'),
+            release=__version__,
             traces_sample_rate=_getenv_float('SENTRY_TRACES_SAMPLE_RATE'),
             profiles_sample_rate=_getenv_float('SENTRY_PROFILES_SAMPLE_RATE'),
         )
