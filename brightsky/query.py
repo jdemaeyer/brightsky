@@ -82,6 +82,8 @@ IGNORED_MISSING_FIELDS = {
     # Not available in recent and historical measurements
     'precipitation_probability',
     'precipitation_probability_6h',
+    # Not measured at many stations
+    'solar',
 }
 
 
