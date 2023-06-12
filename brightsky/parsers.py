@@ -134,7 +134,22 @@ class SolarRadiationObservationsParser(
     ObservationsBrightSkyMixin,
     dwdparse.parsers.SolarRadiationObservationsParser,
 ):
-    pass
+
+    def skip_timestamp(self, timestamp):
+        # We aggregate solar radiation from ten-minute data, where the values
+        # correspond to radiation for the NEXT ten minutes, i.e. the value
+        # tagged 14:30 contains the solar radiation between 14:30 - 14:40 (I
+        # have not found a place where this is officially documented, but this
+        # interpretation makes the values align with the hourly data from the
+        # 'current' sources).
+        # This makes solar radiation the only parameter where the 'recent'
+        # sources produce a data point for today, which is otherwise only
+        # served by the 'current' sources. To avoid excessive fill-up when
+        # querying today's weather, we ignore this last data point (but will
+        # pick it up on the next day).
+        if timestamp.date() == datetime.date.today():
+            return True
+        return super().skip_timestamp(timestamp)
 
 
 class VisibilityObservationsParser(

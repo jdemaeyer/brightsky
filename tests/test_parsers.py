@@ -2,6 +2,7 @@ import datetime
 
 import numpy as np
 from dateutil.tz import tzutc
+from freezegun import freeze_time
 from isal import isal_zlib as zlib
 
 from brightsky.parsers import (
@@ -13,6 +14,7 @@ from brightsky.parsers import (
     PrecipitationObservationsParser,
     PressureObservationsParser,
     RADOLANParser,
+    SolarRadiationObservationsParser,
     SunshineObservationsParser,
     SYNOPParser,
     TemperatureObservationsParser,
@@ -93,6 +95,17 @@ def test_radolan_parser(data_dir):
     ]
 
 
+@freeze_time('2023-06-11')
+def test_solar_radiation_parser_skips_today(data_dir):
+    p = SolarRadiationObservationsParser()
+    records = list(p.parse(
+        data_dir / '10minutenwerte_SOLAR_01766_akt.zip',
+        meta_path=data_dir / 'Meta_Daten_zehn_min_sd_01766.zip'
+    ))
+    assert records[-1]['timestamp'] == datetime.datetime(
+        2023, 6, 10, 23, tzinfo=tzutc())
+
+
 def test_get_parser():
     synop_with_timestamp = (
         'Z__C_EDZW_20200617114802_bda01,synop_bufr_GER_999999_999999__MW_617'
@@ -102,6 +115,7 @@ def test_get_parser():
     expected = {
         '10minutenwerte_extrema_wind_00427_akt.zip': (
             WindGustsObservationsParser),
+        '10minutenwerte_SOLAR_01766_now.zip': SolarRadiationObservationsParser,
         'stundenwerte_FF_00011_akt.zip': WindObservationsParser,
         'stundenwerte_FF_00090_akt.zip': WindObservationsParser,
         'stundenwerte_N_01766_akt.zip': CloudCoverObservationsParser,
