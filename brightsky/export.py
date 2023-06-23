@@ -85,6 +85,7 @@ class DBExporter:
                 self.export_batch(conn, batch)
             if fingerprint:
                 self.update_parsed_files(conn, fingerprint)
+            conn.commit()
 
     def export_batch(self, conn, batch):
         records = self.prepare_records(batch)
