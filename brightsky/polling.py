@@ -18,6 +18,7 @@ class DWDPoller:
         'all_stations/kml/',
         'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/'
         'all_stations/kml/',
+        'https://opendata.dwd.de/weather/alerts/cap/COMMUNEUNION_DWD_STAT/',
         'https://opendata.dwd.de/weather/radar/composite/rv/',
         'https://opendata.dwd.de/weather/weather_reports/synoptic/germany/'
         'json/',

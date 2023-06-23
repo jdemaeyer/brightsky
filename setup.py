@@ -45,5 +45,6 @@ setup(
         'redis',
         'requests',
         'sentry-sdk',
+        'shapely',
     ],
 )

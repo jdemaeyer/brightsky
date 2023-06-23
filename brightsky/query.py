@@ -1,12 +1,19 @@
 import datetime
+import json
+import os
+import tempfile
 from functools import cached_property
 
 import numpy as np
+import requests
 from dateutil.tz import tzutc
 from isal import isal_zlib as zlib
 from pyproj import CRS, Transformer
+from shapely import MultiPolygon, STRtree, Point
 
 from brightsky.db import fetch
+from brightsky.settings import settings
+from brightsky.utils import USER_AGENT
 
 
 def _make_dicts(rows):
@@ -315,6 +322,94 @@ class RadarCoordinatesTransformer:
 
 
 _transformer = RadarCoordinatesTransformer()
+
+
+def alerts(lat=None, lon=None, warn_cell_id=None):
+    if lat is not None and lon is not None:
+        meta = _warn_cells.find(lat, lon)
+    elif warn_cell_id is not None:
+        try:
+            meta = _warn_cells.get_meta(warn_cell_id)
+        except KeyError:
+            raise LookupError(
+                "Unknown warn_cell_id, please use commune (Gemeinden), not "
+                "district (Landkreis) ids"
+            )
+    else:
+        raise ValueError("Please supply lat/lon or warn_cell_id")
+    sql = """
+        SELECT *
+        FROM alerts
+        WHERE id IN (
+            SELECT alert_id
+            FROM alert_cells
+            WHERE warn_cell_id = %(warn_cell_id)s
+        )
+        ORDER BY severity DESC
+        """
+    params = {
+        'warn_cell_id': meta['warn_cell_id'],
+    }
+    rows = fetch(sql, params)
+    return {
+        'alerts': _make_dicts(rows),
+        'location': meta,
+    }
+
+
+class WarnCellManager:
+
+    CELLS_CACHE_PATH = os.path.join(tempfile.gettempdir(), 'alert_cells.json')
+
+    @cached_property
+    def tree(self):
+        self.cell_meta = {}
+        self.cell_meta_by_id = {}
+        for f in self.get_cell_data()['features']:
+            polygons = [
+                # shell, holes
+                (c[0], c[1:])
+                for c in f['geometry']['coordinates']
+            ]
+            p = MultiPolygon(polygons)
+            meta = {
+                'warn_cell_id': f['properties']['WARNCELLID'],
+                'name': f['properties']['NAME'],
+                'name_short': f['properties']['KURZNAME'],
+                'district': f['properties']['KREIS'],
+                'state': f['properties']['BUNDESLAND'],
+                'state_short': f['properties']['BL_KUERZEL'],
+            }
+            self.cell_meta[p] = meta
+            self.cell_meta_by_id[meta['warn_cell_id']] = meta
+        return STRtree(list(self.cell_meta.keys()))
+
+    def get_cell_data(self):
+        path = self.CELLS_CACHE_PATH
+        if not os.path.isfile(path):
+            resp = requests.get(
+                settings.WARN_CELLS_URL,
+                headers={'User-Agent': USER_AGENT},
+            )
+            with open(path, 'wb') as f:
+                f.write(resp.content)
+        with open(path) as f:
+            return json.load(f)
+
+    def find(self, lat, lon):
+        p = Point(lon, lat)
+        cell = self.tree.geometries[self.tree.nearest(p)]
+        if cell.distance(p) > 0.01:
+            raise LookupError("Requested position is not covered by the DWD")
+        return self.cell_meta[cell]
+
+    def get_meta(self, warn_cell_id):
+        # Make sure cells have been parsed
+        self.tree
+        return self.cell_meta_by_id[warn_cell_id]
+
+
+_warn_cells = WarnCellManager()
 
 
 def sources(

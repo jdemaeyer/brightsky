@@ -8,8 +8,9 @@ import pytest
 from dateutil.tz import tzutc
 
 import brightsky
-from brightsky.export import DBExporter, RADOLANExporter, SYNOPExporter
-from brightsky.parsers import RADOLANParser
+from brightsky.export import DBExporter, SYNOPExporter
+from brightsky.parsers import CAPParser, RADOLANParser
+from brightsky.query import _warn_cells
 from brightsky.web import make_app
 
 from .utils import settings
@@ -216,7 +217,15 @@ def synop_data(db):
 @pytest.fixture
 def radar_data(db, data_dir):
     p = RADOLANParser()
-    RADOLANExporter().export(p.parse(data_dir / 'DE1200_RV2305081330.tar.bz2'))
+    p.exporter().export(p.parse(data_dir / 'DE1200_RV2305081330.tar.bz2'))
+
+
+@pytest.fixture
+def alerts_data(db, data_dir):
+    p = CAPParser()
+    fn = 'Z_CAP_C_EDZW_LATEST_PVW_STATUS_PREMIUMDWD_COMMUNEUNION_MUL.zip'
+    p.exporter().export(p.parse(data_dir / fn))
+    _warn_cells.CELLS_CACHE_PATH = data_dir / 'alert_cells.json'
 
 
 def test_sources_required_parameters(data, api):
@@ -578,6 +587,44 @@ def test_radar_response_bbox_geometry_near_edge(radar_data, api):
         assert p[1] == pytest.approx(exp_p[1])
     assert resp.json['latlon_position']['x'] == pytest.approx(14.326)
     assert resp.json['latlon_position']['y'] == pytest.approx(200.489)
+
+
+def test_alerts_response(alerts_data, api):
+    expected_ids = [
+        '2.49.0.0.276.0.DWD.PVW.1687514160000.'
+        '20999218-5d5e-4761-b271-6c243f695568',
+        '2.49.0.0.276.0.DWD.PVW.1687470000000.'
+        'fe90b61b-3755-4efb-8eda-b161251da9f7',
+    ]
+    # Query by lat/lon
+    resp = api.simulate_get('/alerts?lat=51.55&lon=9.9')
+    assert [
+        alert['alert_id'] for alert in resp.json['alerts']
+    ] == expected_ids
+    assert resp.json['location'] == {
+        'warn_cell_id': 803159016,
+        'name': 'Stadt Göttingen',
+        'name_short': 'Göttingen',
+        'district': 'Göttingen',
+        'state': 'Niedersachsen',
+        'state_short': 'NI',
+    }
+    # Query by warn cell id
+    resp = api.simulate_get('/alerts?warn_cell_id=803159016')
+    assert len(resp.json['alerts']) == 2
+    # Query by lat/lon, no alerts
+    resp = api.simulate_get('/alerts?lat=52&lon=7.6')
+    assert resp.status_code == 200
+    assert not resp.json['alerts']
+    assert resp.json['location']['name'] == 'Münster-Nord'
+    # Query by warn_cell_id, no alerts
+    resp = api.simulate_get('/alerts?warn_cell_id=705515101')
+    assert not resp.json['alerts']
+    # Query by lat/lon, outside of covered area
+    resp = api.simulate_get('/alerts?lat=32&lon=7.6')
+    assert resp.status_code == 404
+    resp = api.simulate_get('/alerts?warn_cell_id=0')
+    assert resp.status_code == 404
 
 
 def test_status_response(api):

@@ -19,7 +19,7 @@ coloredlogs==15.0.1
     # via brightsky (setup.py)
 cssselect==1.2.0
     # via parsel
-dwdparse[lean]==0.9.6
+dwdparse[lean]==0.9.7
     # via brightsky (setup.py)
 falcon==3.1.1
     # via brightsky (setup.py)
@@ -40,7 +40,9 @@ jmespath==1.0.1
 lxml==4.9.2
     # via parsel
 numpy==1.24.3
-    # via brightsky (setup.py)
+    # via
+    #   brightsky (setup.py)
+    #   shapely
 orjson==3.9.1
     # via brightsky (setup.py)
 packaging==23.1
@@ -58,6 +60,8 @@ redis==4.5.5
 requests==2.31.0
     # via brightsky (setup.py)
 sentry-sdk==1.25.1
+    # via brightsky (setup.py)
+shapely==2.0.1
     # via brightsky (setup.py)
 six==1.16.0
     # via python-dateutil

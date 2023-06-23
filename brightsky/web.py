@@ -300,6 +300,24 @@ class RadarResource(BrightskyResource):
                 raise falcon.HTTPBadRequest(description=description)
 
 
+class AlertsResource(BrightskyResource):
+
+    def on_get(self, req, resp):
+        lat, lon = self.parse_location(req)
+        warn_cell_id = req.get_param_as_int('warn_cell_id')
+        timezone = self.parse_timezone(req)
+        with convert_exceptions():
+            result = query.alerts(
+                lat=lat,
+                lon=lon,
+                warn_cell_id=warn_cell_id,
+            )
+        for row in result['alerts']:
+            for key in ['effective', 'onset', 'expires']:
+                self.process_timestamp(row, key, timezone)
+        resp.media = result
+
+
 class SourcesResource(BrightskyResource):
 
     def on_get(self, req, resp):
@@ -360,6 +378,7 @@ def make_app():
     app.add_route('/current_weather', CurrentWeatherResource())
     app.add_route('/synop', SynopResource())
     app.add_route('/radar', RadarResource())
+    app.add_route('/alerts', AlertsResource())
     app.add_route('/sources', SourcesResource())
     return app
 

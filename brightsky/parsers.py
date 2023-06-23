@@ -8,7 +8,12 @@ from dateutil.tz import tzutc
 from isal import isal_zlib as zlib
 
 from brightsky.db import fetch
-from brightsky.export import DBExporter, RADOLANExporter, SYNOPExporter
+from brightsky.export import (
+    AlertExporter,
+    DBExporter,
+    RADOLANExporter,
+    SYNOPExporter,
+)
 from brightsky.settings import settings
 
 
@@ -207,10 +212,16 @@ class RADOLANParser(BrightSkyMixin, dwdparse.parsers.RADOLANParser):
         return zlib.compress(np.ascontiguousarray(data))
 
 
+class CAPParser(BrightSkyMixin, dwdparse.parsers.CAPParser):
+
+    exporter = AlertExporter
+
+
 def get_parser(filename):
     parsers = {
         r'DE1200_RV': RADOLANParser,
         r'MOSMIX_(S|L)_LATEST(_240)?\.kmz$': MOSMIXParser,
+        r'Z_CAP_C_EDZW_LATEST_.*_COMMUNEUNION_MUL\.zip': CAPParser,
         r'Z__C_EDZW_\d+_.*\.json\.bz2$': SYNOPParser,
         r'\w{5}-BEOB\.csv$': CurrentObservationsParser,
         'stundenwerte_FF_': WindObservationsParser,

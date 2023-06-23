@@ -274,3 +274,132 @@ class RADOLANExporter(DBExporter):
     def export_batch(self, conn, batch):
         records = self.prepare_records(batch)
         self.update_weather(conn, records)
+
+
+class AlertExporter(DBExporter):
+
+    UPDATE_ALERTS_STMT = sql.SQL("""
+        INSERT INTO alerts ({fields})
+        VALUES %s
+        ON CONFLICT
+            ON CONSTRAINT alerts_key DO UPDATE SET
+                {conflict_updates}
+        RETURNING id;
+    """)
+    UPDATE_ALERTS_CLEANUP = """
+        SELECT setval(
+            'alerts_id_seq',
+            GREATEST(%(max_id)s, (SELECT max(id) FROM alerts))
+        );
+    """
+    ELEMENT_FIELDS = [
+        'alert_id',
+        'effective',
+        'onset',
+        'expires',
+        'category',
+        'response_type',
+        'urgency',
+        'severity',
+        'certainty',
+        'event_code',
+        'event_en',
+        'event_de',
+        'headline_en',
+        'headline_de',
+        'description_en',
+        'description_de',
+        'instruction_en',
+        'instruction_de',
+    ]
+
+    def export(self, alerts, fingerprint=None):
+        alerts = list(alerts)
+        self.prepare_alerts(alerts)
+        with get_connection() as conn:
+            last_id = self.get_last_alert_id(conn)
+            self.clear_outdated_alerts(conn, alerts)
+            self.update_alerts(conn, alerts)
+            self.reset_alert_id(conn, last_id)
+            self.update_alert_cells(conn, alerts)
+            if fingerprint:
+                self.update_parsed_files(conn, fingerprint)
+            conn.commit()
+
+    def prepare_alerts(self, alerts):
+        for a in alerts:
+            a['alert_id'] = a.pop('id')
+
+    def get_last_alert_id(self, conn):
+        with conn.cursor() as cur:
+            cur.execute("SELECT MAX(id) FROM alerts")
+            return cur.fetchall()[0]['max']
+
+    def clear_outdated_alerts(self, conn, alerts):
+        with conn.cursor() as cur:
+            cur.execute("SELECT alert_id FROM alerts")
+            existing = set(row['alert_id'] for row in cur.fetchall())
+            outdated = existing.difference(a['alert_id'] for a in alerts)
+            if outdated:
+                logger.info("Deleting %d outdated alerts", len(outdated))
+                cur.execute(
+                    "DELETE FROM alerts WHERE alert_id IN %(outdated)s",
+                    {'outdated': tuple(outdated)},
+                )
+
+    def update_alerts(self, conn, alerts):
+        for fields, alerts in self.make_batches(alerts).items():
+            logger.info(
+                "Exporting %d alerts with fields %s",
+                len(alerts),
+                tuple(fields),
+            )
+            conflict_updates = sql.SQL(', ').join(
+                sql.SQL('{field} = EXCLUDED.{field}').format(
+                    field=sql.Identifier(f),
+                )
+                for f in fields
+            )
+            stmt = self.UPDATE_ALERTS_STMT.format(
+                fields=sql.SQL(', ').join(sql.Identifier(f) for f in fields),
+                conflict_updates=conflict_updates,
+            )
+            template = sql.SQL(
+                '({values})',
+            ).format(
+                values=sql.SQL(', ').join(
+                    sql.Placeholder(f) for f in fields
+                ),
+            )
+            with conn.cursor() as cur:
+                rows = execute_values(
+                    cur,
+                    stmt,
+                    alerts,
+                    template,
+                    page_size=1000,
+                    fetch=True,
+                )
+            for row, alert in zip(rows, alerts, strict=True):
+                alert['id'] = row['id']
+
+    def reset_alert_id(self, conn, max_id):
+        if max_id is None:
+            return
+        with conn.cursor() as cur:
+            cur.execute(self.UPDATE_ALERTS_CLEANUP, {'max_id': max_id})
+
+    def update_alert_cells(self, conn, alerts):
+        rows = [
+            (alert['id'], wcid)
+            for alert in alerts
+            for wcid in alert['warn_cell_ids']
+        ]
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM alert_cells")
+            execute_values(
+                cur,
+                "INSERT INTO alert_cells (alert_id, warn_cell_id) VALUES %s",
+                rows,
+                page_size=1000,
+            )
