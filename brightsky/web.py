@@ -16,7 +16,7 @@ import brightsky
 from brightsky import query
 from brightsky.db import fetch
 from brightsky.settings import settings
-from brightsky.utils import parse_date, sunrise_sunset
+from brightsky.utils import daytime, parse_date
 
 
 @contextmanager
@@ -170,17 +170,10 @@ class WeatherResource(BrightskyResource):
         elif (row['cloud_cover'] or 0) >= settings.ICON_CLOUDY_THRESHOLD:
             return 'cloudy'
         source = source_map[row['source_id']]
-        try:
-            sunrise, sunset = sunrise_sunset(
-                source['lat'], source['lon'], row['timestamp'].date())
-        except ValueError as e:
-            daytime = 'day' if 'above' in e.args[0] else 'night'
-        else:
-            daytime = (
-                'day' if sunrise <= row['timestamp'] <= sunset else 'night')
+        daytime_str = daytime(source['lat'], source['lon'], row['timestamp'])
         if (row['cloud_cover'] or 0) >= settings.ICON_PARTLY_CLOUDY_THRESHOLD:
-            return f'partly-cloudy-{daytime}'
-        return f'clear-{daytime}'
+            return f'partly-cloudy-{daytime_str}'
+        return f'clear-{daytime_str}'
 
 
 class CurrentWeatherResource(WeatherResource):

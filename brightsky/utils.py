@@ -72,3 +72,13 @@ def parse_date(date_str):
 @lru_cache
 def sunrise_sunset(lat, lon, date):
     return daylight(Observer(lat, lon), date)
+
+
+def daytime(lat, lon, timestamp):
+    try:
+        sunrise, sunset = sunrise_sunset(lat, lon, timestamp.date())
+    except ValueError as e:
+        return 'day' if 'above' in e.args[0] else 'night'
+    if sunset < sunrise:
+        return 'night' if sunset <= timestamp <= sunrise else 'day'
+    return 'day' if sunrise <= timestamp <= sunset else 'night'
