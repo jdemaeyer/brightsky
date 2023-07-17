@@ -10,7 +10,7 @@ setup(
     name='brightsky',
     version=brightsky.__version__,
     author='Jakob de Maeyer',
-    author_email='jakob@naboa.de',
+    author_email='jakob@brightsky.dev',
     description="JSON API for DWD's open weather data.",
     long_description=long_description,
     long_description_content_type='text/markdown',
