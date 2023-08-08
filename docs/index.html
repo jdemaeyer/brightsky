@@ -87,13 +87,13 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // We've handled roughly 140 million requests in 2021, and maybe 20 million
-      // in 2021. Currently there are about 1.2 million requests a day (as per
-      // 2022-01-04).
-      const startDate = new Date(2022, 0, 1);
+      // in 2020. 2022 saw about 550 million requests, and 2023 averages around
+      // 2 million requests per day (per 2023-08-08)
+      const startDate = new Date(2023, 0, 1);
       var reqCount = Math.floor(
-        159_923_281 + (new Date() - startDate) / 86_400_000 * 1_200_000);
+        710_000_000 + (new Date() - startDate) / 86_400_000 * 2_000_000);
 
-      const counterInterval = 86_400_000 / 1_200_000;
+      const counterInterval = 86_400_000 / 2_000_000;
       const counterSpan = document.getElementById('req-count')
 
       function updateCounter() {
@@ -108,19 +108,15 @@
 <body>
 
   <div style="background-color: #fff;; margin-top: 1rem; padding: 1rem 2rem; border: 1px solid #888; border-radius: 4px">
-    <h5 style="margin-top: 1rem; margin-bottom: 0">Missing something?</h5>
-    <p style="margin-top: .5rem; font-size: 18px">Bright Sky is currently in a second round of public funding! <span style="margin-left: .5rem">🎉</span></p>
+    <h5 style="margin-top: 1rem; margin-bottom: 0">Been a while?</h5>
     <p>
-      <strong>Weigh in on the discussion</strong> about which new features and improvements we should tackle in our <strong><a href="https://github.com/jdemaeyer/brightsky/issues/138">Call for Feedback</a></strong> over on GitHub!
-    </p>
-    <p style="margin-bottom: 0">
-      <strong>Or try some of our new experimental features</strong>:
+      Bright Sky was in a second round of public funding throughout the summer of 2023! <strong>Check out some of our new features</strong>:
     </p>
     <ul style="margin-top: 0">
-      <li style="margin-bottom: 0"><a href="https://github.com/jdemaeyer/brightsky/issues/144">Weather Radar 📡</a></li>
-      <li style="margin-bottom: 0"><a href="https://github.com/jdemaeyer/brightsky/issues/95">Precipitation Probabilities 🙏</a></li>
-      <li style="margin-bottom: 0"><a href="https://github.com/jdemaeyer/brightsky/issues/141">Solar Radiation ✨</a></li>
-      <li style="margin-bottom: 0"><a href="https://github.com/jdemaeyer/brightsky/issues/106">Weather Alerts 🚨</a></li>
+      <li style="margin-bottom: 0"><a href="/docs/#/operations/getRadar">Weather Radar 📡</a></li>
+      <li style="margin-bottom: 0"><a href="/docs/#/operations/getWeather">Precipitation Probabilities 🙏</a></li>
+      <li style="margin-bottom: 0"><a href="/docs/#/operations/getWeather">Solar Radiation ✨</a></li>
+      <li style="margin-bottom: 0"><a href="/docs/#/operations/getAlerts">Weather Alerts 🚨</a></li>
     </ul>
   </div>
 
@@ -215,12 +211,13 @@ $ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21
 
   <h4>What's new?!</h4>
   <ul>
+    <li><em>August 8, 2023</em>: Released <a href="https://github.com/jdemaeyer/brightsky">v2.1</a> with <a href="/docs/#/operations/getRadar">weather radar</a>, <a href="/docs/#/operations/getWeather">precipitation probabilities</a>, <a href="/docs/#/operations/getWeather">solar radiation</a>, <a href="/docs/#/operations/getAlerts">weather alerts</a>, and a <a href="/docs/">refactored documentation</a>!</li>
     <li><em>March 21, 2023</em>: Bright Sky's parsing components are now available in a separate, dependency-free Python package named <a href="https://github.com/jdemaeyer/dwdparse"><code>dwdparse</code></a>.</li>
     <li><em>March 24, 2021</em>: CORS requests are now allowed from all origins.</li>
     <li><em>October 13, 2020</em>: Released <a href="https://github.com/jdemaeyer/brightsky">v1.0</a> 🎉.</li>
-    <li><em>July 22, 2020</em>: Added <a href="docs/#get-/weather"><code>icon</code> field</a>.</li>
+    <li><em>July 22, 2020</em>: Added <a href="/docs/#/operations/getWeather"><code>icon</code> field</a>.</li>
     <li><em>July 13, 2020</em>: <a href="https://github.com/jdemaeyer/brightsky-infrastructure">Published infrastructure</a>, it's easy to run your own Bright Sky!</li>
-    <li><em>June 26, 2020</em>: Added <a href="docs/#get-/current_weather"><code>current_weather</code> endpoint</a>.</li>
+    <li><em>June 26, 2020</em>: Added <a href="/docs/#/operations/getCurrentWeather"><code>current_weather</code> endpoint</a>.</li>
   </ul>
 
   <h4>Feedback and Support</h4>
@@ -235,7 +232,7 @@ $ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21
 
   <h4>Funding</h4>
   <p>
-    Bright Sky now handles more than a million requests per day, and in total has served about <strong id="req-count">150,000,000</strong> requests since its launch.
+    Bright Sky now handles more than two million requests per day, and in total has served about <strong id="req-count">150,000,000</strong> requests since its launch.
   </p>
   <p>
     I try to keep it alive, fast, and free-of-charge with the help of awesome sponsors on GitHub. <a href="https://github.com/sponsors/jdemaeyer">Maybe you feel like joining them?</a>

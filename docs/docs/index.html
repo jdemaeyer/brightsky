@@ -2,33 +2,87 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
   <title>Bright Sky API Documentation</title>
 
-  <script type="module" src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
+  <script src="elements-web-components.min.js"></script>
+  <link rel="stylesheet" href="elements-styles.min.css">
+
+  <style>
+    .sl-stack:not(.HttpOperation), .sl-markdown-viewer {
+      max-width: 800px;
+    }
+
+    .BaseURLContent, .BaseURLContent ~ * {
+      display: none;
+    }
+
+    .OperationParametersContent {
+      max-height: 500px !important;
+    }
+
+    .sl-code-viewer__scroller {
+      max-height: 1200px !important;
+    }
+  </style>
 </head>
-<body>
-  <rapi-doc
-    spec-url = "https://brightsky.dev/brightsky.yml"
-    theme = "light"
-    bg-color = "#f9f9f9"
-    text-color = "#4a4a4a"
-    primary-color = "#aaa"
-    nav-bg-color = "#f1f1f1"
-    nav-item-spacing = "relaxed"
-    regular-font = "Roboto"
-    font-size = "large"
-    show-header = "false"
-    info-description-headings-in-navbar = "true"
-    sort-endpoints-by = "method"
-    allow-authentication = "false"
-    allow-server-selection = "false"
-    allow-search = "false"
-    render-style = "read"
-    schema-style = "table"
-    schema-description-expanded = "true"
-  >
-  <h1 slot="nav-logo" style="text-align: center">Bright Sky</h1>
-  </rapi-doc>
+<body style="min-height: 100vh">
+  <div style="height: 100vh">
+    <elements-api
+      id="docs"
+      apiDescriptionUrl="/brightsky.yml"
+      router="hash"
+      layout="sidebar"
+      hideInternal="true"
+      hideSchemas="true"
+    />
+  </div>
+
+  <template id="navlink">
+    <a class="ElementsTableOfContentsItem sl-block sl-no-underline">
+      <div class="sl-flex sl-items-center sl-h-md sl-pr-4 sl-pl-8 sl-bg-canvas-100 hover:sl-bg-canvas-200 sl-cursor-pointer sl-select-none">
+        <div class="navlink-label sl-flex-1 sl-items-center sl-truncate"></div>
+        <div class="sl-flex sl-items-center sl-text-xs"> </div>
+      </div>
+    </a>
+  </template>
+
+  <script>
+    const docs = document.getElementById('docs');
+    const navLinkTemplate = document.getElementById('navlink');
+
+    const navLinks = [
+      ['Quickstart', 'quickstart'],
+      ['Good to Know', 'good-to-know'],
+      ['Useful Links', 'useful-links'],
+      ['Data Sources', 'data-sources'],
+    ]
+
+    const addTocEntries = (mutationList, observer) => {
+      const link = docs.querySelector('.ElementsTableOfContentsItem');
+      if (link === null) return;
+      observer.disconnect();
+      const toc = link.parentNode;
+      const divider = link.nextSibling;
+      for (let [label, slug] of navLinks) {
+        const clone = navLinkTemplate.content.cloneNode(true);
+        let a = clone.querySelector('a');
+        let div = a.querySelector('div');
+        let labelDiv = div.querySelector('div');
+        a.href = `#/#${slug}`;
+        div.id = `sl-toc-/#${slug}`;
+        div.title = label;
+        labelDiv.textContent = label;
+        toc.insertBefore(clone, divider);
+      }
+      for (let node of toc.querySelectorAll('svg.fa-chevron-right')) {
+        node.parentNode.click();
+      }
+    };
+
+    const observer = new MutationObserver(addTocEntries);
+    observer.observe(docs, { childList: true, subtree: true });
+  </script>
 </body>
 </html>
