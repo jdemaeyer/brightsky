@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Bright Sky
-  version: 2.0.7
+  version: 2.1.0
   description: |
 
     Bright Sky is a free and open-source weather API. It aims to provide an easy-to-use gateway to weather data that the [DWD](https://www.dwd.de/) – Germany's meteorological service – publishes on their [open data server](https://opendata.dwd.de/).
