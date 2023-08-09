@@ -1,3 +1,5 @@
+<img src="docs/favicon.svg" align="right" style="height: 140px">
+
 # Bright Sky
 
 [![API Status](https://img.shields.io/website?down_message=offline&label=api&up_message=online&url=https%3A%2F%2Fapi.brightsky.dev%2F)](https://api.brightsky.dev/)
