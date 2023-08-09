@@ -2,16 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="description" content="Free JSON API for DWD's open weather data.">
+  <meta name="description" content="Free JSON API for DWD open weather data.">
   <meta name="keywords" content="Weather API, JSON, Python, DWD, Open Data, Open Source">
   <meta name="author" content="Jakob de Maeyer">
 	<meta property="og:type" content="website">
 	<meta property="og:title" content="Bright Sky">
-	<meta property="og:description" content="Free JSON API for DWD's open weather data.">
+	<meta property="og:description" content="Free JSON API for DWD open weather data.">
 	<meta property="og:url" content="https://brightsky.dev/">
 	<meta property="og:site_name" content="Bright Sky">
 
-  <title>Bright Sky - Free JSON API for DWD's open weather data.</title>
+  <title>Bright Sky - Free JSON API for DWD open weather data.</title>
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" sizes="any" href="/favicon.svg">
 
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,700;1,400;1,700&display=swap">
   <link rel="stylesheet" href="https://unpkg.com/normalize.css@8.0.1/normalize.css" type="text/css">
@@ -65,15 +70,26 @@
       margin-right: 8px; }
 
     .subtitle {
-      margin-top: -.75em;
-      font-weight: 400; }
+      font-weight: 400;
+      margin: 0;
+      margin-top: .5em;
+    }
 
     .hero {
       margin: 75px 0;
       text-align: center; }
 
-    .hero .subtitle {
-      margin-bottom: 1.5em; }
+    .hero h1 {
+      margin: 0;
+    }
+
+    .hero .title {
+      display: flex;
+      gap: 3rem;
+      margin-bottom: 1.5em;
+      justify-content: center;
+      align-items: center;
+    }
 
     .logos {
       margin: 40px 0 20px;
@@ -107,7 +123,7 @@
 
 <body>
 
-  <div style="background-color: #fff;; margin-top: 1rem; padding: 1rem 2rem; border: 1px solid #888; border-radius: 4px">
+  <div style="background-color: #fff; color: #666; margin-top: 1rem; padding: 1rem 2rem; border: 1px solid #aaa; border-radius: 4px">
     <h5 style="margin-top: 1rem; margin-bottom: 0">Been a while?</h5>
     <p>
       Bright Sky was in a second round of public funding throughout the summer of 2023! <strong>Check out some of our new features</strong>:
@@ -120,9 +136,14 @@
     </ul>
   </div>
 
-  <div class="hero">
-    <h1>Bright Sky</h1>
-    <h5 class="subtitle">JSON API for DWD's open weather data.</h5>
+  <div class="hero" style="text-align: left">
+    <div class="title">
+      <img src="/favicon.svg" style="height: 90px">
+      <div>
+        <h1>Bright Sky</h1>
+        <h5 class="subtitle">JSON API for DWD open weather data</h5>
+      </div>
+    </div>
     <div class="buttons">
       <a href="docs/" class="boxed"><img src="img/book.svg">Docs</a>
       <a href="demo/" class="boxed"><img src="img/eye.svg">Demo</a>
@@ -178,10 +199,10 @@ $ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21
     The DWD (<a href="https://www.dwd.de/">Deutscher Wetterdienst</a>), as Germany's meteorological service, publishes a myriad of meteorological observations and calculations as part of their <a href="https://www.dwd.de/DE/leistungen/opendata/opendata.html">Open Data program</a>.
   </p>
   <p>
-    <strong>Bright Sky</strong> is an <a href="https://github.com/jdemaeyer/brightsky">open-source project</a> aiming to make some of the more popular data — in particular <em>weather observations from the DWD station network</em> and <em>weather forecasts from the MOSMIX model</em> — available in a free, simple JSON API. There is no need to sign up or anything, just head on over to our <a href="docs/">API Documentation</a> and start retrieving some weather records!
+  <strong>Bright Sky</strong> is an <a href="https://github.com/jdemaeyer/brightsky">open-source project</a> aiming to make some of the more popular data available in a free, simple JSON API. No API key required! Just head on over to our <a href="docs/">API Documentation</a> and start retrieving some weather records!
   </p>
 
-  <div style="text-align: center; background-color: #f3f3e5; padding: .5em 2em">
+  <div style="text-align: center; background-color: #f3f3e5; padding: .5em 2em; margin: 32px 0">
     <p>
       I build and maintain Bright Sky in my spare time as my way to give back
       to the open-source community. The steadily rising number of requests and
@@ -240,7 +261,7 @@ $ curl <a href="https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21
 
   <h4>Acknowledgements</h4>
   <p>
-    Bright Sky's initial development was boosted by the priceless guidance and support of the <a href="https://www.okfn.de/">Open Knowledge Foundation</a>'s <a href="https://prototypefund.de/">Prototype Fund</a> program, and generously funded by Germany's <a href="https://www.bmbf.de/">Federal Ministry of Education and Research</a>. Obvious as it may be, it should be mentioned that none of this would be possible without the painstaking, never-ending effort of the <a href="https://www.dwd.de/">Deutscher Wetterdienst</a>.
+    Bright Sky's development was boosted by the priceless guidance and support of the <a href="https://www.okfn.de/">Open Knowledge Foundation</a>'s <a href="https://prototypefund.de/">Prototype Fund</a> program, and generously funded by Germany's <a href="https://www.bmbf.de/">Federal Ministry of Education and Research</a>. Obvious as it may be, it should be mentioned that none of this would be possible without the painstaking, never-ending effort of the <a href="https://www.dwd.de/">Deutscher Wetterdienst</a>.
   </p>
 
   <div class="logos">
