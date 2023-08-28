@@ -359,9 +359,16 @@ paths:
                     type: object
                     description: GeoJSON-formatted bounding box of returned radar data, i.e. lat/lon coordinates of the four corners.
                     example: {"type":"Polygon","coordinates":[[7.44365,52.08712],[7.45668,51.90644],[7.7487,51.914],[7.73716,52.09473]]}
+                  bbox:
+                    type: array
+                    items:
+                      type: integer
+                    description: Bounding box (top, left, bottom, right) calculated from the supplied position and distance. Only returned if you supplied `lat` and `lon`.
+                    nullable: true
+                    example: [100,100,300,300]
                   latlon_position:
                     type: object
-                    description: Exact x-y-position of the supplied `lat` and `lon`, if any.
+                    description: Exact x-y-position of the supplied position. Only returned if you supplied `lat` and `lon`.
                     nullable: true
                     example: {"x":10.244,"y":10.088}
                 example: {"radar":[{"timestamp":"2023-08-08T11:45:00+00:00","source":"RADOLAN::RV::2023-08-08T11:45:00+00:00","precipitation_5":"eF5jGAWjYBTQEQAAA3IAAQ=="}],"geometry":{"type":"Polygon","coordinates":[[7.44365,52.08712],[7.45668,51.90644],[7.7487,51.914],[7.73716,52.09473]]},"latlon_position":{"x":10.244,"y":10.088}}

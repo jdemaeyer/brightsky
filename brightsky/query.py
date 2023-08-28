@@ -225,6 +225,7 @@ def radar(
             min(center_y + pixels, 1199),
             min(center_x + pixels, 1099),
         )
+        extra['bbox'] = bbox
         extra['latlon_position'] = {
             'x': round(x - bbox[1], 3),
             'y': round(y - bbox[0], 3),
