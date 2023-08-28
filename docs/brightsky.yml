@@ -171,7 +171,8 @@ paths:
 
         ### Content
 
-        * The grid is a polar stereographic projection of Germany and the regions bordering it. This is different from the mercator projection used for most consumer-facing maps like OpenStreetMap or Google Maps, and overlaying the radar data onto such a map without conversion will be inaccurate! **If you're looking for ready-made tiles you can overlay on a map, take a look at the `dwd:RV-Produkt` layer on the [DWD's open GeoServer](https://maps.dwd.de/geoserver/web/wicket/bookmarkable/org.geoserver.web.demo.MapPreviewPage).**
+        * The grid is a polar stereographic projection of Germany and the regions bordering it. This is different from the mercator projection used for most consumer-facing maps like OpenStreetMap or Google Maps, and overlaying the radar data onto such a map without conversion (reprojection) will be inaccurate! Check out our [radar demo](https://brightsky.dev/demo/radar/) for an example of correctly reprojecting the radar data using OpenLayers. Alternatively, take a look at the `dwd:RV-Produkt` layer on the [DWD's open GeoServer](https://maps.dwd.de/geoserver/web/wicket/bookmarkable/org.geoserver.web.demo.MapPreviewPage) for ready-made tiles you can overlay onto a map.
+        * The [proj-string](https://proj.org/en/9.2/usage/quickstart.html) for the grid projection is `+proj=stere +lat_0=90 +lat_ts=60 +lon_0=10 +a=6378137 +b=6356752.3142451802 +no_defs +x_0=543196.83521776402 +y_0=3622588.8619310018`. The radar pixels range from `-500` (left) to `1099500` (right) on the x-axis, and from `500` (top) to `-1199500` (bottom) on the y-axis, each radar pixel a size of `1000x1000` (1 km²).
         * The DWD data does not cover the whole grid! Many areas near the edges will always be `0`.
         * Values represent 0.01 mm / 5 min. I.e., if a pixel has a value of `45`, then 0.45 mm of precipitation fell in the corresponding square kilometer in the past five minutes.
         * The four corners of the grid are as follows:
@@ -269,6 +270,7 @@ paths:
 
         ### Additional resources
 
+        * [Source for our radar demo, including reprojecton via OpenLayers](https://github.com/jdemaeyer/brightsky/blob/master/docs/demo/radar/index.html)
         * [Raw data on the Open Data Server](https://opendata.dwd.de/weather/radar/composite/rv/)
         * [Details on the `RV` product (German)](https://www.dwd.de/DE/leistungen/radarprodukte/formatbeschreibung_rv.pdf?__blob=publicationFile&v=3)
         * [Visualization of current rainfall radar](https://www.dwd.de/DE/leistungen/radarbild_film/radarbild_film.html)

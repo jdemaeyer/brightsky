@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Bright Sky &ndash; Radar demo</title>
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" sizes="any" href="/favicon.svg">
+
+  <script src="https://cdn.jsdelivr.net/npm/ol@v7.5.1/dist/ol.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.5.1/ol.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.min.js"></script>
+  <script src="https://unpkg.com/pako@2.1.0/dist/pako.min.js"></script>
+  <script src="js-colormaps.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    #map {
+      height: 100vh;
+    }
+
+    @keyframes spinner {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spinner {
+      opacity: .5;
+    }
+
+    .spinner:after {
+      content: "";
+      box-sizing: border-box;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 80px;
+      height: 80px;
+      margin-top: -40px;
+      margin-left: -40px;
+      border-radius: 50%;
+      border: 10px solid rgba(180, 180, 180, 1);
+      border-top-color: rgba(0, 0, 0, 1);
+      animation: spinner 0.6s linear infinite;
+    }
+
+    .frame-selector {
+      left: 25px;
+      bottom: 25px;
+      background-color: #000000aa;
+      padding: 6px;
+    }
+
+    .frame-selector h3 {
+      color: #eeeeee;
+      font-size: 24px;
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      margin-top: .125rem;
+      margin-bottom: .25rem;
+      text-align: center;
+    }
+
+    .frame-selector img {
+      height: 24px;
+      margin-right: .5rem;
+      margin-left: .25rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="map" class="spinner"></div>
+  <script>
+    class FrameControl extends ol.control.Control {
+      constructor(layer, frames) {
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        const label = document.createElement('h3');
+        const toggle = document.createElement('img');
+        toggle.src = 'pause.svg';
+        const element = document.createElement('div');
+        element.className = 'frame-selector ol-unselectable ol-control';
+        element.appendChild(label);
+        element.appendChild(toggle);
+        element.appendChild(slider);
+
+        super({
+          element: element,
+        });
+        this.frames = frames;
+        this.layer = layer;
+        this.slider = slider;
+        this.label = label;
+        this.toggle = toggle;
+        this.autoplayIntervalId = null;
+
+        slider.addEventListener('input', () => {this.stopAutoplay(); this.setFrame()}, false);
+        toggle.addEventListener('click', () => this.toggleAutoplay(), false);
+      }
+
+      setFrames(frames) {
+        this.frames = frames;
+        this.slider.min = 0;
+        this.slider.max = frames.length - 1;
+        this.slider.value = 0;
+        this.setFrame();
+      }
+
+      setFrame(idx) {
+        idx = typeof idx !== 'undefined' ? idx : this.slider.value;
+        this.label.textContent = this.frames[idx].label;
+        this.layer.setSource(this.frames[idx].source);
+      }
+
+      nextFrame() {
+        if (this.slider.value == this.slider.max) {
+          this.slider.value = 0;
+        } else {
+          this.slider.stepUp();
+        }
+        this.setFrame();
+      }
+
+      startAutoplay() {
+        this.autoplayIntervalId = setInterval(this.nextFrame.bind(this), 500);
+        this.toggle.src = 'pause.svg';
+      }
+
+      stopAutoplay() {
+        clearInterval(this.autoplayIntervalId);
+        this.autoplayIntervalId = null;
+        this.toggle.src = 'play.svg';
+      }
+
+      toggleAutoplay() {
+        if (this.autoplayIntervalId !== null) {
+          this.stopAutoplay();
+        } else {
+          this.startAutoplay();
+        }
+      }
+    }
+
+    function decompress(raw) {
+      // Get raw (zlib-encoded) bytes from base64 string
+      const compressed = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
+      // Decompress zlib-encoded bytes into original bytes
+      const rawBytes = pako.inflate(compressed).buffer;
+      // Interpret decompressed bytes as 2-byte integers
+      return new Uint16Array(rawBytes);
+    }
+
+    function precipitation_to_rgba(precip) {
+      // Normalize, using 2.5 mm in 5 minutes as maximum
+      const val = Math.min(precip, 250) / 250;
+      // Convert to color using js-colormap's turbo colormap
+      const rgb = turbo(val);
+      // Make no rain fully transparent, use 50 - 204 alpha range (~0.2 - 0.8 opacity) for other values
+      const alpha = Math.max(Math.min(val*10, .8) * 255, precip ? 50 : 0);
+      return [...rgb, alpha]
+    }
+
+    function makeSource(record, width, height, projection, extent) {
+      // Create an OpenLayers source with PNG data URL from a given radar record
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = width;
+      canvas.height = height;
+      const imageData = ctx.createImageData(width, height);
+
+      for (const [idx, precip] of decompress(record.precipitation_5).entries()) {
+        let rgba = precipitation_to_rgba(precip);
+        imageData.data[idx*4] = rgba[0];
+        imageData.data[idx*4+1] = rgba[1];
+        imageData.data[idx*4+2] = rgba[2];
+        imageData.data[idx*4+3] = rgba[3];
+      }
+      ctx.putImageData(imageData, 0, 0);
+      const url = canvas.toDataURL();
+
+      const source = new ol.source.ImageStatic({
+        url: url,
+        projection: projection,
+        imageExtent: gridExtent,
+        interpolate: false,
+        attributions: '© <a href="https://www.dwd.de/">DWD</a>',
+      });
+
+      return {
+        label: record.timestamp.substring(11, 16),
+        source: source,
+      }
+    }
+
+    // DWD DE1200 projection constants
+    const gridWidth = 1100;
+    const gridHeight = 1200;
+    const gridProjection = 'DE1200';
+    const gridProjStr = '+proj=stere +lat_0=90 +lat_ts=60 +lon_0=10 +a=6378137 +b=6356752.3142451802 +no_defs +x_0=543196.83521776402 +y_0=3622588.8619310018';
+    const gridExtent = [-500, -1199500, 1099500, 500];
+
+    proj4.defs(gridProjection, gridProjStr);
+    ol.proj.proj4.register(proj4);
+
+    const imageLayer = new ol.layer.Image();
+    const frameControl = new FrameControl(imageLayer);
+
+    const map = new ol.Map({
+      target: 'map',
+      layers: [
+        new ol.layer.Tile({
+          source: new ol.source.OSM(),
+        }),
+        imageLayer,
+      ],
+      view: new ol.View({
+        center: ol.proj.transform(ol.extent.getCenter(gridExtent), gridProjection, 'EPSG:3857'),
+        zoom: 7,
+      }),
+      controls: ol.control.defaults.defaults().extend([frameControl]),
+    });
+
+    fetch(
+      'https://api.brightsky.dev/radar?tz=Europe/Berlin'
+    ).then((resp) => resp.json()
+    ).then((data) => {
+      const frames = data.radar.map((record) => makeSource(record, gridWidth, gridHeight, gridProjection, gridExtent));
+      frameControl.setFrames(frames);
+      frameControl.startAutoplay();
+      map.getTargetElement().classList.remove('spinner');
+    });
+  </script>
+</body>
+</html>
