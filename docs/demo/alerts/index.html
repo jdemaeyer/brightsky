@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Bright Sky &ndash; Alerts demo</title>
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" sizes="any" href="/favicon.svg">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 8px;
+      font-family: ui-sans-serif, sans-serif;
+    }
+
+    .container {
+      display: flex;
+      gap: 8px;
+    }
+
+    @keyframes spinner {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spinner {
+      opacity: .5;
+    }
+
+    .spinner:after {
+      content: "";
+      box-sizing: border-box;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 80px;
+      height: 80px;
+      margin-top: -40px;
+      margin-left: -40px;
+      border-radius: 50%;
+      border: 10px solid rgba(180, 180, 180, 1);
+      border-top-color: rgba(0, 0, 0, 1);
+      animation: spinner 0.6s linear infinite;
+    }
+
+    #map {
+      height: calc(100vh - 16px);
+      flex: 1;
+    }
+
+    #alerts {
+      height: calc(100vh - 40px);
+      width: 400px;
+      overflow: scroll;
+      padding: 12px;
+    }
+
+    #alerts h3 {
+      color: #222;
+      margin: 0;
+      margin-bottom: 16px;
+    }
+
+    .alert-card {
+      padding: 8px 16px;
+      margin-bottom: 12px;
+      border-left: solid 4px;
+    }
+
+    .alert-card h5 {
+      margin: 0;
+      margin-bottom: 4px;
+    }
+
+    .alert-card p {
+      margin: 0;
+    }
+
+    .alert-card.minor {
+      background-color: #ffee300a;
+      border-color: #ffee3080;
+    }
+
+    .alert-card.moderate {
+      background-color: #ffb3300a;
+      border-color: #ffb33080;
+    }
+
+    .alert-card.severe {
+      background-color: #ff30300a;
+      border-color: #ff303080;
+    }
+
+    .alert-card.extreme {
+      background-color: #f130ff0a;
+      border-color: #f130ff80;
+    }
+  </style>
+</head>
+<body>
+  <main class="container spinner">
+    <div id="map"></div>
+    <div
+      id="alerts"
+      x-data="{
+        alerts: [],
+        filterCell: null,
+        english: false,
+
+        get filteredAlerts() {
+          if (this.filterCell !== null)
+            return this.alerts.filter((alert) => alert.warn_cell_ids.includes(this.filterCell));
+          return this.alerts;
+        },
+      }"
+      @alertsready.window="alerts = $event.alerts"
+      @updatefilter.window="filterCell = $event.cellId"
+    >
+      <span style="float: right">
+        <input id="lang_en" type="checkbox" x-model="english">
+        <label for="lang_en">English</label>
+      </span>
+      <h3>Live alerts: <span x-text="filteredAlerts.length"></span></h3>
+      <template x-for="alert in filteredAlerts">
+        <div
+          class="alert-card"
+          :class="alert.severity"
+          x-data="{
+            get eventName() {
+              return alert['event_' + (english ? 'en' : 'de')];
+            },
+            get description() {
+              return alert['description_' + (english ? 'en' : 'de')];
+            },
+            setCellStyle(style) {
+              for (const cellId of alert.warn_cell_ids) {
+                let layer = layersByCellId[cellId];
+                if(!layer) continue;
+                layer.setStyle(style);
+              }
+            },
+            highlightCells() {
+              this.setCellStyle({
+                color: '#ffffff',
+                opacity: 1,
+                weight: 2,
+              });
+            },
+            resetCells() {
+              this.setCellStyle({
+                color: '#000',
+                opacity: .25,
+                weight: 1,
+              });
+            },
+          }"
+          @mouseenter="highlightCells()"
+          @mouseleave="resetCells()"
+        >
+          <h5 style="margin-bottom: 4px" x-text="eventName"></h5>
+          <p x-text="description"></p>
+        </div>
+      </template>
+    </div>
+  </main>
+  <script>
+    const severityColormap = {
+      'minor': '#ffee30',
+      'moderate': '#ffb330',
+      'severe': '#ff3030',
+      'extreme': '#f130ff',
+    };
+    const layersByCellId = {}
+
+    const map = L.map('map').setView([51.16, 10.45], 7);
+    const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    // Also available from https://maps.dwd.de/geoserver/wfs?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=Warngebiete_Gemeinden&OUTPUTFORMAT=json
+    const cellsProm = fetch('/demo/alerts/cells.json').then((resp) => resp.json());
+    const alertsProm = fetch('https://api.brightsky.dev/alerts').then((resp) => resp.json());
+    Promise.all([cellsProm, alertsProm]).then(([cells, alertsData]) => {
+      const alertsReadyEvent = new Event('alertsready');
+      alertsReadyEvent.alerts = alertsData.alerts;
+      window.dispatchEvent(alertsReadyEvent);
+
+      const cellAlerts = {};
+      for (const alert of alertsData.alerts) {
+        for (cellId of alert.warn_cell_ids) {
+          cellAlerts[cellId] ??= []
+          cellAlerts[cellId].push(alert);
+        }
+      }
+
+      function onEachFeature(feature, layer) {
+        layer.bindTooltip(feature.properties.NAME);
+        layer.bindPopup(feature.properties.NAME);
+        layersByCellId[feature.properties.WARNCELLID] = layer;
+      }
+
+      L.geoJSON(cells, {
+        style: (feature) => {
+          alerts = cellAlerts[feature.properties.WARNCELLID];
+          return {
+            color: '#000000',
+            opacity: .25,
+            weight: 1,
+            fillColor: alerts ? severityColormap[alerts[0].severity] : null,
+            fillOpacity: alerts ? .75 : 0,
+          }
+        },
+        onEachFeature: onEachFeature,
+        attribution: '&copy; <a href="https://www.dwd.de/">DWD</a>',
+      }).addTo(map);
+
+      document.querySelector('.spinner').classList.remove('spinner');
+    });
+
+    function updateFilter(cellId) {
+      const changeFilterEvent = new Event('updatefilter');
+      changeFilterEvent.cellId = cellId;
+      window.dispatchEvent(changeFilterEvent);
+    }
+    map.on("popupopen", (e) => updateFilter(e.popup._source.feature.properties.WARNCELLID));
+    map.on("popupclose", (e) => updateFilter(null));
+  </script>
+</body>
+</html>
