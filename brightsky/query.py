@@ -337,7 +337,17 @@ def alerts(lat=None, lon=None, warn_cell_id=None):
                 "district (Landkreis) ids"
             )
     else:
-        raise ValueError("Please supply lat/lon or warn_cell_id")
+        sql = """
+            SELECT *
+            FROM alerts
+            JOIN (
+                SELECT alert_id, array_agg(warn_cell_id) as warn_cell_ids
+                FROM alert_cells
+                GROUP BY alert_id
+            ) cells ON alerts.id = cells.alert_id
+            ORDER BY severity DESC
+        """
+        return {'alerts': _make_dicts(fetch(sql))}
     sql = """
         SELECT *
         FROM alerts

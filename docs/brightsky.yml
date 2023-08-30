@@ -396,9 +396,9 @@ paths:
     get:
       summary: Alerts
       description: |
-        Returns a list of weather alerts for the given location.
+        Returns a list of weather alerts for the given location, or all weather alerts if no location given.
 
-        You must supply both `lat` and `lon` _or_ `warn_cell_id`. Warn cell IDs are municipality (_Gemeinde_) cell IDs.
+        If you supply either `warn_cell_id` or both `lat` and `lon`, Bright Sky will return additional information on that cell in the `location` field. Warn cell IDs are municipality (_Gemeinde_) cell IDs.
 
         ### Notes
 
@@ -412,6 +412,7 @@ paths:
         * [Map view of all current alerts](https://www.dwd.de/DE/wetter/warnungen_gemeinden/warnWetter_node.html)
         * [List of municipality cells](https://maps.dwd.de/geoserver/wfs?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=Warngebiete_Gemeinden&OUTPUTFORMAT=json)
         * [List of district cells (*not used by Bright Sky!*)](https://maps.dwd.de/geoserver/wfs?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=Warngebiete_Kreise&OUTPUTFORMAT=json)
+        * [Raw data on the Open Data Server](https://opendata.dwd.de/weather/alerts/cap/COMMUNEUNION_DWD_STAT/)
         * [DWD Documentation on alert fields and their allowed contents (English)](https://www.dwd.de/DE/leistungen/opendata/help/warnungen/cap_dwd_profile_en_pdf_2_1_13.pdf?__blob=publicationFile&v=3)
         * [DWD Documentation on alert fields and their allowed contents (German)](https://www.dwd.de/DE/leistungen/opendata/help/warnungen/cap_dwd_profile_de_pdf_2_1_13.pdf?__blob=publicationFile&v=3)
       operationId: getAlerts
