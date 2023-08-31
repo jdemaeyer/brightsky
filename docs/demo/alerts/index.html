@@ -74,6 +74,7 @@
       padding: 8px 16px;
       margin-bottom: 12px;
       border-left: solid 4px;
+      cursor: pointer;
     }
 
     .alert-card h5 {
@@ -83,6 +84,16 @@
 
     .alert-card p {
       margin: 0;
+    }
+
+    .alert-card textarea {
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      width: 100%;
+      height: 400px;
+      margin-top: 12px;
+      resize: none;
+      border: none;
     }
 
     .alert-card.minor {
@@ -135,6 +146,11 @@
           class="alert-card"
           :class="alert.severity"
           x-data="{
+            showDetails: false,
+
+            get details() {
+              return JSON.stringify(alert, null, 2);
+            },
             get eventName() {
               return alert['event_' + (english ? 'en' : 'de')];
             },
@@ -165,9 +181,11 @@
           }"
           @mouseenter="highlightCells()"
           @mouseleave="resetCells()"
+          @click="showDetails = !showDetails"
         >
           <h5 style="margin-bottom: 4px" x-text="eventName"></h5>
           <p x-text="description"></p>
+          <textarea x-show="showDetails" x-text="details" readonly></textarea>
         </div>
       </template>
     </div>
