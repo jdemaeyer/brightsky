@@ -185,7 +185,7 @@
         >
           <h5 style="margin-bottom: 4px" x-text="eventName"></h5>
           <p x-text="description"></p>
-          <textarea x-show="showDetails" x-text="details" readonly></textarea>
+          <textarea x-show="showDetails" x-text="details" @click.stop readonly></textarea>
         </div>
       </template>
     </div>
