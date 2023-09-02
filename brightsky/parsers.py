@@ -214,6 +214,7 @@ class RADOLANParser(BrightSkyMixin, dwdparse.parsers.RADOLANParser):
 
 class CAPParser(BrightSkyMixin, dwdparse.parsers.CAPParser):
 
+    PRIORITY = 40
     exporter = AlertExporter
 
 
