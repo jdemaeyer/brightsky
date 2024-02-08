@@ -1,9 +1,11 @@
 import logging
+import pathlib
 import resource
 import threading
 import time
 
-from dwdparse.stations import load_stations
+from dwdparse.stations import StationIDConverter, load_stations
+from dwdparse.utils import fetch
 from huey import crontab, PriorityRedisHuey
 from huey.api import TaskLock as TaskLock_
 from huey.exceptions import TaskLockedException
@@ -54,10 +56,23 @@ huey = ExpiringLocksHuey(
 @huey.periodic_task(crontab(minute='42', hour='3'), priority=40)
 @huey.on_startup()
 def update_stations():
+    path = pathlib.Path('.cache', 'stations.html')
     with update_stations._lock:
         if time.time() - update_stations._last_update < 60:
             return
-        load_stations()
+        # On startup, skip download and load from cache if available
+        if not update_stations._last_update and path.is_file():
+            load_stations(path=path)
+        else:
+            try:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with open(path, 'wb') as f:
+                    f.write(fetch(StationIDConverter.STATION_LIST_URL))
+            except OSError:
+                # Probably missing permissions, load without caching
+                load_stations()
+            else:
+                load_stations(path=path)
         update_stations._last_update = time.time()
 update_stations._lock = threading.Lock()  # noqa: E305
 update_stations._last_update = 0
