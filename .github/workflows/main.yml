@@ -25,10 +25,10 @@ jobs:
           - 5432:5432
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.11
+      - name: Set up Python 3.12
         uses: actions/setup-python@v1
         with:
-          python-version: '3.11'
+          python-version: '3.12'
       - name: Run tox
         env:
           BRIGHTSKY_TEST_DATABASE_URL: postgres://postgres:pgpass@localhost/brightsky_test
