@@ -105,10 +105,11 @@ def clean():
 
 
 @cli.command()
-def work():
+@click.option('--workers', default=3, type=int, help='Number of threads')
+def work(workers):
     """Start brightsky worker."""
     huey.flush()
-    config = ConsumerConfig(worker_type='thread', workers=3)
+    config = ConsumerConfig(worker_type='thread', workers=workers)
     config.validate()
     consumer = huey.create_consumer(**config.values)
     consumer.run()
