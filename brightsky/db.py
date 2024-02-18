@@ -17,10 +17,9 @@ logger = logging.getLogger(__name__)
 @contextmanager
 def get_connection():
     if not hasattr(get_connection, '_pool'):
-        # gunicorn sync workers are single-threaded
-        minconn = 1 if 'gunicorn' in os.getenv('SERVER_SOFTWARE', '') else 3
+        maxconn = 1 if 'gunicorn' in os.getenv('SERVER_SOFTWARE', '') else 100
         get_connection._pool = ThreadedConnectionPool(
-            minconn, minconn, settings.DATABASE_URL, cursor_factory=DictCursor)
+            1, maxconn, settings.DATABASE_URL, cursor_factory=DictCursor)
     pool = get_connection._pool
     conn = pool.getconn()
     try:
