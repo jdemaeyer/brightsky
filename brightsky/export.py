@@ -294,6 +294,7 @@ class AlertExporter(DBExporter):
     """
     ELEMENT_FIELDS = [
         'alert_id',
+        'status',
         'effective',
         'onset',
         'expires',
