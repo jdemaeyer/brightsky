@@ -157,14 +157,16 @@ def current_weather(
     }
 
 
-def _current_weather(source_ids, not_null=None):
+def _current_weather(source_ids, not_null=None, partial=False):
     params = {
         'source_ids': source_ids,
         'source_ids_tuple': tuple(source_ids),
     }
     where = "source_id IN %(source_ids_tuple)s"
     if not_null:
-        where += ''.join(f" AND {element} IS NOT NULL" for element in not_null)
+        glue = ' OR ' if partial else ' AND '
+        extra = glue.join(f"{element} IS NOT NULL" for element in not_null)
+        where += f'AND ({extra})'
     sql = f"""
         SELECT *
         FROM current_weather
@@ -174,6 +176,12 @@ def _current_weather(source_ids, not_null=None):
     """
     rows = _make_dicts(fetch(sql, params))
     if not rows:
+        if not_null and not partial:
+            return _current_weather(
+                source_ids,
+                not_null=not_null,
+                partial=True,
+            )
         return {}
     return rows[0]
 
