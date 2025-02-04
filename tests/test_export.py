@@ -144,7 +144,7 @@ def test_synop_exporter(db):
     assert len(_query_records(db, table='current_weather')) == 0
     # Exporter needs to merge separate records for the same source and time
     record = RECORDS[0].copy()
-    record['timestamp'] = datetime.datetime.utcnow().replace(
+    record['timestamp'] = datetime.datetime.now(datetime.UTC).replace(
         minute=0, second=0, microsecond=0, tzinfo=tzutc())
     extra_record = {
         'timestamp': record['timestamp'],

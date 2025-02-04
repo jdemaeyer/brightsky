@@ -123,7 +123,7 @@ SYNOP_SOURCE = {
     'dwd_station_id': '01766',
     'wmo_station_id': '10315',
 }
-SYNOP_NOW = datetime.datetime.utcnow().replace(
+SYNOP_NOW = datetime.datetime.now(datetime.UTC).replace(
     minute=0, second=0, microsecond=0, tzinfo=tzutc()
 ) + datetime.timedelta(hours=1)
 SYNOP_RECORDS = [

@@ -7,7 +7,7 @@ from brightsky.tasks import clean
 
 
 def test_clean_deletes_expired_parsed_files(db):
-    now = datetime.datetime.utcnow().replace(tzinfo=tzutc())
+    now = datetime.datetime.now(datetime.UTC).replace(tzinfo=tzutc())
     fingerprints = [
         {
             'url': 'https://example.com/Z__C_EDZW_very_old.json',
@@ -41,7 +41,7 @@ PLACE = {
 
 
 def test_clean_deletes_expired_forecast_current_synop_records(db):
-    now = datetime.datetime.utcnow().replace(
+    now = datetime.datetime.now(datetime.UTC).replace(
         minute=0, second=0, microsecond=0, tzinfo=tzutc())
     records = [
         {

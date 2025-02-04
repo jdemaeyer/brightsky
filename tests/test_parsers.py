@@ -84,7 +84,7 @@ def test_radolan_parser(data_dir):
         dtype='i2',
     )
     assert len(data) == 1200 * 1100
-    assert sum(data) == 564030
+    assert np.sum(data) == 564030
     assert len(np.where(data < 4096)[0]) == len(data)
     assert data.reshape((1200, 1100))[1117:1122, 334:339].tolist() == [
         [3, 5, 2, 1, 3],
