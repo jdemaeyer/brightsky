@@ -1,4 +1,6 @@
-CREATE EXTENSION IF NOT EXISTS earthdistance CASCADE;
+CREATE EXTENSION IF NOT EXISTS cube WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS earthdistance WITH SCHEMA public;
+ALTER FUNCTION public.ll_to_earth SET search_path = public;
 
 CREATE TYPE observation_type AS ENUM ('historical', 'recent', 'current', 'forecast');
 
