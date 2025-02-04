@@ -10,7 +10,7 @@ RUN pip install -r requirements.txt
 
 COPY migrations migrations
 COPY brightsky brightsky
-COPY setup.py .
+COPY pyproject.toml .
 COPY README.md .
 
 RUN pip install .

@@ -1,3 +1,55 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brightsky"
+dynamic = ["version"]
+requires-python = ">= 3.8"
+dependencies = [
+  "astral",
+  "click",
+  "coloredlogs",
+  "dwdparse[lean]",
+  "falcon>=3",
+  "gunicorn",
+  "huey",
+  "isal",
+  "numpy",
+  "orjson",
+  "parsel",
+  "psycopg2-binary",
+  "pyproj",
+  "python-dateutil",
+  "redis",
+  "requests",
+  "sentry-sdk",
+  "shapely",
+]
+authors = [
+  {name = "Jakob de Maeyer", email = "jakob@brightsky.dev"},
+]
+description = "JSON API for DWD's open weather data."
+readme = "README.md"
+license = {text = "MIT"}
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://brightsky.dev/"
+Documentation = "https://brightsky.dev/docs/"
+Source = "https://github.com/jdemaeyer/brightsky/"
+Tracker = "https://github.com/jdemaeyer/brightsky/issues/"
+
+[tool.setuptools.dynamic]
+version = {attr = "brightsky.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["brightsky*"]
+
 [tool.ruff]
 line-length = 79
 
