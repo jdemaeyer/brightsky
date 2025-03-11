@@ -21,6 +21,7 @@ MIN_DATE = datetime.datetime(2010, 1, 1, tzinfo=tzutc())
 MAX_DATE = None
 POLLING_CRONTAB_MINUTE = '*'
 REDIS_URL = 'redis://localhost'
+SERVER_URL = 'http://localhost:8000'
 WARN_CELLS_URL = (
     'https://maps.dwd.de/geoserver/wfs'
     '?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature'

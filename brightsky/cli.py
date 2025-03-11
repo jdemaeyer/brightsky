@@ -1,15 +1,14 @@
 import json
-from multiprocessing import cpu_count
+import logging
 
 import click
-import dwdparse
-from falcon.testing import simulate_get
+import uvicorn
+from fastapi.testclient import TestClient
 from huey.consumer_options import ConsumerConfig
 
 from brightsky import db, tasks
-from brightsky.parsers import get_parser
 from brightsky.utils import parse_date
-from brightsky.web import app, StandaloneApplication
+from brightsky.web import app
 from brightsky.worker import huey
 
 
@@ -44,47 +43,15 @@ def migrate():
 
 
 @cli.command()
-@click.option('--path', hidden=True)
-@click.option('--url', hidden=True)
-@click.option(
-    '--export/--no-export',
-    default=False,
-    hidden=True,
-)
 @click.argument(
     'targets',
-    required=False,
+    required=True,
     nargs=-1,
     metavar='TARGET [TARGET ...]',
 )
-def parse(path, url, export, targets):
-    """Parse and store observations/forecasts from a URL."""
-    # TODO: In v2.2, mark `targets` as required, remove `path`, `url`, and
-    #       `export`, and keep only the `elif targets` branch of this function.
-    if path or url:
-        if path:
-            records = dwdparse.parse(path)
-        elif url:
-            records = dwdparse.parse_url(url)
-        if export:
-            exporter = get_parser(path or url).exporter()
-            exporter.export(list(records))
-        else:
-            dump_records(records)
-        click.echo(
-            click.style(
-                "WARNING: Parsing DWD files with `python -m brightsky parse` "
-                "without exporting to a database is no longer supported and "
-                "will be removed in version 2.2. Use `dwdparse` instead.",
-                fg='red',
-            ),
-            err=True,
-        )
-    elif targets:
-        for target in targets:
-            tasks.parse(target)
-    else:
-        raise click.ClickException('Please provide at least one target')
+def parse(targets):
+    for target in targets:
+        tasks.parse(target)
 
 
 @cli.command()
@@ -122,11 +89,12 @@ def work(workers):
     help='Reload server on source code changes')
 def serve(bind, reload):
     """Start brightsky API webserver."""
-    StandaloneApplication(
+    host, port = bind.rsplit(':', 1)
+    uvicorn.run(
         'brightsky.web:app',
-        bind=bind,
-        workers=1 if reload else 2*cpu_count()+1,
-        reload=reload
+        host=host,
+        port=int(port),
+        reload=reload,
     ).run()
 
 
@@ -144,10 +112,15 @@ def query(endpoint, parameters):
     python -m brightsky query weather --lat 52 --lon 7.6 --date 2018-08-13
     python -m brightsky query current_weather --lat=52 --lon=7.6
     """
-    if not app._router.find(f'/{endpoint}'):
+    for route in app.routes:
+        if route.path == f'/{endpoint}':
+            break
+    else:
         raise click.UsageError(f"Unknown endpoint '{endpoint}'")
-    resp = simulate_get(app, f'/{endpoint}', params=_parse_params(parameters))
-    print(json.dumps(resp.json))
+    logging.getLogger().setLevel(logging.WARNING)
+    with TestClient(app) as client:
+        resp = client.get(f'/{endpoint}', params=_parse_params(parameters))
+    print(json.dumps(resp.json()))
 
 
 def _parse_params(parameters):

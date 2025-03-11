@@ -12,6 +12,7 @@ from multiprocessing import cpu_count
 
 import click
 import psycopg2
+import requests
 from dateutil.tz import tzutc
 from falcon.testing import TestClient
 
@@ -22,6 +23,9 @@ from brightsky.web import app
 
 
 logger = logging.getLogger('benchmark')
+
+
+SERVER = 'http://localhost:8000'
 
 
 @contextmanager
@@ -115,21 +119,30 @@ def mosmix_parse():
 
 
 def _query_sequential(path, kwargs_list, **base_kwargs):
-    client = get_client()
     for kwargs in kwargs_list:
-        client.simulate_get(path, params={**base_kwargs, **kwargs})
+        requests.get(
+            f'{SERVER}{path}',
+            params={**base_kwargs, **kwargs},
+        )
 
 
 def _query_parallel(path, kwargs_list, **base_kwargs):
-    client = get_client()
     with ThreadPoolExecutor(max_workers=2*cpu_count()+1) as executor:
         for kwargs in kwargs_list:
             executor.submit(
-                client.simulate_get, path, params={**base_kwargs, **kwargs})
+                requests.get,
+                f'{SERVER}{path}',
+                params={**base_kwargs, **kwargs},
+            )
 
 
 @cli.command('query', help='Query records from database')
 def query_():
+    with _time('\nTotal', precision=2):
+        _query()
+
+
+def _query():
     # Generate 50 random locations within Germany's bounding box. Locations
     # and sources will be the same across different runs since we hard-code the
     # PRNG seed.

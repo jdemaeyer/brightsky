@@ -2,10 +2,10 @@ import base64
 import datetime
 import zlib
 
-import falcon
 import numpy as np
 import pytest
 from dateutil.tz import tzutc
+from fastapi.testclient import TestClient
 
 import brightsky
 from brightsky.export import DBExporter, SYNOPExporter
@@ -229,23 +229,23 @@ def alerts_data(db, data_dir):
 
 
 def test_sources_required_parameters(data, api):
-    assert api.simulate_get('/sources').status_code == 400
-    assert api.simulate_get('/sources?lat=52').status_code == 400
-    assert api.simulate_get('/sources?lon=7.6').status_code == 400
-    assert api.simulate_get('/sources?lat=52&lon=7.6').status_code == 200
-    assert api.simulate_get('/sources?wmo_station_id=10315').status_code == 200
-    assert api.simulate_get('/sources?dwd_station_id=01766').status_code == 200
+    assert api.get('/sources').status_code == 422
+    assert api.get('/sources?lat=52').status_code == 422
+    assert api.get('/sources?lon=7.6').status_code == 422
+    assert api.get('/sources?lat=52&lon=7.6').status_code == 200
+    assert api.get('/sources?wmo_station_id=10315').status_code == 200
+    assert api.get('/sources?dwd_station_id=01766').status_code == 200
 
 
 def test_sources_response(data, api):
-    resp = api.simulate_get('/sources?lat=52&lon=7.6')
+    resp = api.get('/sources?lat=52&lon=7.6')
     assert resp.status_code == 200
-    resp_sources = resp.json['sources']
+    resp_sources = resp.json()['sources']
     assert len(resp_sources) == 3
     for resp_source, source in zip(resp_sources, SOURCES):
         for k, v in source.items():
             assert resp_source[k] == v
-    assert [s['distance'] for s in resp.json['sources']] == [
+    assert [s['distance'] for s in resp.json()['sources']] == [
         3922, 16008, 16365]
     assert resp_sources[0]['first_record'] == (
         FORECAST_RECORDS[0]['timestamp'].isoformat())
@@ -254,10 +254,10 @@ def test_sources_response(data, api):
 
 
 def test_sources_max_dist(data, api):
-    resp = api.simulate_get('/sources?lat=52&lon=7.6')
-    assert len(resp.json['sources']) == 3
-    resp = api.simulate_get('/sources?lat=52&lon=7.6&max_dist=5000')
-    assert len(resp.json['sources']) == 1
+    resp = api.get('/sources?lat=52&lon=7.6')
+    assert len(resp.json()['sources']) == 3
+    resp = api.get('/sources?lat=52&lon=7.6&max_dist=5000')
+    assert len(resp.json()['sources']) == 1
 
 
 def test_sources_by_station_id(data, api):
@@ -266,77 +266,81 @@ def test_sources_by_station_id(data, api):
         '/sources?dwd_station_id=01766',
     ]
     for path in paths:
-        resp = api.simulate_get(path)
+        resp = api.get(path)
         assert resp.status_code == 200
-        assert len(resp.json['sources']) == 2
+        assert len(resp.json()['sources']) == 2
 
 
 def test_source_by_source_id(db, data, api):
     source_id = db.fetch(
         "SELECT id FROM sources WHERE observation_type = 'forecast'")[0]['id']
-    resp = api.simulate_get(f'/sources?source_id={source_id}')
-    assert len(resp.json['sources']) == 1
-    assert resp.json['sources'][0]['observation_type'] == 'forecast'
+    resp = api.get(f'/sources?source_id={source_id}')
+    assert len(resp.json()['sources']) == 1
+    assert resp.json()['sources'][0]['observation_type'] == 'forecast'
 
 
 def test_no_sources_available(data, api):
-    assert api.simulate_get('/sources?lat=0&lon=0').status_code == 404
-    assert api.simulate_get('/sources?wmo_station_id=12345').status_code == 404
-    assert api.simulate_get('/sources?dwd_station_id=12345').status_code == 404
+    assert api.get('/sources?lat=0&lon=0').status_code == 404
+    assert api.get('/sources?wmo_station_id=12345').status_code == 404
+    assert api.get('/sources?dwd_station_id=12345').status_code == 404
 
 
 def test_weather_required_parameters(data, api):
-    assert api.simulate_get('/weather').status_code == 400
-    assert api.simulate_get('/weather?lat=52&lon=7.6').status_code == 400
-    assert api.simulate_get(
+    assert api.get('/weather').status_code == 422
+    assert api.get('/weather?lat=52&lon=7.6').status_code == 422
+    assert api.get(
         '/weather?lat=52&lon=7.6&date=2020-08-20').status_code == 200
-    assert api.simulate_get(
-        '/weather?lat=52&lon=7.6&last_date=2020-08-20').status_code == 400
+    assert api.get(
+        '/weather?lat=52&lon=7.6&last_date=2020-08-20').status_code == 422
 
 
 def test_weather_response(data, api):
-    resp = api.simulate_get('/weather?lat=52&lon=7.6&date=2020-08-20')
-    assert len(resp.json['weather']) == 25
-    assert len(resp.json['sources']) == 1
+    resp = api.get('/weather?lat=52&lon=7.6&date=2020-08-20')
+    data = resp.json()
+    assert len(data['weather']) == 25
+    assert len(data['sources']) == 1
     assert all(
-        w['source_id'] == resp.json['sources'][0]['id']
-        for w in resp.json['weather'])
-    assert resp.json['weather'][0]['timestamp'] == '2020-08-20T00:00:00+00:00'
-    assert resp.json['weather'][-1]['timestamp'] == '2020-08-21T00:00:00+00:00'
-    for w, record in zip(resp.json['weather'], RECENT_RECORDS[12:]):
+        w['source_id'] == data['sources'][0]['id']
+        for w in data['weather'])
+    assert data['weather'][0]['timestamp'] == '2020-08-20T00:00:00+00:00'
+    assert data['weather'][-1]['timestamp'] == '2020-08-21T00:00:00+00:00'
+    for w, record in zip(data['weather'], RECENT_RECORDS[12:]):
         assert w['temperature'] == round(record['temperature'] - 273.15, 2)
 
 
 def test_weather_date_range(data, api):
-    resp = api.simulate_get(
+    resp = api.get(
         '/weather?lat=52&lon=7.6&date=2020-08-20&last_date=2020-08-22')
-    assert len(resp.json['weather']) == 49
-    assert resp.json['weather'][0]['timestamp'] == '2020-08-20T00:00:00+00:00'
-    assert resp.json['weather'][-1]['timestamp'] == '2020-08-22T00:00:00+00:00'
-    resp = api.simulate_get('/weather?lat=52&lon=7.6&date=2020-08-20T12:00')
-    assert len(resp.json['weather']) == 25
-    assert resp.json['weather'][0]['timestamp'] == '2020-08-20T12:00:00+00:00'
-    assert resp.json['weather'][-1]['timestamp'] == '2020-08-21T12:00:00+00:00'
+    data = resp.json()
+    assert len(data['weather']) == 49
+    assert data['weather'][0]['timestamp'] == '2020-08-20T00:00:00+00:00'
+    assert data['weather'][-1]['timestamp'] == '2020-08-22T00:00:00+00:00'
+    resp = api.get('/weather?lat=52&lon=7.6&date=2020-08-20T12:00')
+    data = resp.json()
+    assert len(data['weather']) == 25
+    assert data['weather'][0]['timestamp'] == '2020-08-20T12:00:00+00:00'
+    assert data['weather'][-1]['timestamp'] == '2020-08-21T12:00:00+00:00'
 
 
 def test_weather_source_selection(data, api):
-    resp = api.simulate_get(
+    resp = api.get(
         '/weather?lat=52&lon=7.6&date=2020-08-20&last_date=2020-08-22')
-    assert len(resp.json['sources']) == 3
+    assert len(resp.json()['sources']) == 3
     observation_types = {
-        s['id']: s['observation_type'] for s in resp.json['sources']}
-    for w in resp.json['weather'][:28]:
+        s['id']: s['observation_type'] for s in resp.json()['sources']}
+    for w in resp.json()['weather'][:28]:
         assert observation_types[w['source_id']] == 'historical'
-    for w in resp.json['weather'][28:36]:
+    for w in resp.json()['weather'][28:36]:
         assert observation_types[w['source_id']] == 'current'
-    for w in resp.json['weather'][36:]:
+    for w in resp.json()['weather'][36:]:
         assert observation_types[w['source_id']] == 'forecast'
 
 
 def test_weather_units(data, api):
-    resp_dwd = api.simulate_get('/weather?lat=52&lon=7.6&date=2020-08-20')
-    resp_si = api.simulate_get(
-        '/weather?lat=52&lon=7.6&date=2020-08-20&units=si')
+    data_dwd = api.get('/weather?lat=52&lon=7.6&date=2020-08-20').json()
+    data_si = api.get(
+        '/weather?lat=52&lon=7.6&date=2020-08-20&units=si'
+    ).json()
     expected_conversions = {
         'temperature': 21.2,
         'pressure_msl': 1006.2,
@@ -346,78 +350,83 @@ def test_weather_units(data, api):
         'wind_gust_speed': 14.,
     }
     for k, v in ALL_FIELDS_RECORD.items():
-        assert resp_dwd.json['weather'][0][k] == expected_conversions.get(k, v)
-        assert resp_si.json['weather'][0][k] == v
+        assert data_dwd['weather'][0][k] == expected_conversions.get(k, v)
+        assert data_si['weather'][0][k] == v
 
 
 def test_weather_timezone(data, api):
-    resp = api.simulate_get(
+    resp = api.get(
         '/weather?lat=52&lon=7.6&date=2020-08-20&tz=Europe/Berlin')
-    assert resp.json['weather'][0]['timestamp'] == '2020-08-20T00:00:00+02:00'
-    assert resp.json['weather'][-1]['timestamp'] == '2020-08-21T00:00:00+02:00'
+    weather = resp.json()['weather']
+    assert weather[0]['timestamp'] == '2020-08-20T00:00:00+02:00'
+    assert weather[-1]['timestamp'] == '2020-08-21T00:00:00+02:00'
     # date offset should be used if tz not supplied
-    resp = api.simulate_get(
+    resp = api.get(
         '/weather?lat=52&lon=7.6&date=2020-08-20T00:00:00%2b02:00')
-    assert resp.json['weather'][0]['timestamp'] == '2020-08-20T00:00:00+02:00'
-    assert resp.json['weather'][-1]['timestamp'] == '2020-08-21T00:00:00+02:00'
+    weather = resp.json()['weather']
+    assert weather[0]['timestamp'] == '2020-08-20T00:00:00+02:00'
+    assert weather[-1]['timestamp'] == '2020-08-21T00:00:00+02:00'
     # but tz should always be preferred
-    resp = api.simulate_get(
+    resp = api.get(
         '/weather?lat=52&lon=7.6&date=2020-08-20T00:00:00-04:00'
         '&tz=Europe/Berlin')
-    assert resp.json['weather'][0]['timestamp'] == '2020-08-20T06:00:00+02:00'
-    assert resp.json['weather'][-1]['timestamp'] == '2020-08-21T06:00:00+02:00'
+    weather = resp.json()['weather']
+    assert weather[0]['timestamp'] == '2020-08-20T06:00:00+02:00'
+    assert weather[-1]['timestamp'] == '2020-08-21T06:00:00+02:00'
     # last_date's offset should be used for range selection but not as response
     # timezone
-    resp = api.simulate_get(
+    resp = api.get(
         '/weather?lat=52&lon=7.6&date=2020-08-20'
         '&last_date=2020-08-20T12:00-04:00')
-    assert resp.json['weather'][0]['timestamp'] == '2020-08-20T00:00:00+00:00'
-    assert resp.json['weather'][-1]['timestamp'] == '2020-08-20T16:00:00+00:00'
+    weather = resp.json()['weather']
+    assert weather[0]['timestamp'] == '2020-08-20T00:00:00+00:00'
+    assert weather[-1]['timestamp'] == '2020-08-20T16:00:00+00:00'
     # date's offset should NOT be used as default last_date offset
-    resp = api.simulate_get(
+    resp = api.get(
         '/weather?lat=52&lon=7.6&date=2020-08-20T00:00:00%2b02:00'
         '&last_date=2020-08-22')
-    assert resp.json['weather'][0]['timestamp'] == '2020-08-20T00:00:00+02:00'
-    assert resp.json['weather'][-1]['timestamp'] == '2020-08-22T02:00:00+02:00'
+    weather = resp.json()['weather']
+    assert weather[0]['timestamp'] == '2020-08-20T00:00:00+02:00'
+    assert weather[-1]['timestamp'] == '2020-08-22T02:00:00+02:00'
 
 
 def test_weather_icon(data, api):
-    resp = api.simulate_get('/weather?lat=52&lon=7.6&date=2020-08-20')
-    for condition, record in zip(CONDITION_FIELDS, resp.json['weather']):
+    resp = api.get('/weather?lat=52&lon=7.6&date=2020-08-20')
+    for condition, record in zip(CONDITION_FIELDS, resp.json()['weather']):
         assert record['icon'] == condition['_expected_icon']
 
 
 def test_synop_disallows_lat_lon(data, api):
-    resp = api.simulate_get(
+    resp = api.get(
         '/synop',
         params={
             'lat': 52,
             'lon': 7.6,
             'date': SYNOP_RECORDS[0]['timestamp'].isoformat(),
         })
-    assert resp.status_code == 400
+    assert resp.status_code == 422
 
 
 def test_synop_response(synop_data, api):
-    resp = api.simulate_get(
+    resp = api.get(
         '/synop',
         params={
             'wmo_station_id': SYNOP_SOURCE['wmo_station_id'],
             'date': SYNOP_RECORDS[0]['timestamp'].isoformat(),
         })
     assert resp.status_code == 200
-    assert len(resp.json['sources']) == 1
-    assert len(resp.json['weather']) == len(SYNOP_RECORDS)
-    for w, record in zip(resp.json['weather'], SYNOP_RECORDS):
+    assert len(resp.json()['sources']) == 1
+    assert len(resp.json()['weather']) == len(SYNOP_RECORDS)
+    for w, record in zip(resp.json()['weather'], SYNOP_RECORDS):
         assert w['timestamp'] == record['timestamp'].isoformat()
 
 
 def test_current_weather_response(synop_data, api, db):
     # XXX: This test may be flaky as the concurrent refresh may not have
     #      finished yet. Can we somehow wait until the lock is released?
-    resp = api.simulate_get('/current_weather?lat=52&lon=7.6')
+    resp = api.get('/current_weather?lat=52&lon=7.6')
     assert resp.status_code == 200
-    assert len(resp.json['sources']) == 1
+    assert len(resp.json()['sources']) == 1
     expected_weather = {
         # From latest record
         'timestamp': SYNOP_NOW.isoformat(),
@@ -453,25 +462,25 @@ def test_current_weather_response(synop_data, api, db):
         'sunshine_60': 50,
     }
     for k, v in expected_weather.items():
-        assert resp.json['weather'][k] == v, k
+        assert resp.json()['weather'][k] == v, k
 
 
 def test_radar_response(radar_data, api):
-    resp = api.simulate_get('/radar?date=2023-05-08T11:30')
+    resp = api.get('/radar?date=2023-05-08T11:30')
     assert resp.status_code == 200
-    assert len(resp.json['radar']) == 1
-    assert api.simulate_get('/radar?lat=52').status_code == 400
-    assert api.simulate_get('/radar?lon=7.6').status_code == 400
-    assert api.simulate_get('/radar?lat=52&lon=7.6').status_code == 200
+    assert len(resp.json()['radar']) == 1
+    assert api.get('/radar?lat=52').status_code == 422
+    assert api.get('/radar?lon=7.6').status_code == 422
+    assert api.get('/radar?lat=52&lon=7.6').status_code == 200
 
 
 def _get_radar_data(api, fmt, bbox=False):
     url = f'/radar?date=2023-05-08T13:30&format={fmt}'
     if bbox:
         url += '&bbox=1117,334,1121,338'
-    resp = api.simulate_get(url, headers={'Accept-Encoding': 'gzip'})
+    resp = api.get(url, headers={'Accept-Encoding': 'gzip'})
     assert resp.status_code == 200
-    return resp.json['radar'][0]['precipitation_5']
+    return resp.json()['radar'][0]['precipitation_5']
 
 
 def _check_radar_data(data):
@@ -538,55 +547,58 @@ def test_radar_response_plain(radar_data, api):
 
 
 def test_radar_response_geometry(radar_data, api):
-    resp = api.simulate_get('/radar?date=2023-05-08T11:30')
-    assert resp.json['geometry']['type'] == 'Polygon'
-    assert 'latlon_position' not in resp.json
+    resp = api.get('/radar?date=2023-05-08T11:30')
+    data = resp.json()
+    assert data['geometry']['type'] == 'Polygon'
+    assert 'latlon_position' not in resp.json()
     expected_coords = [
         (1.4633, 55.86209),
         (3.56699, 45.69643),
         (16.58087, 45.68461),
         (18.73162, 55.84544),
     ]
-    for p, exp_p in zip(resp.json['geometry']['coordinates'], expected_coords):
+    for p, exp_p in zip(data['geometry']['coordinates'], expected_coords):
         assert p[0] == pytest.approx(exp_p[0])
         assert p[1] == pytest.approx(exp_p[1])
 
 
 def test_radar_response_bbox_geometry(radar_data, api):
-    resp = api.simulate_get(
+    resp = api.get(
         '/radar?date=2023-05-08T11:30&lat=52&lon=7.6&distance=200000',
     )
-    assert resp.json['geometry']['type'] == 'Polygon'
+    data = resp.json()
+    assert data['geometry']['type'] == 'Polygon'
     expected_coords = [
         (4.54411, 53.61306),
         (5.04988, 50.17614),
         (10.37685, 50.31264),
         (10.41558, 53.76658),
     ]
-    for p, exp_p in zip(resp.json['geometry']['coordinates'], expected_coords):
+    for p, exp_p in zip(data['geometry']['coordinates'], expected_coords):
         assert p[0] == pytest.approx(exp_p[0])
         assert p[1] == pytest.approx(exp_p[1])
-    assert resp.json['latlon_position']['x'] == pytest.approx(200.244)
-    assert resp.json['latlon_position']['y'] == pytest.approx(200.088)
+    assert resp.json()['latlon_position']['x'] == pytest.approx(200.244)
+    assert resp.json()['latlon_position']['y'] == pytest.approx(200.088)
 
 
 def test_radar_response_bbox_geometry_near_edge(radar_data, api):
-    resp = api.simulate_get(
+    resp = api.get(
         '/radar?date=2023-05-08T11:30&lat=52&lon=2.6&distance=200000'
         '&fmt=plain',
     )
-    assert resp.json['geometry']['type'] == 'Polygon'
+    data = resp.json()
+    assert data['geometry']['type'] == 'Polygon'
     expected_coords = [
         (2.00507, 53.70663),
         (2.74712, 50.28395),
         (5.6003, 50.47017),
         (5.14662, 53.91603),
     ]
-    for p, exp_p in zip(resp.json['geometry']['coordinates'], expected_coords):
+    for p, exp_p in zip(data['geometry']['coordinates'], expected_coords):
         assert p[0] == pytest.approx(exp_p[0])
         assert p[1] == pytest.approx(exp_p[1])
-    assert resp.json['latlon_position']['x'] == pytest.approx(14.326)
-    assert resp.json['latlon_position']['y'] == pytest.approx(200.489)
+    assert data['latlon_position']['x'] == pytest.approx(14.326)
+    assert data['latlon_position']['y'] == pytest.approx(200.489)
 
 
 def test_alerts_response(alerts_data, api):
@@ -597,11 +609,11 @@ def test_alerts_response(alerts_data, api):
         'fe90b61b-3755-4efb-8eda-b161251da9f7',
     ]
     # Query by lat/lon
-    resp = api.simulate_get('/alerts?lat=51.55&lon=9.9')
+    resp = api.get('/alerts?lat=51.55&lon=9.9')
     assert [
-        alert['alert_id'] for alert in resp.json['alerts']
+        alert['alert_id'] for alert in resp.json()['alerts']
     ] == expected_ids
-    assert resp.json['location'] == {
+    assert resp.json()['location'] == {
         'warn_cell_id': 803159016,
         'name': 'Stadt Göttingen',
         'name_short': 'Göttingen',
@@ -610,35 +622,35 @@ def test_alerts_response(alerts_data, api):
         'state_short': 'NI',
     }
     # Query by warn cell id
-    resp = api.simulate_get('/alerts?warn_cell_id=803159016')
-    assert len(resp.json['alerts']) == 2
+    resp = api.get('/alerts?warn_cell_id=803159016')
+    assert len(resp.json()['alerts']) == 2
     # Query by lat/lon, no alerts
-    resp = api.simulate_get('/alerts?lat=52&lon=7.6')
+    resp = api.get('/alerts?lat=52&lon=7.6')
     assert resp.status_code == 200
-    assert not resp.json['alerts']
-    assert resp.json['location']['name'] == 'Münster-Nord'
+    assert not resp.json()['alerts']
+    assert resp.json()['location']['name'] == 'Münster-Nord'
     # Query by warn_cell_id, no alerts
-    resp = api.simulate_get('/alerts?warn_cell_id=705515101')
-    assert not resp.json['alerts']
+    resp = api.get('/alerts?warn_cell_id=705515101')
+    assert not resp.json()['alerts']
     # Query by lat/lon, outside of covered area
-    resp = api.simulate_get('/alerts?lat=32&lon=7.6')
+    resp = api.get('/alerts?lat=32&lon=7.6')
     assert resp.status_code == 404
-    resp = api.simulate_get('/alerts?warn_cell_id=0')
+    resp = api.get('/alerts?warn_cell_id=0')
     assert resp.status_code == 404
 
 
 def test_status_response(api):
-    resp = api.simulate_get('/')
+    resp = api.get('/')
     assert resp.status_code == 200
-    assert resp.json['name'] == 'brightsky'
-    assert resp.json['version'] == brightsky.__version__
-    assert resp.json['status'] == 'ok'
+    assert resp.json()['name'] == 'brightsky'
+    assert resp.json()['version'] == brightsky.__version__
+    assert resp.json()['status'] == 'ok'
 
 
 def test_cors(synop_data, db):
     def _get_response(**kwargs):
-        api = falcon.testing.TestClient(make_app())
-        return api.simulate_get('/current_weather?lat=52&lon=7.6', **kwargs)
+        api = TestClient(make_app())
+        return api.get('/current_weather?lat=52&lon=7.6', **kwargs)
 
     example_com = 'http://example.com'
     brightsky_dev = 'https://brightsky.dev'

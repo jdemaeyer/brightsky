@@ -6,69 +6,117 @@ from functools import cached_property
 
 import numpy as np
 import requests
-from dateutil.tz import tzutc
 from isal import isal_zlib as zlib
 from pyproj import CRS, Transformer
 from shapely import MultiPolygon, STRtree, Point
 
-from brightsky.db import fetch
 from brightsky.settings import settings
 from brightsky.utils import USER_AGENT
 
 
-def _make_dicts(rows):
+class NoData(LookupError):
+    pass
+
+
+class PgParams(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.map = {}
+
+    def __getitem__(self, key):
+        return f'${self.map.setdefault(key, len(self.map) + 1)}'
+
+    def get_params(self):
+        get_value = super().__getitem__
+        return tuple(get_value(k) for k in self.map)
+
+
+def topg(query, params):
+    p = PgParams(params)
+    return query.format_map(p), p.get_params()
+
+
+def make_dicts(rows):
     return [dict(row) for row in rows]
 
 
-def weather(
-        date, last_date=None, lat=None, lon=None, dwd_station_id=None,
-        wmo_station_id=None, source_id=None, max_dist=50000):
-    if not last_date:
-        last_date = date + datetime.timedelta(days=1)
-    if not date.tzinfo:
-        date = date.replace(tzinfo=tzutc())
-    if not last_date.tzinfo:
-        last_date = last_date.replace(tzinfo=tzutc())
-    sources_rows = sources(
-        lat=lat, lon=lon, dwd_station_id=dwd_station_id, source_id=source_id,
-        wmo_station_id=wmo_station_id, max_dist=max_dist,
+async def weather(
+    conn,
+    date,
+    last_date,
+    lat=None,
+    lon=None,
+    max_dist=50000,
+    dwd_station_ids=None,
+    wmo_station_ids=None,
+    source_ids=None,
+):
+    sources_data = await sources(
+        conn,
+        lat=lat,
+        lon=lon,
+        max_dist=max_dist,
+        dwd_station_ids=dwd_station_ids,
+        wmo_station_ids=wmo_station_ids,
+        source_ids=source_ids,
         observation_types=['historical', 'current', 'forecast'],
-        date=date, last_date=last_date)['sources']
+        date=date,
+        last_date=last_date,
+    )
+    sources_rows = sources_data['sources']
     primary_source_ids = {}
     for row in sources_rows:
         primary_source_ids.setdefault(row['observation_type'], row['id'])
     primary_source_ids = list(primary_source_ids.values())
-    weather_rows = _weather(date, last_date, primary_source_ids)
+    weather_rows = await _weather(conn, date, last_date, primary_source_ids)
     source_ids = [row['id'] for row in sources_rows]
     if len(weather_rows) < int((last_date - date).total_seconds()) // 3600:
-        weather_rows = _weather(date, last_date, source_ids)
-    _fill_missing_fields(weather_rows, date, last_date, source_ids, True)
-    _fill_missing_fields(weather_rows, date, last_date, source_ids, False)
+        weather_rows = await _weather(conn, date, last_date, source_ids)
+    await _fill_missing_fields(
+        conn,
+        weather_rows,
+        date,
+        last_date,
+        source_ids,
+        True,
+    )
+    await _fill_missing_fields(
+        conn,
+        weather_rows,
+        date,
+        last_date,
+        source_ids,
+        False,
+    )
     used_source_ids = {row['source_id'] for row in weather_rows}
     used_source_ids.update(
         source_id
         for row in weather_rows
-        for source_id in row.get('fallback_source_ids', {}).values())
+        for source_id in row.get('fallback_source_ids', {}).values()
+    )
     return {
         'weather': weather_rows,
         'sources': [s for s in sources_rows if s['id'] in used_source_ids],
     }
 
 
-def _weather(date, last_date, source_id, not_null=None, not_null_or=False):
+async def _weather(
+    conn,
+    date,
+    last_date,
+    source_ids,
+    not_null=None,
+    not_null_or=False,
+):
     params = {
         'date': date,
         'last_date': last_date,
-        'source_id': source_id,
+        'source_ids': source_ids,
     }
-    where = "timestamp BETWEEN %(date)s AND %(last_date)s"
+    where = "timestamp BETWEEN {date} AND {last_date}"
     order_by = "timestamp"
-    if isinstance(source_id, list):
-        where += " AND source_id IN %(source_id_tuple)s"
-        order_by += ", array_position(%(source_id)s, source_id)"
-        params['source_id_tuple'] = tuple(source_id)
-    else:
-        where += " AND source_id = %(source_id)s"
+    where += " AND source_id = ANY({source_ids}::int[])"
+    order_by += ", array_position({source_ids}::int[], source_id)"
     if not_null:
         glue = ' OR ' if not_null_or else ' AND '
         constraint = glue.join(f"{x} IS NOT NULL" for x in not_null)
@@ -79,7 +127,9 @@ def _weather(date, last_date, source_id, not_null=None, not_null_or=False):
         WHERE {where}
         ORDER BY {order_by}
     """
-    return _make_dicts(fetch(sql, params))
+    sql, params = topg(sql, params)
+    rows = await conn.fetch(sql, *params)
+    return make_dicts(rows)
 
 
 IGNORED_MISSING_FIELDS = {
@@ -94,7 +144,14 @@ IGNORED_MISSING_FIELDS = {
 }
 
 
-def _fill_missing_fields(weather_rows, date, last_date, source_ids, partial):
+async def _fill_missing_fields(
+    conn,
+    weather_rows,
+    date,
+    last_date,
+    source_ids,
+    partial,
+):
     incomplete_rows = []
     missing_fields = set()
     for row in weather_rows:
@@ -108,7 +165,8 @@ def _fill_missing_fields(weather_rows, date, last_date, source_ids, partial):
         max_date = incomplete_rows[-1][0]['timestamp']
         fallback_rows = {
             row['timestamp']: row
-            for row in _weather(
+            for row in await _weather(
+                conn,
                 min_date,
                 max_date,
                 source_ids,
@@ -127,24 +185,41 @@ def _fill_missing_fields(weather_rows, date, last_date, source_ids, partial):
                     row['fallback_source_ids'][f] = fallback_row['source_id']
 
 
-def current_weather(
-        lat=None, lon=None, dwd_station_id=None, wmo_station_id=None,
-        source_id=None, max_dist=50000, fallback=True):
-    sources_rows = sources(
-        lat=lat, lon=lon, dwd_station_id=dwd_station_id,
-        wmo_station_id=wmo_station_id, source_id=source_id,
-        observation_types=['synop'], max_dist=max_dist,
-    )['sources']
+async def current_weather(
+    conn,
+    lat=None,
+    lon=None,
+    max_dist=50000,
+    dwd_station_ids=None,
+    wmo_station_ids=None,
+    source_ids=None,
+    fallback=True,
+):
+    sources_data = await sources(
+        conn,
+        lat=lat,
+        lon=lon,
+        max_dist=max_dist,
+        dwd_station_ids=dwd_station_ids,
+        wmo_station_ids=wmo_station_ids,
+        source_ids=source_ids,
+        observation_types=['synop'],
+    )
+    sources_rows = sources_data['sources']
     source_ids = [row['id'] for row in sources_rows]
-    weather = _current_weather(source_ids)
+    weather = await _current_weather(conn, source_ids)
     if not weather:
-        raise LookupError(
-            "Could not find current weather for your location criteria")
+        raise NoData(
+            "Could not find current weather for your location criteria",
+        )
     used_source_ids = [weather['source_id']]
     if fallback:
         missing_fields = [k for k, v in weather.items() if v is None]
-        fallback_weather = _current_weather(
-            source_ids, not_null=missing_fields)
+        fallback_weather = await _current_weather(
+            conn,
+            source_ids,
+            not_null=missing_fields,
+        )
         if fallback_weather:
             weather.update({k: fallback_weather[k] for k in missing_fields})
             weather['fallback_source_ids'] = {
@@ -157,12 +232,11 @@ def current_weather(
     }
 
 
-def _current_weather(source_ids, not_null=None, partial=False):
+async def _current_weather(conn, source_ids, not_null=None, partial=False):
     params = {
         'source_ids': source_ids,
-        'source_ids_tuple': tuple(source_ids),
     }
-    where = "source_id IN %(source_ids_tuple)s"
+    where = "source_id = ANY({source_ids}::int[])"
     if not_null:
         glue = ' OR ' if partial else ' AND '
         extra = glue.join(f"{element} IS NOT NULL" for element in not_null)
@@ -171,59 +245,82 @@ def _current_weather(source_ids, not_null=None, partial=False):
         SELECT *
         FROM current_weather
         WHERE {where}
-        ORDER BY array_position(%(source_ids)s, source_id)
+        ORDER BY array_position({{source_ids}}::int[], source_id)
         LIMIT 1
     """
-    rows = _make_dicts(fetch(sql, params))
-    if not rows:
+    sql, params = topg(sql, params)
+    row = await conn.fetchrow(sql, *params)
+    if not row:
         if not_null and not partial:
-            return _current_weather(
+            return await _current_weather(
+                conn,
                 source_ids,
                 not_null=not_null,
                 partial=True,
             )
         return {}
-    return rows[0]
+    return dict(row)
 
 
-def synop(
-        date, last_date=None, dwd_station_id=None, wmo_station_id=None,
-        source_id=None):
-    if not last_date:
-        last_date = date + datetime.timedelta(days=1)
-    sources_rows = sources(
-        dwd_station_id=dwd_station_id, wmo_station_id=wmo_station_id,
-        source_id=source_id, observation_types=['synop'])['sources']
+async def synop(
+    conn,
+    date,
+    last_date,
+    dwd_station_ids=None,
+    wmo_station_ids=None,
+    source_ids=None,
+):
+    sources_data = await sources(
+        conn,
+        dwd_station_ids=dwd_station_ids,
+        wmo_station_ids=wmo_station_ids,
+        source_ids=source_ids,
+        observation_types=['synop'],
+    )
+    sources_rows = sources_data['sources']
     source_ids = [row['id'] for row in sources_rows]
     sql = """
         SELECT *
         FROM synop
         WHERE
-            timestamp BETWEEN %(date)s AND %(last_date)s AND
-            source_id IN %(source_ids_tuple)s
+            timestamp BETWEEN {date} AND {last_date} AND
+            source_id = ANY({source_ids}::int[])
         ORDER BY timestamp
         """
     params = {
         'date': date,
         'last_date': last_date,
-        'source_ids_tuple': tuple(source_ids),
+        'source_ids': source_ids,
     }
+    sql, params = topg(sql, params)
+    rows = await conn.fetch(sql, *params)
     return {
-        'weather': _make_dicts(fetch(sql, params)),
-        'sources': _make_dicts(sources_rows),
+        'weather': make_dicts(rows),
+        'sources': make_dicts(sources_rows),
     }
 
 
-def radar(
-        date, last_date=None, lat=None, lon=None, distance=200000,
-        fmt='compressed', bbox=None):
+async def radar(
+    conn,
+    date=None,
+    last_date=None,
+    lat=None,
+    lon=None,
+    distance=200000,
+    fmt='compressed',
+    bbox=None,
+):
     extra = {}
+    if not date:
+        date = await conn.fetchval(
+            "SELECT MAX(timestamp) - '3 hours'::interval FROM radar"
+        )
     if not last_date:
         last_date = date + datetime.timedelta(hours=2)
     if lat is not None and lon is not None:
         x, y = _transformer.to_xy(lat, lon)
         if not -0.5 <= x <= 1099.5 or not -0.5 <= y <= 1199.5:
-            raise LookupError("lat/lon lies outside the radar data range")
+            raise NoData("lat/lon lies outside the radar data range")
         center_x = int(round(x))
         center_y = int(round(y))
         pixels = distance // 1000
@@ -241,14 +338,15 @@ def radar(
     sql = """
         SELECT *
         FROM radar
-        WHERE timestamp BETWEEN %(date)s AND %(last_date)s
+        WHERE timestamp BETWEEN {date} AND {last_date}
         ORDER BY timestamp
         """
     params = {
         'date': date,
         'last_date': last_date,
     }
-    rows = fetch(sql, params)
+    sql, params = topg(sql, params)
+    rows = make_dicts(await conn.fetch(sql, *params))
     if fmt == 'plain':
         for row in rows:
             row['precipitation_5'] = _load_radar(row['precipitation_5'], bbox)
@@ -263,9 +361,9 @@ def radar(
                 _load_radar(row['precipitation_5'], bbox),
             )
     elif fmt != 'compressed':
-        raise ValueError("Unknown format: '%s'" % fmt)
+        raise ValueError(f"Unknown format: '{fmt}'")
     return {
-        'radar': _make_dicts(rows),
+        'radar': rows,
         'geometry': _transformer.bbox_to_geometry(bbox),
         **extra,
     }
@@ -333,14 +431,19 @@ class RadarCoordinatesTransformer:
 _transformer = RadarCoordinatesTransformer()
 
 
-def alerts(lat=None, lon=None, warn_cell_id=None):
+async def alerts(
+    conn,
+    lat=None,
+    lon=None,
+    warn_cell_id=None,
+):
     if lat is not None and lon is not None:
         meta = _warn_cells.find(lat, lon)
     elif warn_cell_id is not None:
         try:
             meta = _warn_cells.get_meta(warn_cell_id)
         except KeyError:
-            raise LookupError(
+            raise NoData(
                 "Unknown warn_cell_id, please use commune (Gemeinden), not "
                 "district (Landkreis) ids"
             )
@@ -355,23 +458,25 @@ def alerts(lat=None, lon=None, warn_cell_id=None):
             ) cells ON alerts.id = cells.alert_id
             ORDER BY severity DESC
         """
-        return {'alerts': _make_dicts(fetch(sql))}
+        rows = await conn.fetch(sql)
+        return {'alerts': make_dicts(rows)}
     sql = """
         SELECT *
         FROM alerts
         WHERE id IN (
             SELECT alert_id
             FROM alert_cells
-            WHERE warn_cell_id = %(warn_cell_id)s
+            WHERE warn_cell_id = {warn_cell_id}
         )
         ORDER BY severity DESC
         """
     params = {
         'warn_cell_id': meta['warn_cell_id'],
     }
-    rows = fetch(sql, params)
+    sql, params = topg(sql, params)
+    rows = await conn.fetch(sql, *params)
     return {
-        'alerts': _make_dicts(rows),
+        'alerts': make_dicts(rows),
         'location': meta,
     }
 
@@ -419,7 +524,7 @@ class WarnCellManager:
         p = Point(lon, lat)
         cell = self.tree.geometries[self.tree.nearest(p)]
         if cell.distance(p) > 0.01:
-            raise LookupError("Requested position is not covered by the DWD")
+            raise NoData("Requested position is not covered by the DWD")
         return self.cell_meta[cell]
 
     def get_meta(self, warn_cell_id):
@@ -431,63 +536,58 @@ class WarnCellManager:
 _warn_cells = WarnCellManager()
 
 
-def sources(
-        lat=None, lon=None, dwd_station_id=None, wmo_station_id=None,
-        source_id=None, observation_types=None, max_dist=50000,
-        ignore_type=False, date=None, last_date=None):
+async def sources(
+    conn,
+    lat=None,
+    lon=None,
+    max_dist=50000,
+    dwd_station_ids=None,
+    wmo_station_ids=None,
+    source_ids=None,
+    observation_types=None,
+    ignore_type=False,
+    date=None,
+    last_date=None,
+):
     select = "*"
     order_by = "observation_type"
     params = {
         'lat': lat,
         'lon': lon,
         'max_dist': max_dist,
-        'dwd_station_id': dwd_station_id,
-        'wmo_station_id': wmo_station_id,
-        'source_id': source_id,
-        'observation_types': tuple(observation_types or ()),
+        'dwd_station_ids': dwd_station_ids,
+        'wmo_station_ids': wmo_station_ids,
+        'source_ids': source_ids,
+        'observation_types': observation_types,
         'date': date,
         'last_date': last_date,
     }
-    if source_id is not None:
-        if isinstance(source_id, list):
-            where = "id IN %(source_id_tuple)s"
-            order_by = (
-                "array_position(%(source_id)s, id), observation_type")
-            params['source_id_tuple'] = tuple(source_id)
-        else:
-            where = "id = %(source_id)s"
-    elif dwd_station_id is not None:
-        if isinstance(dwd_station_id, list):
-            where = "dwd_station_id IN %(dwd_station_id_tuple)s"
-            order_by = (
-                "array_position(%(dwd_station_id)s, dwd_station_id::text), "
-                "observation_type")
-            params['dwd_station_id_tuple'] = tuple(dwd_station_id)
-        else:
-            where = "dwd_station_id = %(dwd_station_id)s"
-    elif wmo_station_id is not None:
-        if isinstance(wmo_station_id, list):
-            where = "wmo_station_id IN %(wmo_station_id_tuple)s"
-            order_by = (
-                "array_position(%(wmo_station_id)s, wmo_station_id::text), "
-                "observation_type")
-            params['wmo_station_id_tuple'] = tuple(wmo_station_id)
-        else:
-            where = "wmo_station_id = %(wmo_station_id)s"
+    if source_ids:
+        where = "id = ANY({source_ids}::int[])"
+        order_by = "array_position({source_ids}, id), observation_type"
+    elif dwd_station_ids:
+        where = "dwd_station_id = ANY({dwd_station_ids}::text[])"
+        order_by = """
+            array_position({dwd_station_ids}, dwd_station_id::text),
+            observation_type
+        """
+    elif wmo_station_ids:
+        where = "wmo_station_id = ANY({wmo_station_ids}::text[])"
+        order_by = """
+            array_position({wmo_station_ids}, wmo_station_id::text),
+            observation_type
+        """
     elif (lat is not None and lon is not None):
         distance = """
-            earth_distance(
-                ll_to_earth(%(lat)s, %(lon)s),
-                ll_to_earth(lat, lon)
-            )
+            earth_distance(ll_to_earth({lat}, {lon}), ll_to_earth(lat, lon))
         """
         select += f", round({distance}) AS distance"
         where = f"""
             earth_box(
-                ll_to_earth(%(lat)s, %(lon)s),
-                %(max_dist)s
+                ll_to_earth({{lat}}, {{lon}}),
+                {{max_dist}}
             ) @> ll_to_earth(lat, lon) AND
-            {distance} < %(max_dist)s
+            {distance} < {{max_dist}}
         """
         if ignore_type:
             order_by = "distance"
@@ -495,21 +595,23 @@ def sources(
             order_by += ", distance"
     else:
         raise ValueError(
-            "Please supply lat/lon or dwd_station_id or wmo_station_id or "
-            "source_id")
+            "Please supply lat & lon, or dwd_station_ids, or wmo_station_ids, "
+            "or source_ids",
+        )
     if observation_types:
-        where += " AND observation_type IN %(observation_types)s"
+        where += " AND observation_type = ANY({observation_types}::observation_type[])"  # noqa
     if date is not None:
-        where += " AND last_record >= %(date)s"
+        where += " AND last_record >= {date}"
     if last_date is not None:
-        where += " AND first_record <= %(last_date)s"
+        where += " AND first_record <= {last_date}"
     sql = f"""
         SELECT {select}
         FROM sources
         WHERE {where}
         ORDER BY {order_by}
-        """
-    rows = fetch(sql, params)
+    """
+    sql, params = topg(sql, params)
+    rows = await conn.fetch(sql, *params)
     if not rows:
-        raise LookupError("No sources match your criteria")
-    return {'sources': _make_dicts(rows)}
+        raise NoData("No sources match your criteria")
+    return {'sources': make_dicts(rows)}

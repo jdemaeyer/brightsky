@@ -10,7 +10,7 @@ x-brightsky:
 
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:16-alpine
     shm_size: 512mb
     environment:
       POSTGRES_PASSWORD: pgpass
@@ -18,7 +18,7 @@ services:
       - .data:/var/lib/postgresql/data
     restart: unless-stopped
   redis:
-    image: redis:7-alpine
+    image: redis:5-alpine
     restart: unless-stopped
   worker:
     <<: *brightsky

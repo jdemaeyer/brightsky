@@ -8,11 +8,14 @@ dynamic = ["version"]
 requires-python = ">= 3.8"
 dependencies = [
   "astral",
+  "asyncpg",
   "click",
   "coloredlogs",
   "dwdparse[lean]",
   "falcon>=3",
+  "fastapi",
   "gunicorn",
+  "httpx",
   "huey",
   "isal",
   "numpy",
@@ -25,6 +28,7 @@ dependencies = [
   "requests",
   "sentry-sdk",
   "shapely",
+  "uvicorn",
 ]
 authors = [
   {name = "Jakob de Maeyer", email = "jakob@brightsky.dev"},

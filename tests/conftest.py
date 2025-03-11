@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-import falcon.testing
 import psycopg2
 import pytest
+from fastapi.testclient import TestClient
 from psycopg2.extras import execute_values
 
 from brightsky.db import get_connection, migrate
@@ -89,10 +89,11 @@ def db(_database):
             """)
 
 
-@pytest.fixture(scope='session')
-def api():
+@pytest.fixture
+def api(db):
     from brightsky.web import app
-    return falcon.testing.TestClient(app)
+    with TestClient(app) as client:
+        yield client
 
 
 def pytest_configure(config):

@@ -1,3 +1,7 @@
 -r requirements.txt
+freezegun
+pytest
+pytest-env
 ruff
 uv
+watchfiles
