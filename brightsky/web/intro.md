@@ -49,4 +49,4 @@ All data available through Bright Sky is taken or derived from data on the [DWD 
 * **Radar**:
   * https://opendata.dwd.de/weather/radar/composite/rv/
 * **Alerts**:
-  * https://opendata.dwd.de/weather/alerts/cap/COMMUNEUNION_DWD_STAT/\
+  * https://opendata.dwd.de/weather/alerts/cap/COMMUNEUNION_DWD_STAT/
