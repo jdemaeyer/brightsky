@@ -200,6 +200,89 @@ Physical units in which meteorological parameters will be returned. Set to `si` 
     )
 
 
+class WarnCell(BaseModel):
+    warn_cell_id: int = Field(
+        default=None,
+        description="Municipality warn cell ID.",
+        examples=[
+            803159016,
+            705515101,
+        ],
+    )
+
+
+class RadarDateRange(BaseModel):
+    date: datetime.datetime = Field(
+        default=None,
+        description="Timestamp of first record to retrieve, in ISO 8601 format. May contain time and/or UTC offset. (_Defaults to 1 hour before latest measurement._)",  # noqa
+        examples=[
+            "2023-08-07",
+            "2023-08-07T19:00+02:00",
+        ],
+    )
+    last_date: datetime.datetime = Field(
+        default=None,
+        description="Timestamp of last record to retrieve, in ISO 8601 format. May contain time and/or UTC offset. (_Defaults to 2 hours after `date`._)",  # noqa
+        examples=[
+            "2023-08-08",
+            "2023-08-07T23:00+02:00",
+        ],
+    )
+
+    @model_validator(mode='after')
+    def set_default_last_date(self):
+        if self.last_date is None and self.date is not None:
+            self.last_date = self.date + datetime.timedelta(hours=2)
+        return self
+
+    @field_validator('date', 'last_date', mode='after')
+    @classmethod
+    def ensure_tzinfo(cls, value):
+        if value is None or value.tzinfo:
+            return value
+        return value.replace(tzinfo=datetime.UTC)
+
+
+class RadarBoundingBox(BaseModel):
+    bbox: list[int] = Field(
+        default=None,
+        description="Bounding box (top, left, bottom, right) **in pixels**, edges are inclusive. (_Defaults to full 1200x1100 grid._)",  # noqa
+        examples=[
+            "100,100,300,300",
+        ],
+    )
+    distance: int = Field(
+        default=200000,
+        description="Alternative way to set a bounding box, must be used together with `lat` and `lon`. Data will reach `distance` meters to each side of this location, but is possibly cut off at the edges of the radar grid.",  # noqa
+        examples=[
+            100000,
+        ],
+    )
+
+    @field_validator('bbox', mode='before')
+    @classmethod
+    def validate_bbox(cls, value):
+        bbox = _split(value, converter=int)
+        if len(bbox) != 4:
+            raise ValueError(
+                "The 'bbox' parameter must be a comma-separated list of four "
+                "integers: top, left, bottom, right (edges are inclusive)."
+            )
+        return bbox
+
+
+class RadarFormat(BaseModel):
+    format: Literal['compressed', 'bytes', 'plain'] = Field(
+        default='compressed',
+        description="""
+Determines how the precipitation data is encoded into the `precipitation_5` field:
+* `compressed`: base64-encoded, zlib-compressed bytestring of 2-byte integers
+* `bytes`: base64-encoded bytestring of 2-byte integers
+* `plain`: Nested array of integers
+        """,  # noqa
+    )
+
+
 class SourcesParams(
     Timezone,
     SourceIDs,
@@ -260,82 +343,17 @@ class SynopParams(
 
 class RadarParams(
     Timezone,
+    RadarFormat,
+    RadarDateRange,
     LatLon,
+    RadarBoundingBox,
 ):
-    date: datetime.datetime = Field(
-        default=None,
-        description="Timestamp of first record to retrieve, in ISO 8601 format. May contain time and/or UTC offset. (_Defaults to 1 hour before latest measurement._)",  # noqa
-        examples=[
-            "2023-08-07",
-            "2023-08-07T19:00+02:00",
-        ],
-    )
-    last_date: datetime.datetime = Field(
-        default=None,
-        description="Timestamp of last record to retrieve, in ISO 8601 format. May contain time and/or UTC offset. (_Defaults to 2 hours after `date`._)",  # noqa
-        examples=[
-            "2023-08-08",
-            "2023-08-07T23:00+02:00",
-        ],
-    )
-    bbox: list[int] = Field(
-        default=None,
-        description="Bounding box (top, left, bottom, right) **in pixels**, edges are inclusive. (_Defaults to full 1200x1100 grid._)",  # noqa
-        examples=[
-            "100,100,300,300",
-        ],
-    )
-    distance: int = Field(
-        default=200000,
-        description="Alternative way to set a bounding box, must be used together with `lat` and `lon`. Data will reach `distance` meters to each side of this location, but is possibly cut off at the edges of the radar grid.",  # noqa
-        examples=[
-            100000,
-        ],
-    )
-    format: Literal['compressed', 'bytes', 'plain'] = Field(
-        default='compressed',
-        description="""
-Determines how the precipitation data is encoded into the `precipitation_5` field:
-* `compressed`: base64-encoded, zlib-compressed bytestring of 2-byte integers
-* `bytes`: base64-encoded bytestring of 2-byte integers
-* `plain`: Nested array of integers
-        """,  # noqa
-    )
-
-    @model_validator(mode='after')
-    def set_default_last_date(self):
-        if self.last_date is None and self.date is not None:
-            self.last_date = self.date + datetime.timedelta(hours=2)
-        return self
-
-    @field_validator('bbox', mode='before')
-    @classmethod
-    def validate_bbox(cls, value):
-        bbox = _split(value, converter=int)
-        if len(bbox) != 4:
-            raise ValueError(
-                "The 'bbox' parameter must be a comma-separated list of four "
-                "integers: top, left, bottom, right (edges are inclusive)."
-            )
-        return bbox
-
-    @field_validator('date', 'last_date', mode='after')
-    @classmethod
-    def ensure_tzinfo(cls, value):
-        if value is None or value.tzinfo:
-            return value
-        return value.replace(tzinfo=datetime.UTC)
+    pass
 
 
 class AlertsParams(
     Timezone,
+    WarnCell,
     LatLon,
 ):
-    warn_cell_id: int = Field(
-        default=None,
-        description="Municipality warn cell ID.",
-        examples=[
-            803159016,
-            705515101,
-        ],
-    )
+    pass
