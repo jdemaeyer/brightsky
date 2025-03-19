@@ -54,6 +54,12 @@ version = {attr = "brightsky.__version__"}
 [tool.setuptools.packages.find]
 include = ["brightsky*"]
 
+[tool.pytest.ini_options]
+required_plugins = "pytest-env"
+
+[tool.pytest_env]
+BRIGHTSKY_LOAD_DOTENV = 0
+
 [tool.ruff]
 line-length = 79
 
