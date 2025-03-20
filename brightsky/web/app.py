@@ -458,13 +458,14 @@ async def radar(
         # Prevent traefik from gzipping the pre-compressed content
         response.headers['Content-Encoding'] = 'identity'
     else:
-        # TODO: Allow brotli and zstd once we upgraded to traefik v3
-        if 'gzip' not in request.headers.get('accept-encoding', ''):
+        allowed_encodings = ['br', 'zstd', 'gzip']
+        accepted_encoding = request.headers.get('accept-encoding', '')
+        if not any(e in accepted_encoding for e in allowed_encodings):
             raise HTTPException(
                 status_code=400,
                 detail=(
                     "Requests to the radar endpoint with format 'plain' or "
-                    "'bytes' must accept gzip encoding"
+                    "'bytes' must accept br, zstd, or gzip encoding"
                 ),
             )
     result = await query.radar(
