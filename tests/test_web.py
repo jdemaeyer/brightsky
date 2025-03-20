@@ -322,6 +322,17 @@ def test_weather_date_range(data, api):
     assert data['weather'][-1]['timestamp'] == '2020-08-21T12:00:00+00:00'
 
 
+def test_weather_unescaped_date_offset(data, api):
+    # Note "+02:00 instead of "%2B02:00"
+    resp = api.get(
+        '/weather?lat=52&lon=7.6&date=2020-08-20T12:00:00+02:00',
+    )
+    assert resp.status_code == 200
+    assert resp.json()['weather'][0]['timestamp'] == (
+        '2020-08-20T12:00:00+02:00'
+    )
+
+
 def test_weather_source_selection(data, api):
     resp = api.get(
         '/weather?lat=52&lon=7.6&date=2020-08-20&last_date=2020-08-22')

@@ -1,4 +1,5 @@
 import datetime
+import re
 from contextlib import suppress
 from typing import Annotated, Literal
 
@@ -131,6 +132,11 @@ class DateRange(BaseModel):
         ],
     )
 
+    @field_validator('date', 'last_date', mode='before')
+    def fix_unescaped_offset(cls, value):
+        # Handle " 02:00" (i.e. space in raw URL) instead of "%2B02:00"
+        return re.sub(r' (\d{2}:\d{2})$', r'+\1', value)
+
     @model_validator(mode='after')
     def set_default_last_date(self):
         if self.last_date is None:
@@ -228,6 +234,11 @@ class RadarDateRange(BaseModel):
             "2023-08-07T23:00+02:00",
         ],
     )
+
+    @field_validator('date', 'last_date', mode='before')
+    def fix_unescaped_offset(cls, value):
+        # Handle " 02:00" (i.e. space in raw URL) instead of "%2B02:00"
+        return re.sub(r' (\d{2}:\d{2})$', r'+\1', value)
 
     @model_validator(mode='after')
     def set_default_last_date(self):
