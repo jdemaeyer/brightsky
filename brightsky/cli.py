@@ -95,7 +95,7 @@ def serve(bind, reload):
         host=host,
         port=int(port),
         reload=reload,
-    ).run()
+    )
 
 
 @cli.command(context_settings={'ignore_unknown_options': True})
