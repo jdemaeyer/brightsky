@@ -291,7 +291,7 @@ def test_weather_required_parameters(data, api):
     assert api.get(
         '/weather?lat=52&lon=7.6&date=2020-08-20').status_code == 200
     assert api.get(
-        '/weather?lat=52&lon=7.6&last_date=2020-08-20').status_code == 422
+        '/weather?dwd_station_id=&date=2020-08-20').status_code == 422
 
 
 def test_weather_response(data, api):

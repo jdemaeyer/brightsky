@@ -306,9 +306,9 @@ class SourcesParams(
         if self.lat is not None and self.lon is not None:
             return self
         elif any([
-            self.dwd_station_ids is not None,
-            self.wmo_station_ids is not None,
-            self.source_ids is not None,
+            self.dwd_station_ids,
+            self.wmo_station_ids,
+            self.source_ids,
         ]):
             return self
         raise ValueError(
@@ -342,9 +342,9 @@ class SynopParams(
     @model_validator(mode='after')
     def validate_at_least_one_option(self):
         if any([
-            self.dwd_station_ids is not None,
-            self.wmo_station_ids is not None,
-            self.source_ids is not None,
+            self.dwd_station_ids,
+            self.wmo_station_ids,
+            self.source_ids,
         ]):
             return self
         raise ValueError(
