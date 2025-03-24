@@ -74,10 +74,10 @@ class DWDPoller:
                 fingerprint = anchor_sel.xpath(
                     './following-sibling::text()[1]').extract_first()
                 match = re.match(
-                    r'\s*(\d+-\w+-\d+ \d+:\d+)\s+(\d+)', fingerprint)
+                    r'\s*(\d+-\w+-\d+ \d+:\d+(:\d+)?)\s+(\d+)', fingerprint)
                 last_modified = dateutil.parser.parse(
                     match.group(1)).replace(tzinfo=tzutc())
-                file_size = int(match.group(2))
+                file_size = int(match.group(3))
                 parser_cls = get_parser(link)
                 if parser_cls and not parser_cls().skip_path(link):
                     files.append({
