@@ -1,5 +1,6 @@
 import datetime
 import os
+from multiprocessing import cpu_count
 
 from dateutil.tz import tzutc
 
@@ -10,6 +11,7 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_ALL_HEADERS = False
 CORS_ALLOWED_ORIGINS = []
 CORS_ALLOWED_HEADERS = []
+DATABASE_CONNECTION_POOL_SIZE = cpu_count()
 DATABASE_URL = 'postgres://localhost'
 ICON_CLOUDY_THRESHOLD = 80
 ICON_PARTLY_CLOUDY_THRESHOLD = 25

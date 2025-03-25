@@ -87,7 +87,8 @@ def work(workers):
 @click.option(
     '--reload/--no-reload', default=False,
     help='Reload server on source code changes')
-def serve(bind, reload):
+@click.option('--workers', default=1, type=int, help='Number of workers')
+def serve(bind, reload, workers):
     """Start brightsky API webserver."""
     host, port = bind.rsplit(':', 1)
     uvicorn.run(
@@ -95,6 +96,7 @@ def serve(bind, reload):
         host=host,
         port=int(port),
         reload=reload,
+        workers=workers,
     )
 
 

@@ -1,6 +1,5 @@
 import base64
 import contextlib
-from multiprocessing import cpu_count
 from pathlib import Path
 from typing import Any, Annotated
 
@@ -74,7 +73,7 @@ async def lifespan(app: FastAPI):
     async with asyncpg.create_pool(
         dsn=settings.DATABASE_URL,
         min_size=1,
-        max_size=cpu_count(),
+        max_size=settings.DATABASE_CONNECTION_POOL_SIZE,
         init=init_connection,
     ) as pool:
         ctx['pool'] = pool
