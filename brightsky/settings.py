@@ -51,6 +51,7 @@ _SETTING_PARSERS = {
     bool: _make_bool,
     datetime.datetime: _make_date,
     float: float,
+    int: int,
     list: _make_list,
 }
 
