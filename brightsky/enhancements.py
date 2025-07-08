@@ -1,6 +1,6 @@
 import math
 
-from dwdparse.units import convert_record
+from dwdparse.units import convert_record, kelvin_to_celsius
 
 from brightsky.settings import settings
 from brightsky.utils import daytime
@@ -27,8 +27,8 @@ def enhance_records(records, source_map, timezone=None, units='si'):
     if not isinstance(records, list):
         records = [records]
     for record in records:
-        if record["relative_humidity"] is None and record["dew_point"] is not None and record["temperature"] is not None:
-            record["relative_humidity"] = get_relative_humidity(record["temperature"], record["dew_point"])
+        if record["relative_humidity"] is None:
+            record["relative_humidity"] = get_relative_humidity(record, units)
         record['icon'] = get_icon(record, source_map)
         if units != 'si':
             convert_record(record, units)
@@ -90,18 +90,21 @@ def get_icon(record, source_map):
     return f'clear-{daytime_str}'
 
 
-def get_relative_humidity(temperature, dewpoint):
-
+def get_relative_humidity(record, units):
+    """
+    Calculate relative humidity from dewpoint and temperature based on the August-Roche-Magnus formula.
+    """
+    if record["temperature"] is None or record["dew_point"] is None:
+        return None
+    
+    temperature = kelvin_to_celsius(record["temperature"])
+    dew_point = kelvin_to_celsius(record["dew_point"])
     if temperature >= 0.0:
         a, b = 17.62, 243.12
     else:
         a, b = 22.46, 272.62
-    
-    exponent = (a * dewpoint) / (b + dewpoint) - (a * temperature) / (b + temperature)
-    
+    exponent = (a * dew_point) / (b + dew_point) - (a * temperature) / (b + temperature)
     rh = 100.0 * math.exp(exponent)
-    
-    # Constrain to physical limits 0–100 %
     rh = max(0.0, min(rh, 100.0))
 
     return math.ceil(rh)
