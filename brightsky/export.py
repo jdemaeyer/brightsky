@@ -255,7 +255,7 @@ class SYNOPExporter(DBExporter):
             super().update_weather(*args, **kwargs)
 
 
-class RADOLANExporter(DBExporter):
+class RadarExporter(DBExporter):
 
     WEATHER_TABLE = 'radar'
     UPDATE_WEATHER_STMT = sql.SQL("""

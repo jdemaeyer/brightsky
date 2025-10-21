@@ -68,6 +68,7 @@ def clean():
     parsed_files_expiry_intervals = {
         '%/Z__C_EDZW_%': '1 week',
         '%/DE1200_RV%': '1 week',
+        '%/composite_rv%': '1 week',
     }
     with get_connection() as conn:
         with conn.cursor() as cur:

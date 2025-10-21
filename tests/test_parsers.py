@@ -13,7 +13,7 @@ from brightsky.parsers import (
     MOSMIXParser,
     PrecipitationObservationsParser,
     PressureObservationsParser,
-    RADOLANParser,
+    RadarParser,
     SolarRadiationObservationsParser,
     SunshineObservationsParser,
     SYNOPParser,
@@ -75,22 +75,22 @@ def test_observations_parser_skips_rows_if_before_cutoff(data_dir):
             2018, 9, 15, 4, tzinfo=tzutc())
 
 
-def test_radolan_parser(data_dir):
-    p = RADOLANParser()
-    records = list(p.parse(data_dir / 'DE1200_RV2305081330.tar.bz2'))
-    assert len(records) == 1
+def test_radar_parser(data_dir):
+    p = RadarParser()
+    records = list(p.parse(data_dir / 'composite_rv_20250923_0855.tar'))
+    assert len(records) == 2
     data = np.frombuffer(
         zlib.decompress(records[0]['precipitation_5']),
         dtype='i2',
     )
     assert len(data) == 1200 * 1100
-    assert np.sum(data) == 564030
+    assert np.sum(data) == 237667
     assert len(np.where(data < 4096)[0]) == len(data)
-    assert data.reshape((1200, 1100))[1117:1122, 334:339].tolist() == [
-        [3, 5, 2, 1, 3],
-        [2, 3, 3, 0, 0],
-        [3, 4, 1, 0, 3],
-        [0, 8, 0, 0, 0],
+    assert data.reshape((1200, 1100))[851:856, 258:263].tolist() == [
+        [13, 11, 8, 9, 9],
+        [12, 11, 7, 8, 9],
+        [9, 10, 8, 8, 9],
+        [0, 0, 2, 6, 8],
         [0, 0, 0, 0, 0],
     ]
 
@@ -126,7 +126,7 @@ def test_get_parser():
         'stundenwerte_TU_00161_akt.zip': TemperatureObservationsParser,
         'stundenwerte_VV_00161_akt.zip': VisibilityObservationsParser,
         'MOSMIX_S_LATEST_240.kmz': MOSMIXParser,
-        'DE1200_RV2305081330.tar.bz2': RADOLANParser,
+        'composite_rv_20250923_0855.tar': RadarParser,
         'K611_-BEOB.csv': CurrentObservationsParser,
         synop_with_timestamp: SYNOPParser,
         synop_latest: None,

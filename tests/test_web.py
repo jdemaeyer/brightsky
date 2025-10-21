@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 import brightsky
 from brightsky.export import DBExporter, SYNOPExporter
-from brightsky.parsers import CAPParser, RADOLANParser
+from brightsky.parsers import CAPParser, RadarParser
 from brightsky.query import _warn_cells
 from brightsky.web import make_app
 
@@ -216,8 +216,8 @@ def synop_data(db):
 
 @pytest.fixture
 def radar_data(db, data_dir):
-    p = RADOLANParser()
-    p.exporter().export(p.parse(data_dir / 'DE1200_RV2305081330.tar.bz2'))
+    p = RadarParser()
+    p.exporter().export(p.parse(data_dir / 'composite_rv_20250923_0855.tar'))
 
 
 @pytest.fixture
@@ -477,18 +477,18 @@ def test_current_weather_response(synop_data, api, db):
 
 
 def test_radar_response(radar_data, api):
-    resp = api.get('/radar?date=2023-05-08T11:30')
+    resp = api.get('/radar?date=2025-09-23T08:55')
     assert resp.status_code == 200
-    assert len(resp.json()['radar']) == 1
+    assert len(resp.json()['radar']) == 2
     assert api.get('/radar?lat=52').status_code == 422
     assert api.get('/radar?lon=7.6').status_code == 422
     assert api.get('/radar?lat=52&lon=7.6').status_code == 200
 
 
 def _get_radar_data(api, fmt, bbox=False):
-    url = f'/radar?date=2023-05-08T13:30&format={fmt}'
+    url = f'/radar?date=2025-09-23T08:55&format={fmt}'
     if bbox:
-        url += '&bbox=1117,334,1121,338'
+        url += '&bbox=851,258,855,262'
     resp = api.get(url, headers={'Accept-Encoding': 'gzip'})
     assert resp.status_code == 200
     return resp.json()['radar'][0]['precipitation_5']
@@ -498,16 +498,16 @@ def _check_radar_data(data):
     if len(data) == 5:
         clip = data
     else:
-        assert sum(sum(row) for row in data) == 564030
+        assert sum(sum(row) for row in data) == 237667
         clip = [
-            row[334:339]
-            for row in data[1117:1122]
+            row[258:263]
+            for row in data[851:856]
         ]
     assert clip == [
-        [3, 5, 2, 1, 3],
-        [2, 3, 3, 0, 0],
-        [3, 4, 1, 0, 3],
-        [0, 8, 0, 0, 0],
+        [13, 11, 8, 9, 9],
+        [12, 11, 7, 8, 9],
+        [9, 10, 8, 8, 9],
+        [0, 0, 2, 6, 8],
         [0, 0, 0, 0, 0],
     ]
 

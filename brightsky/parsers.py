@@ -11,7 +11,7 @@ from brightsky.db import fetch
 from brightsky.export import (
     AlertExporter,
     DBExporter,
-    RADOLANExporter,
+    RadarExporter,
     SYNOPExporter,
 )
 from brightsky.settings import settings
@@ -192,12 +192,12 @@ class PressureObservationsParser(
     pass
 
 
-class RADOLANParser(BrightSkyMixin, dwdparse.parsers.RADOLANParser):
+class RadarParser(BrightSkyMixin, dwdparse.parsers.RadarParser):
 
     PRIORITY = 30
-    exporter = RADOLANExporter
+    exporter = RadarExporter
 
-    def process_raw_data(self, raw):
+    def process_raw_data(self, raw, nodata, gain, offset):
         # XXX: Unlike with the other weather parameters, because of it's large
         #      size, we're storing the radar data in a half-raw state and
         #      performing some final processing during runtime. This brings
@@ -206,10 +206,16 @@ class RADOLANParser(BrightSkyMixin, dwdparse.parsers.RADOLANParser):
         #      1 ms, mainly because of the reduced data transfer when fetching
         #      the scan from the database. An important caveat of this is that
         #      we are replacing `None` with `0`!
-        data = np.array(raw, dtype='i2')
-        data[data > 4095] = 0
-        data = np.flipud(data.reshape((1200, 1100)))
-        return zlib.compress(np.ascontiguousarray(data))
+        raw[raw == nodata] = 0
+        # XXX: With the switch from RADOLAN to HDF5 files, the DWD introduced
+        #      one extra digit of precision. To keep the API backwards
+        #      compatible, i.e. to keep returning integers in the same unit,
+        #      we unfortunately need to remove this extra precision. The
+        #      rounding method below (rounding nonzero values below 1 up but
+        #      everything else down) matches the DWD's original rounding
+        raw[(raw > 0) & (raw < 10)] = 10
+        raw = (raw / 10).astype('i2')
+        return zlib.compress(np.ascontiguousarray(raw))
 
 
 class CAPParser(BrightSkyMixin, dwdparse.parsers.CAPParser):
@@ -220,11 +226,11 @@ class CAPParser(BrightSkyMixin, dwdparse.parsers.CAPParser):
 
 def get_parser(filename):
     parsers = {
-        r'DE1200_RV': RADOLANParser,
         r'MOSMIX_(S|L)_LATEST(_240)?\.kmz$': MOSMIXParser,
         r'Z_CAP_C_EDZW_LATEST_.*_COMMUNEUNION_MUL\.zip': CAPParser,
         r'Z__C_EDZW_\d+_.*\.json\.bz2$': SYNOPParser,
         r'\w{5}-BEOB\.csv$': CurrentObservationsParser,
+        'composite_rv_': RadarParser,
         'stundenwerte_FF_': WindObservationsParser,
         'stundenwerte_N_': CloudCoverObservationsParser,
         'stundenwerte_P0_': PressureObservationsParser,
