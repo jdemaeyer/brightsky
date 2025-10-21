@@ -11,7 +11,7 @@ dependencies = [
   "asyncpg",
   "click",
   "coloredlogs",
-  "dwdparse[lean]",
+  "dwdparse[all]",
   "falcon>=3",
   "fastapi",
   "gunicorn",
