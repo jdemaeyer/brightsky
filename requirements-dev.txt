@@ -164,7 +164,7 @@ urllib3==2.5.0
     #   -r requirements.txt
     #   requests
     #   sentry-sdk
-uv==0.9.4
+uv==0.9.5
     # via -r requirements-dev.in
 uvicorn==0.38.0
     # via -r requirements.txt
