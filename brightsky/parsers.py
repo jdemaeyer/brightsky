@@ -23,12 +23,14 @@ class BrightSkyMixin:
     exporter = DBExporter
 
     def skip_path(self, path):
+        """Return whether `path` should be skipped (default: False)."""
         return False
 
 
 class ObservationsBrightSkyMixin(BrightSkyMixin):
 
     def skip_path(self, path):
+        """Skip historical files outside configured date range."""
         if (m := re.search(r'_(\d{8})_(\d{8})_hist\.zip$', str(path))):
             end_date = datetime.datetime.strptime(
                 m.group(2),
@@ -44,6 +46,7 @@ class ObservationsBrightSkyMixin(BrightSkyMixin):
         return False
 
     def skip_timestamp(self, timestamp):
+        """Return True when `timestamp` lies outside configured bounds."""
         if timestamp < settings.MIN_DATE:
             return True
         elif settings.MAX_DATE and timestamp > settings.MAX_DATE:
@@ -70,12 +73,14 @@ class CurrentObservationsParser(
     PRIORITY = 30
 
     def skip_path(self, path):
+        """Return whether the given `path` should be skipped for current observations."""
         return path.endswith(tuple(
             f'{station:_<5}-BEOB.csv'
             for station in settings.IGNORED_CURRENT_OBSERVATIONS_STATIONS
         ))
 
     def parse(self, path, lat=None, lon=None, height=None, station_name=None):
+        """Parse a current observations file, loading location if missing."""
         if any(x is None for x in (lat, lon, height, station_name)):
             with open(path) as f:
                 reader = csv.DictReader(f, delimiter=';')
@@ -92,6 +97,7 @@ class CurrentObservationsParser(
         )
 
     def _load_location(self, wmo_station_id):
+        """Load lat, lon, height and station_name for `wmo_station_id` from DB."""
         rows = fetch(
             """
             SELECT lat, lon, height, station_name
@@ -141,6 +147,7 @@ class SolarRadiationObservationsParser(
 ):
 
     def skip_timestamp(self, timestamp):
+        """Skip the last ten-minute solar datapoint for today's date in UTC."""
         # We aggregate solar radiation from ten-minute data, where the values
         # correspond to radiation for the NEXT ten minutes, i.e. the value
         # tagged 14:30 contains the solar radiation between 14:30 - 14:40 (I
@@ -152,7 +159,10 @@ class SolarRadiationObservationsParser(
         # served by the 'current' sources. To avoid excessive fill-up when
         # querying today's weather, we ignore this last data point (but will
         # pick it up on the next day).
-        if timestamp.date() == datetime.date.today():
+        # Compare against today's date in UTC to avoid timezone-dependent
+        # behavior (timestamp is in UTC).
+        today_utc = datetime.datetime.now(tzutc()).date()
+        if timestamp.date() == today_utc:
             return True
         return super().skip_timestamp(timestamp)
 
@@ -198,6 +208,7 @@ class RadarParser(BrightSkyMixin, dwdparse.parsers.RadarParser):
     exporter = RadarExporter
 
     def process_raw_data(self, raw, nodata, gain, offset):
+        """Process raw radar data array, normalize and compress for storage."""
         # XXX: Unlike with the other weather parameters, because of it's large
         #      size, we're storing the radar data in a half-raw state and
         #      performing some final processing during runtime. This brings
@@ -225,6 +236,7 @@ class CAPParser(BrightSkyMixin, dwdparse.parsers.CAPParser):
 
 
 def get_parser(filename):
+    """Return the appropriate parser class for a given `filename` pattern."""
     parsers = {
         r'MOSMIX_(S|L)_LATEST(_240)?\.kmz$': MOSMIXParser,
         r'Z_CAP_C_EDZW_LATEST_.*_COMMUNEUNION_MUL\.zip': CAPParser,

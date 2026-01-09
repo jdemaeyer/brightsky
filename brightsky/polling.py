@@ -38,11 +38,13 @@ class DWDPoller:
 
     @property
     def logger(self):
+        """Return a logger for this DWDPoller instance."""
         if not hasattr(self, '_logger'):
             self._logger = logging.getLogger(self.__class__.__name__)
         return self._logger
 
     def poll(self):
+        """Yield file info dicts for files updated on the DWD index pages."""
         self.logger.info("Polling for updated files")
         parsed_files = {
             row['url']: row
@@ -54,12 +56,14 @@ class DWDPoller:
                     yield file_info
 
     def poll_url(self, url):
+        """Fetch `url` and parse its HTML index, returning file entries."""
         self.logger.debug("Loading %s", url)
         resp = requests.get(url)
         resp.raise_for_status()
         return self.parse(url, resp.text)
 
     def parse(self, url, resp_text):
+        """Parse the HTML index at `url` from `resp_text` and yield file dicts."""
         sel = Selector(resp_text)
         directories = []
         files = []
@@ -73,8 +77,16 @@ class DWDPoller:
             else:
                 fingerprint = anchor_sel.xpath(
                     './following-sibling::text()[1]').extract_first()
+                if not fingerprint:
+                    self.logger.warning('Skipping file without timestamp: %s%s', url, link)
+                    continue
                 match = re.match(
                     r'\s*(\d+-\w+-\d+ \d+:\d+(:\d+)?)\s+(\d+)', fingerprint)
+                if not match:
+                    self.logger.warning(
+                        'Skipping file with unexpected format: %s%s (fingerprint: %s)',
+                        url, link, (fingerprint or '').strip())
+                    continue
                 last_modified = dateutil.parser.parse(
                     match.group(1)).replace(tzinfo=tzutc())
                 file_size = int(match.group(3))
@@ -94,6 +106,7 @@ class DWDPoller:
             yield from self.poll_url(dir_url)
 
     def matches_known_fingerprint(self, parsed_files, file_info):
+        """Return True if `file_info` matches the fingerprint in `parsed_files`."""
         parsed_info = parsed_files.get(file_info['url'])
         if not parsed_info:
             return False

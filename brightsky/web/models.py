@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 class ResponseModel(BaseModel):
     @classmethod
     def __get_pydantic_json_schema__(cls, core_schema, handler):
+        """Produce a cleaned JSON schema for response models used in docs."""
         # Don't clutter response model docs
         schema = handler(core_schema)
         schema = handler.resolve_ref_schema(schema)

@@ -60,6 +60,7 @@ ctx = {}
 
 
 async def init_connection(conn):
+    """Initialize an asyncpg connection, setting codecs for certain types."""
     await conn.set_type_codec(
         'real',
         encoder=str,
@@ -70,6 +71,7 @@ async def init_connection(conn):
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
+    """FastAPI lifespan context that creates and tears down DB pool."""
     async with asyncpg.create_pool(
         dsn=settings.DATABASE_URL,
         min_size=1,
@@ -82,6 +84,7 @@ async def lifespan(app: FastAPI):
 
 
 def make_app():
+    """Create and configure the FastAPI application instance."""
     app = FastAPI(
         lifespan=lifespan,
         **OPENAPI_METADATA,
@@ -107,6 +110,7 @@ app = make_app()
 
 @app.exception_handler(query.NoData)
 async def not_found(request, exc) -> NotFoundResponse:
+    """Exception handler converting `query.NoData` into a 404 response."""
     return ORJSONResponse(
         status_code=404,
         content={'detail': str(exc)},
@@ -120,6 +124,7 @@ common_responses = {
 
 @app.get('/', include_in_schema=False)
 async def status():
+    """Simple health/status endpoint returning app name and version."""
     return ORJSONResponse({
         'name': 'brightsky',
         'version': brightsky.__version__,
@@ -270,11 +275,13 @@ async def synop(
 class BytesORJSONResponse(ORJSONResponse):
     @staticmethod
     def encode_bytes(o):
+        """Encode bytes or memoryview to base64 for ORJSON serialization."""
         if isinstance(o, (bytes, memoryview)):
             return base64.b64encode(o).decode('ascii')
         raise TypeError
 
     def render(self, content: Any) -> bytes:
+        """Render content to JSON bytes using ORJSON with numpy support."""
         return orjson.dumps(
             content,
             default=self.encode_bytes,

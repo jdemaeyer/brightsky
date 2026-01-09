@@ -32,14 +32,17 @@ WARN_CELLS_URL = (
 
 
 def _make_bool(bool_str):
+    """Return True if `bool_str` represents boolean one ('1')."""
     return bool_str == '1'
 
 
 def _make_date(date_str):
+    """Parse ISO `date_str` into a timezone-aware datetime (UTC)."""
     return datetime.datetime.fromisoformat(date_str).replace(tzinfo=tzutc())
 
 
 def _make_list(list_str, separator=','):
+    """Split `list_str` by `separator` into a Python list, handling empties."""
     if not list_str:
         return []
     return list_str.split(separator)
@@ -64,6 +67,7 @@ class Settings(dict):
         self.loaded = False
 
     def load(self):
+        """Load default settings and override with environment variables."""
         load_dotenv()
         for k, v in globals().items():
             if k.isupper() and not k.startswith('_'):

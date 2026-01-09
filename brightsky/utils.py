@@ -18,6 +18,7 @@ USER_AGENT = 'Bright Sky / https://brightsky.dev/'
 
 
 def configure_logging():
+    """Configure coloured logging and silence noisy third-party loggers."""
     log_fmt = '%(asctime)s %(name)s %(levelname)s  %(message)s'
     coloredlogs.install(level=logging.DEBUG, fmt=log_fmt)
     # Disable some third-party noise
@@ -26,6 +27,7 @@ def configure_logging():
 
 
 def load_dotenv(path='.env'):
+    """Load environment variables from a `.env` file if enabled."""
     if not int(os.getenv('BRIGHTSKY_LOAD_DOTENV', 1)):
         return
     with suppress(FileNotFoundError):
@@ -36,7 +38,7 @@ def load_dotenv(path='.env'):
                     os.environ.setdefault(key, val)
 
 
-def download(url, directory):
+def download(url: str, directory) -> tuple[str, dict]:
     """
     Download a resource from `url` into `directory`, returning its path and
     fingerprint.
@@ -56,6 +58,7 @@ def download(url, directory):
 
 
 def parse_date(date_str):
+    """Parse an ISO date string into a datetime, with a small autocorrect."""
     try:
         return dateutil.parser.isoparse(date_str)
     except ValueError as e:
@@ -71,10 +74,12 @@ def parse_date(date_str):
 
 @lru_cache
 def sunrise_sunset(lat, lon, date):
+    """Return sunrise and sunset datetimes for `lat`, `lon` on `date`."""
     return daylight(Observer(lat, lon), date)
 
 
 def daytime(lat, lon, timestamp):
+    """Return 'day' or 'night' for a given `lat`, `lon` and `timestamp`."""
     try:
         sunrise, sunset = sunrise_sunset(lat, lon, timestamp.date())
     except ValueError as e:

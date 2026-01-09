@@ -32,11 +32,15 @@ class PgParams(dict):
 
 
 def topg(query, params):
+    """Convert a format-style SQL `query` with `{name}` placeholders into
+    positional PostgreSQL-style parameters and a parameter tuple.
+    """
     p = PgParams(params)
     return query.format_map(p), p.get_params()
 
 
 def make_dicts(rows):
+    """Turn asyncpg row objects into plain dicts."""
     return [dict(row) for row in rows]
 
 
@@ -51,6 +55,10 @@ async def weather(
     wmo_station_ids=None,
     source_ids=None,
 ):
+    """Return hourly weather and matching sources for given location/time.
+
+    This function aggregates sources and fills missing fields.
+    """
     sources_data = await sources(
         conn,
         lat=lat,
@@ -108,6 +116,7 @@ async def _weather(
     not_null=None,
     not_null_or=False,
 ):
+    """Internal helper to fetch weather rows for `source_ids` between dates."""
     params = {
         'date': date,
         'last_date': last_date,
@@ -152,6 +161,7 @@ async def _fill_missing_fields(
     source_ids,
     partial,
 ):
+    """Fill missing fields in `weather_rows` using fallback sources."""
     incomplete_rows = []
     missing_fields = set()
     for row in weather_rows:
@@ -195,6 +205,7 @@ async def current_weather(
     source_ids=None,
     fallback=True,
 ):
+    """Return a single current weather record for a location, with fallback."""
     sources_data = await sources(
         conn,
         lat=lat,
@@ -233,6 +244,7 @@ async def current_weather(
 
 
 async def _current_weather(conn, source_ids, not_null=None, partial=False):
+    """Fetch the most-recent `current_weather` for `source_ids` matching constraints."""
     params = {
         'source_ids': source_ids,
     }
@@ -270,6 +282,7 @@ async def synop(
     wmo_station_ids=None,
     source_ids=None,
 ):
+    """Return SYNOP observations for given date range and station filters."""
     sources_data = await sources(
         conn,
         dwd_station_ids=dwd_station_ids,
@@ -310,6 +323,7 @@ async def radar(
     fmt='compressed',
     bbox=None,
 ):
+    """Return radar scans between `date` and `last_date` optionally clipped by bbox."""
     extra = {}
     if not date:
         date = await conn.fetchval(
@@ -370,6 +384,10 @@ async def radar(
 
 
 def _load_radar(raw, bbox, width=1100, height=1200):
+    """Decompress and reshape radar `raw` bytes into a 2D numpy array.
+
+    If `bbox` is provided, the returned array is clipped.
+    """
     precip = np.frombuffer(
         zlib.decompress(raw),
         dtype='i2',
@@ -392,38 +410,50 @@ class RadarCoordinatesTransformer:
 
     @cached_property
     def de1200(self):
+        """Return the de1200 CRS used for radar coordinate transforms."""
         return CRS.from_proj4(self.PROJ_STR)
 
     @cached_property
     def wgs84_to_de1200(self):
+        """Return a Transformer from WGS84 to de1200 projection."""
         return Transformer.from_crs(4326, self.de1200)
 
     @cached_property
     def de1200_to_wgs84(self):
+        """Return a Transformer from de1200 projection to WGS84."""
         return Transformer.from_crs(self.de1200, 4326)
 
     def to_xy(self, lat, lon):
+        """Transform `lat, lon` into radar grid `x, y` coordinates."""
         x, y = self.wgs84_to_de1200.transform(lat, lon)
         return round(x) / 1000, -round(y) / 1000
 
     def to_latlon(self, x, y):
+        """Transform radar grid `x, y` back to `lat, lon` in degrees."""
         lat, lon = self.de1200_to_wgs84.transform(x * 1000, -y * 1000)
         return round(lat, 5), round(lon, 5)
 
     def to_lonlat(self, x, y):
+        """Return `(lon, lat)` tuple for radar grid `x, y`."""
         return tuple(reversed(self.to_latlon(x, y)))
 
     def bbox_to_geometry(self, bbox):
+        """Return GeoJSON polygon geometry for a radar `bbox` (pixel coords)."""
         if not bbox:
             bbox = (0, 0, 1199, 1099)
         top, left, bottom, right = bbox
+        top_left = self.to_lonlat(left - .5, top - .5)
+        bottom_left = self.to_lonlat(left - .5, bottom + .5)
+        bottom_right = self.to_lonlat(right + .5, bottom + .5)
+        top_right = self.to_lonlat(right + .5, top - .5)
         return {
             'type': 'Polygon',
             'coordinates': [
-                self.to_lonlat(left - .5, top - .5),
-                self.to_lonlat(left - .5, bottom + .5),
-                self.to_lonlat(right + .5, bottom + .5),
-                self.to_lonlat(right + .5, top - .5),
+                top_left,
+                bottom_left,
+                bottom_right,
+                top_right,
+                top_left,  # close the ring by repeating the first coordinate
             ],
         }
 
@@ -509,6 +539,7 @@ class WarnCellManager:
         return STRtree(list(self.cell_meta.keys()))
 
     def get_cell_data(self):
+        """Fetch or load cached warn cell GeoJSON data used to build the spatial index."""
         path = self.CELLS_CACHE_PATH
         if not os.path.isfile(path):
             resp = requests.get(
@@ -521,6 +552,7 @@ class WarnCellManager:
             return json.load(f)
 
     def find(self, lat, lon):
+        """Find the warn cell meta for a given `lat`, `lon` or raise `NoData`."""
         p = Point(lon, lat)
         cell = self.tree.geometries[self.tree.nearest(p)]
         if cell.distance(p) > 0.01:
@@ -528,6 +560,7 @@ class WarnCellManager:
         return self.cell_meta[cell]
 
     def get_meta(self, warn_cell_id):
+        """Return metadata for `warn_cell_id`, ensuring the tree is built."""
         # Make sure cells have been parsed
         self.tree
         return self.cell_meta_by_id[warn_cell_id]
@@ -549,6 +582,7 @@ async def sources(
     date=None,
     last_date=None,
 ):
+    """Return matching sources for location or id filters, ordered sensibly."""
     select = "*"
     order_by = "observation_type"
     params = {

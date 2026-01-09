@@ -13,7 +13,11 @@ logger = logging.getLogger('brightsky')
 
 
 def parse(url):
-    parser = get_parser(os.path.basename(url))()
+    """Download and parse file at `url`, then export parsed records."""
+    parser_cls = get_parser(os.path.basename(url))
+    if parser_cls is None:
+        raise ValueError(f"No parser found for file: {os.path.basename(url)}")
+    parser = parser_cls()
     with tempfile.TemporaryDirectory() as tmpdir:
         path, fingerprint = download(url, tmpdir)
         extra = {
@@ -25,6 +29,7 @@ def parse(url):
 
 
 def poll(enqueue=False):
+    """Poll DWD index for updated files; optionally enqueue them for processing."""
     updated_files = DWDPoller().poll()
     if enqueue:
         if (expired_locks := huey.expire_locks(1800)):
@@ -43,6 +48,9 @@ def poll(enqueue=False):
                 continue
             logger.debug('Enqueueing "%s"', url)
             parser_cls = get_parser(os.path.basename(url))
+            if parser_cls is None:
+                logger.warning('No parser for %s, skipping enqueue', url)
+                continue
             process(url, priority=parser_cls.PRIORITY)
             enqueued += 1
         queue_size = len([t for t in huey.pending() if t.name == 'process'])
@@ -55,6 +63,7 @@ def poll(enqueue=False):
 
 
 def clean():
+    """Remove expired weather, radar and parsed_files records from the DB."""
     expiry_intervals = {
         'weather': {
             'forecast': '3 hours',

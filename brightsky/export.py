@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def batched(it, batch_size):
+    """Yield items from `it` in batches of size `batch_size`."""
     it = iter(it)
     while batch := tuple(islice(it, batch_size)):
         yield batch
@@ -80,6 +81,7 @@ class DBExporter:
     BATCH_SIZE = 10000
 
     def export(self, records, fingerprint=None):
+        """Export `records` to the database and optionally record `fingerprint`."""
         with get_connection() as conn:
             for batch in batched(records, self.BATCH_SIZE):
                 self.export_batch(conn, batch)
@@ -88,6 +90,7 @@ class DBExporter:
             conn.commit()
 
     def export_batch(self, conn, batch):
+        """Export a single `batch` of records using `conn`."""
         records = self.prepare_records(batch)
         sources = self.prepare_sources(batch)
         source_map = self.update_sources(conn, sources)
@@ -95,9 +98,11 @@ class DBExporter:
         self.update_weather(conn, records)
 
     def prepare_records(self, records):
+        """Prepare records for insertion (default: identity)."""
         return records
 
     def prepare_sources(self, records):
+        """Aggregate source metadata from `records` for bulk upsert."""
         sources = {}
         for r in records:
             r['source'] = tuple(r[field] for field in self.SOURCE_FIELDS)
@@ -115,6 +120,7 @@ class DBExporter:
         return sources
 
     def update_sources(self, conn, sources):
+        """Upsert `sources` into `sources` table and return a map to ids."""
         extra_fields = ['first_record', 'last_record']
         fields = ', '.join(
             f'%({field})s' for field in self.SOURCE_FIELDS + extra_fields)
@@ -131,10 +137,12 @@ class DBExporter:
         }
 
     def map_source_ids(self, records, source_map):
+        """Map source tuples in `records` to database `source_id`s."""
         for r in records:
             r['source_id'] = source_map[r['source']]
 
     def update_weather(self, conn, records):
+        """Insert or update `records` into the weather table using `conn`."""
         for fields, records in self.make_batches(records).items():
             logger.info(
                 "Exporting %d records with fields %s",
@@ -163,6 +171,7 @@ class DBExporter:
                 cur.execute(self.UPDATE_WEATHER_CLEANUP)
 
     def make_batches(self, records):
+        """Group `records` into batches sharing the same set of element fields."""
         batches = {}
         for record in records:
             fields = frozenset(f for f in self.ELEMENT_FIELDS if f in record)
@@ -172,6 +181,7 @@ class DBExporter:
         return batches
 
     def update_parsed_files(self, conn, fingerprint):
+        """Record that a file with `fingerprint` has been parsed."""
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -245,12 +255,17 @@ class SYNOPExporter(DBExporter):
             for records in records_by_key.values()]
 
     def _update_where_none(self, base, update):
+        """Update `base` with keys from `update` only where base is None."""
         for k, v in update.items():
-            if not base.get(k):
+            # Only fill in missing keys or explicit None values.
+            # Treat falsy values like 0 or "" as legitimate measurements
+            # and do not overwrite them.
+            if k not in base or base[k] is None:
                 base[k] = v
         return base
 
     def update_weather(self, *args, **kwargs):
+        """Run `update_weather` with a lock to avoid concurrent synop updates."""
         with self.synop_update_lock:
             super().update_weather(*args, **kwargs)
 
@@ -272,6 +287,7 @@ class RadarExporter(DBExporter):
     ]
 
     def export_batch(self, conn, batch):
+        """Export a batch of radar records using `conn`."""
         records = self.prepare_records(batch)
         self.update_weather(conn, records)
 
@@ -315,6 +331,7 @@ class AlertExporter(DBExporter):
     ]
 
     def export(self, alerts, fingerprint=None):
+        """Export `alerts` to the database and update parsed file fingerprint."""
         alerts = list(alerts)
         self.prepare_alerts(alerts)
         with get_connection() as conn:
@@ -328,15 +345,18 @@ class AlertExporter(DBExporter):
             conn.commit()
 
     def prepare_alerts(self, alerts):
+        """Normalize alert dicts by setting `alert_id` key from `id`."""
         for a in alerts:
             a['alert_id'] = a.pop('id')
 
     def get_last_alert_id(self, conn):
+        """Return the current maximum `id` value from the `alerts` table."""
         with conn.cursor() as cur:
             cur.execute("SELECT MAX(id) FROM alerts")
             return cur.fetchall()[0]['max']
 
     def clear_outdated_alerts(self, conn, alerts):
+        """Delete alerts that are not present in the new `alerts` list."""
         with conn.cursor() as cur:
             cur.execute("SELECT alert_id FROM alerts")
             existing = set(row['alert_id'] for row in cur.fetchall())
@@ -349,6 +369,7 @@ class AlertExporter(DBExporter):
                 )
 
     def update_alerts(self, conn, alerts):
+        """Upsert `alerts` into the alerts table and set returned IDs on alerts."""
         for fields, alerts in self.make_batches(alerts).items():
             logger.info(
                 "Exporting %d alerts with fields %s",
@@ -385,12 +406,14 @@ class AlertExporter(DBExporter):
                 alert['id'] = row['id']
 
     def reset_alert_id(self, conn, max_id):
+        """Reset alert id sequence to at least `max_id` to avoid reusing ids."""
         if max_id is None:
             return
         with conn.cursor() as cur:
             cur.execute(self.UPDATE_ALERTS_CLEANUP, {'max_id': max_id})
 
     def update_alert_cells(self, conn, alerts):
+        """Replace alert_cells entries with those from `alerts` mapping."""
         rows = [
             (alert['id'], wcid)
             for alert in alerts

@@ -1,4 +1,5 @@
 import os
+import logging
 
 from brightsky import __version__
 from brightsky.cli import cli
@@ -6,8 +7,16 @@ from brightsky.utils import configure_logging, load_dotenv
 
 
 def _getenv_float(key):
+    """Return the float value of environment variable `key`, or None."""
     x = os.getenv(key)
-    return float(x) if x else None
+    if not x:
+        return None
+    try:
+        return float(x.strip())
+    except ValueError:
+        logging.getLogger(__name__).warning(
+            "Invalid float value for %s: %r. Using None instead.", key, x)
+        return None
 
 
 if __name__ == '__main__':

@@ -32,6 +32,7 @@ class LatLon(BaseModel):
 
     @model_validator(mode='after')
     def validate_both_or_no_lat_lon(self):
+        """Ensure both `lat` and `lon` are provided together or not at all."""
         if (self.lat is None) != (self.lon is None):
             raise ValueError("Supply both lat and lon, or none of the two")
         return self
@@ -50,6 +51,7 @@ class MaxDist(BaseModel):
 
 
 def _split(value, converter=str, sep=','):
+    """Split query parameter `value` into a list and convert entries."""
     if len(value) > 1:
         # e.g. ?param=1&param=2
         return value
@@ -88,11 +90,13 @@ class StationIDs(BaseModel):
     @field_validator('dwd_station_ids', mode='before')
     @classmethod
     def validate_dwd_station_ids(cls, value):
+        """Split and validate `dwd_station_id` query parameter into a list."""
         return _split(value)
 
     @field_validator('wmo_station_ids', mode='before')
     @classmethod
     def validate_wmo_station_ids(cls, value):
+        """Split and validate `wmo_station_id` query parameter into a list."""
         return _split(value)
 
 
@@ -112,6 +116,7 @@ class SourceIDs(BaseModel):
     @field_validator('source_ids', mode='before')
     @classmethod
     def validate_source_ids(cls, value):
+        """Split and coerce `source_id` query parameter into list[int]."""
         return _split(value, converter=int)
 
 
@@ -134,17 +139,20 @@ class DateRange(BaseModel):
 
     @field_validator('date', 'last_date', mode='before')
     def fix_unescaped_offset(cls, value):
+        """Fix date strings where '+' UTC offset was replaced by a space."""
         # Handle " 02:00" (i.e. space in raw URL) instead of "%2B02:00"
         return re.sub(r' (\d{2}:\d{2})$', r'+\1', value)
 
     @model_validator(mode='after')
     def set_default_last_date(self):
+        """Set a default `last_date` of `date + 1 day` if omitted."""
         if self.last_date is None:
             self.last_date = self.date + datetime.timedelta(days=1)
         return self
 
     @model_validator(mode='after')
     def ensure_tzinfo(self):
+        """Ensure `date` and `last_date` have timezone info, defaulting to model timezone or UTC."""
         default = getattr(self, 'timezone', None) or datetime.UTC
         if not self.date.tzinfo:
             self.date = self.date.replace(tzinfo=default)
@@ -170,12 +178,14 @@ class Timezone(BaseModel):
     @field_validator('timezone', mode='after')
     @classmethod
     def validate_timezone(cls, value):
+        """Validate timezone name and return tzinfo or raise ValueError."""
         if value and not gettz(value):
             raise ValueError(f"Unknown timezone: {value}")
         return gettz(value)
 
     @model_validator(mode='after')
     def set_default_timezone_from_date(self):
+        """Default `timezone` from `date` tzinfo when not explicitly provided."""
         if self.timezone:
             return self
         if getattr(self, 'date', None) and self.date.tzinfo != datetime.UTC:
@@ -249,6 +259,7 @@ class RadarDateRange(BaseModel):
     @field_validator('date', 'last_date', mode='after')
     @classmethod
     def ensure_tzinfo(cls, value):
+        """Ensure radar date values contain tzinfo, default UTC if missing."""
         if value is None or value.tzinfo:
             return value
         return value.replace(tzinfo=datetime.UTC)
@@ -273,6 +284,7 @@ class RadarBoundingBox(BaseModel):
     @field_validator('bbox', mode='before')
     @classmethod
     def validate_bbox(cls, value):
+        """Validate `bbox` parameter and coerce it into a list of four integers."""
         bbox = _split(value, converter=int)
         if len(bbox) != 4:
             raise ValueError(
@@ -303,6 +315,7 @@ class SourcesParams(
 ):
     @model_validator(mode='after')
     def validate_at_least_one_option(self):
+        """Ensure at least one of lat/lon or station/source id options is provided."""
         if self.lat is not None and self.lon is not None:
             return self
         elif any([
@@ -341,6 +354,7 @@ class SynopParams(
 ):
     @model_validator(mode='after')
     def validate_at_least_one_option(self):
+        """Ensure at least one station identifier is supplied for SYNOP queries."""
         if any([
             self.dwd_station_ids,
             self.wmo_station_ids,

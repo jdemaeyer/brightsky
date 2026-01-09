@@ -13,16 +13,19 @@ from brightsky.worker import huey
 
 
 def dump_records(it):
+    """Print JSON-serialized records from iterator `it` to stdout."""
     for record in it:
         print(json.dumps(record, default=str))
 
 
 def migrate_callback(ctx, param, value):
+    """Click callback to run database migrations when CLI invoked with --migrate."""
     if value:
         db.migrate()
 
 
 def parse_date_arg(ctx, param, value):
+    """Click parameter parser converting a date argument to a datetime."""
     if not value:
         return
     return parse_date(value)
@@ -33,6 +36,7 @@ def parse_date_arg(ctx, param, value):
     '--migrate', help='Migrate database before running command.',
     is_flag=True, is_eager=True, expose_value=False, callback=migrate_callback)
 def cli():
+    """Top-level Click group for the Bright Sky CLI."""
     pass
 
 
@@ -50,6 +54,7 @@ def migrate():
     metavar='TARGET [TARGET ...]',
 )
 def parse(targets):
+    """CLI command to parse one or more TARGET files synchronously."""
     for target in targets:
         tasks.parse(target)
 
@@ -90,6 +95,12 @@ def work(workers):
 @click.option('--workers', default=1, type=int, help='Number of workers')
 def serve(bind, reload, workers):
     """Start brightsky API webserver."""
+    if reload and workers > 1:
+        raise click.UsageError(
+            "--reload and --workers>1 are mutually exclusive. "
+            "Use --reload for development (single worker) or "
+            "--workers for production (multiple workers without reload)."
+        )
     host, port = bind.rsplit(':', 1)
     uvicorn.run(
         'brightsky.web:app',
@@ -128,6 +139,7 @@ def query(endpoint, parameters):
 def _parse_params(parameters):
     # I'm sure there's a function in click or argparse somewhere that does this
     # but I can't find it
+    """Turn a list of CLI parameters into a dict suitable for API query."""
     usage = "Supply API parameters as --name value or --name=value"
     params = {}
     param_name = None
