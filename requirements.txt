@@ -27,7 +27,7 @@ coloredlogs==15.0.1
     # via brightsky (pyproject.toml)
 cssselect==1.3.0
     # via parsel
-dwdparse==0.9.20
+dwdparse==0.9.21
     # via brightsky (pyproject.toml)
 falcon==4.1.0
     # via brightsky (pyproject.toml)
