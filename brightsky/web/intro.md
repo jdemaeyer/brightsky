@@ -1,6 +1,6 @@
 Bright Sky is a free and open-source weather API. It aims to provide an easy-to-use gateway to weather data that the [DWD](https://www.dwd.de/) – Germany's meteorological service – publishes on their [open data server](https://opendata.dwd.de/).
 
-The public instance at `https://api.brightsky.dev/` is free-to-use for all purposes, **no API key required**! Please note that the [DWD's Terms of Use](https://www.dwd.de/EN/service/copyright/copyright_artikel.html) apply to all data you retrieve through the API.
+The public instance at `https://api.brightsky.dev/` is free-to-use for all purposes, **no API key required**! Please note that the [DWD's Terms of Use](https://www.dwd.de/EN/service/legal_notice/legal_notice.html) apply to all data you retrieve through the API.
 
 > This documentation is generated from an OpenAPI specification. The current version is available from https://api.brightsky.dev/openapi.json.
 
