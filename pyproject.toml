@@ -55,6 +55,9 @@ version = {attr = "brightsky.__version__"}
 include = ["brightsky*"]
 
 [tool.pytest.ini_options]
+filterwarnings = [
+  "ignore:ORJSONResponse:fastapi.exceptions.FastAPIDeprecationWarning",
+]
 required_plugins = "pytest-env"
 
 [tool.pytest_env]

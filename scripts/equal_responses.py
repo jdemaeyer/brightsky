@@ -1,6 +1,8 @@
+import base64
 import json
 import sys
 import urllib.parse
+import zlib
 from datetime import datetime, timedelta
 
 import requests
@@ -251,6 +253,20 @@ def generate_test_cases():
     return test_cases
 
 
+def normalize_compressed_fields(data):
+    """Decompress zlib-compressed base64 fields so that different compression
+    levels don't cause false mismatches."""
+    for entry in data.get("radar", []):
+        raw = entry.get("precipitation_5")
+        if isinstance(raw, str):
+            try:
+                entry["precipitation_5"] = zlib.decompress(
+                    base64.b64decode(raw)
+                )
+            except Exception:
+                pass
+
+
 def compare_responses(url1, url2, params, timeout=10):
     """Compare responses from two different URLs with the same parameters."""
     try:
@@ -277,6 +293,9 @@ def compare_responses(url1, url2, params, timeout=10):
         try:
             data1 = resp1.json()
             data2 = resp2.json()
+
+            normalize_compressed_fields(data1)
+            normalize_compressed_fields(data2)
 
             if data1 == data2:
                 return True, "Responses match exactly"
@@ -335,7 +354,7 @@ def run_tests(base_url1, base_url2, test_cases):
 
 def main():
     server1 = "http://localhost:5000"
-    server2 = "http://localhost:8000"
+    server2 = "https://api.brightsky.dev"
     print(f"Comparing responses between {server1} and {server2}")
 
     endpoints = load_endpoints(server2)

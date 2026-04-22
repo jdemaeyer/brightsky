@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:17-alpine
         env:
           POSTGRES_PASSWORD: pgpass
         options: >-
@@ -25,10 +25,10 @@ jobs:
           - 5432:5432
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.13
+      - name: Set up Python 3.14
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
       - name: Run tests
         env:
           BRIGHTSKY_DATABASE_URL: postgres://postgres:pgpass@localhost/brightsky_test
@@ -46,10 +46,10 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.13
+      - name: Set up Python 3.14
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
       - name: Build Package
         run: |
           python -m pip install --upgrade pip
