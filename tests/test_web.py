@@ -94,21 +94,96 @@ ALL_FIELDS_RECORD = {
 RECENT_RECORDS[12].update(ALL_FIELDS_RECORD)
 
 CONDITION_FIELDS = [
-    {'condition': 'fog', '_expected_icon': 'fog'},
-    {'condition': 'dry', '_expected_icon': 'clear-night'},
-    {'condition': 'dry', 'cloud_cover': 50.,
-     '_expected_icon': 'partly-cloudy-night'},
-    {'condition': 'sleet', '_expected_icon': 'sleet'},
-    {'condition': 'snow', '_expected_icon': 'snow'},
-    {'condition': 'hail', '_expected_icon': 'hail'},
-    {'condition': 'thunderstorm', '_expected_icon': 'thunderstorm'},
-    {'condition': 'dry', '_expected_icon': 'clear-day'},
-    {'condition': 'rain', '_expected_icon': 'rain'},
-    {'condition': 'dry', 'cloud_cover': 50.,
-     '_expected_icon': 'partly-cloudy-day'},
-    {'condition': 'dry', 'cloud_cover': 100., '_expected_icon': 'cloudy'},
-    {'precipitation': 0.3, '_expected_icon': 'clear-day'},
-    {'precipitation': 10., '_expected_icon': 'rain'},
+    {
+        'condition': 'fog',
+        '_expected_icon': 'fog',
+    },
+    {
+        'condition': 'dry',
+        '_expected_icon': 'clear-night',
+    },
+    {
+        'condition': 'dry',
+        'cloud_cover': 50.,
+        '_expected_icon': 'partly-cloudy-night',
+    },
+    {
+        'condition': 'sleet',
+        'precipitation': 0,
+        '_expected_icon': 'clear-night',
+    },
+    {
+        'condition': 'sleet',
+        'precipitation': 1,
+        '_expected_icon': 'sleet',
+    },
+    {
+        'condition': 'sleet',
+        'precipitation': None,
+        '_expected_icon': 'clear-day',
+    },
+    {
+        'condition': 'snow',
+        'precipitation': .1,
+        '_expected_icon': 'clear-day',
+    },
+    {
+        'condition': 'snow',
+        'precipitation': .6,
+        '_expected_icon': 'snow',
+    },
+    {
+        'condition': 'hail',
+        'precipitation': 1.2,
+        '_expected_icon': 'hail',
+    },
+    {
+        'condition': 'thunderstorm',
+        'precipitation': 1.5,
+        '_expected_icon': 'thunderstorm',
+    },
+    {
+        'condition': 'thunderstorm',
+        'precipitation': 0.1,
+        '_expected_icon': 'thunderstorm',
+    },
+    {
+        'condition': 'thunderstorm',
+        'precipitation': None,
+        '_expected_icon': 'thunderstorm',
+    },
+    {
+        'condition': 'dry',
+        '_expected_icon': 'clear-day',
+    },
+    {
+        'condition': 'rain',
+        'precipitation': 1.2,
+        '_expected_icon': 'rain',
+    },
+    {
+        'condition': 'rain',
+        'precipitation': 0.3,
+        '_expected_icon': 'clear-day',
+    },
+    {
+        'condition': 'dry',
+        'cloud_cover': 50.,
+        '_expected_icon': 'partly-cloudy-day',
+    },
+    {
+        'condition': 'dry',
+        'cloud_cover': 100.,
+        '_expected_icon': 'cloudy',
+    },
+    {
+        'precipitation': 0.3,
+        '_expected_icon': 'clear-day',
+    },
+    {
+        'precipitation': 10.,
+        '_expected_icon': 'rain',
+    },
 ]
 for i, fields in enumerate(CONDITION_FIELDS):
     RECENT_RECORDS[12+i].update(fields)
@@ -404,7 +479,7 @@ def test_weather_timezone(data, api):
 def test_weather_icon(data, api):
     resp = api.get('/weather?lat=52&lon=7.6&date=2020-08-20')
     for condition, record in zip(CONDITION_FIELDS, resp.json()['weather']):
-        assert record['icon'] == condition['_expected_icon']
+        assert record['icon'] == condition['_expected_icon'], condition
 
 
 def test_synop_disallows_lat_lon(data, api):
