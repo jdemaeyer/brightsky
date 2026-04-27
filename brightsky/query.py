@@ -150,19 +150,22 @@ async def _fill_missing_fields(conn, weather_rows, source_ids):
     for fb_row in all_rows:
         fallback_by_ts.setdefault(fb_row['timestamp'], []).append(fb_row)
     for row, fields in incomplete_rows:
-        for fb_row in fallback_by_ts.get(row['timestamp'], []):
-            filled = []
-            for f in fields:
-                if fb_row[f] is None:
-                    continue
+        _apply_fallback(row, fields, fallback_by_ts.get(row['timestamp'], []))
+
+
+def _apply_fallback(row, missing_fields, fallback_rows):
+    for fb_row in fallback_rows:
+        if not missing_fields:
+            break
+        filled = []
+        for f in missing_fields:
+            if fb_row[f] is not None:
                 row.setdefault('fallback_source_ids', {})
                 row[f] = fb_row[f]
                 row['fallback_source_ids'][f] = fb_row['source_id']
                 filled.append(f)
-            for f in filled:
-                fields.discard(f)
-            if not fields:
-                break
+        for f in filled:
+            missing_fields.discard(f)
 
 
 async def current_weather(
@@ -200,21 +203,10 @@ async def current_weather(
             "Could not find current weather for your location criteria",
         )
     weather = rows[0]
-    used_source_ids = {weather['source_id']}
     missing_fields = {k for k, v in weather.items() if v is None}
-    for fb_row in rows[1:]:
-        if not missing_fields:
-            break
-        filled = []
-        for f in missing_fields:
-            if fb_row[f] is not None:
-                weather.setdefault('fallback_source_ids', {})
-                weather[f] = fb_row[f]
-                weather['fallback_source_ids'][f] = fb_row['source_id']
-                used_source_ids.add(fb_row['source_id'])
-                filled.append(f)
-        for f in filled:
-            missing_fields.discard(f)
+    _apply_fallback(weather, missing_fields, rows[1:])
+    used_source_ids = {weather['source_id']}
+    used_source_ids.update(weather.get('fallback_source_ids', {}).values())
     return {
         'weather': weather,
         'sources': [s for s in sources_rows if s['id'] in used_source_ids],
