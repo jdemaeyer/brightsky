@@ -173,7 +173,6 @@ async def current_weather(
     dwd_station_ids=None,
     wmo_station_ids=None,
     source_ids=None,
-    fallback=True,
 ):
     sources_data = await sources(
         conn,
@@ -187,59 +186,39 @@ async def current_weather(
     )
     sources_rows = sources_data['sources']
     source_ids = [row['id'] for row in sources_rows]
-    weather = await _current_weather(conn, source_ids)
-    if not weather:
+    params = {'source_ids': source_ids}
+    sql = """
+        SELECT *
+        FROM current_weather
+        WHERE source_id = ANY({source_ids}::int[])
+        ORDER BY array_position({source_ids}::int[], source_id)
+    """
+    sql, params = topg(sql, params)
+    rows = make_dicts(await conn.fetch(sql, *params))
+    if not rows:
         raise NoData(
             "Could not find current weather for your location criteria",
         )
-    used_source_ids = [weather['source_id']]
-    if fallback:
-        missing_fields = [k for k, v in weather.items() if v is None]
-        fallback_weather = await _current_weather(
-            conn,
-            source_ids,
-            not_null=missing_fields,
-        )
-        if fallback_weather:
-            weather.update({k: fallback_weather[k] for k in missing_fields})
-            weather['fallback_source_ids'] = {
-                field: fallback_weather['source_id']
-                for field in missing_fields}
-            used_source_ids.append(fallback_weather['source_id'])
+    weather = rows[0]
+    used_source_ids = {weather['source_id']}
+    missing_fields = {k for k, v in weather.items() if v is None}
+    for fb_row in rows[1:]:
+        if not missing_fields:
+            break
+        filled = []
+        for f in missing_fields:
+            if fb_row[f] is not None:
+                weather.setdefault('fallback_source_ids', {})
+                weather[f] = fb_row[f]
+                weather['fallback_source_ids'][f] = fb_row['source_id']
+                used_source_ids.add(fb_row['source_id'])
+                filled.append(f)
+        for f in filled:
+            missing_fields.discard(f)
     return {
         'weather': weather,
         'sources': [s for s in sources_rows if s['id'] in used_source_ids],
     }
-
-
-async def _current_weather(conn, source_ids, not_null=None, partial=False):
-    params = {
-        'source_ids': source_ids,
-    }
-    where = "source_id = ANY({source_ids}::int[])"
-    if not_null:
-        glue = ' OR ' if partial else ' AND '
-        extra = glue.join(f"{element} IS NOT NULL" for element in not_null)
-        where += f'AND ({extra})'
-    sql = f"""
-        SELECT *
-        FROM current_weather
-        WHERE {where}
-        ORDER BY array_position({{source_ids}}::int[], source_id)
-        LIMIT 1
-    """
-    sql, params = topg(sql, params)
-    row = await conn.fetchrow(sql, *params)
-    if not row:
-        if not_null and not partial:
-            return await _current_weather(
-                conn,
-                source_ids,
-                not_null=not_null,
-                partial=True,
-            )
-        return {}
-    return dict(row)
 
 
 async def synop(

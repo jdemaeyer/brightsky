@@ -621,6 +621,77 @@ def test_current_weather_response(synop_data, api, db):
         assert resp.json()['weather'][k] == v, k
 
 
+def test_current_weather_fallback_fills_per_field(db, api):
+    primary_source = {
+        'observation_type': 'synop',
+        'lat': 52.01,
+        'lon': 7.61,
+        'height': 50,
+        'station_name': 'Close Synop',
+        'dwd_station_id': '99801',
+        'wmo_station_id': '99801',
+    }
+    near_fallback_source = {
+        'observation_type': 'synop',
+        'lat': 52.05,
+        'lon': 7.65,
+        'height': 50,
+        'station_name': 'Near Synop',
+        'dwd_station_id': '99802',
+        'wmo_station_id': '99802',
+    }
+    far_fallback_source = {
+        'observation_type': 'synop',
+        'lat': 52.15,
+        'lon': 7.75,
+        'height': 50,
+        'station_name': 'Far Synop',
+        'dwd_station_id': '99803',
+        'wmo_station_id': '99803',
+    }
+    now = SYNOP_NOW
+    records = [
+        {
+            'timestamp': now,
+            **primary_source,
+            'temperature': 296.15,
+            'cloud_cover': 88,
+        },
+        {
+            'timestamp': now,
+            **near_fallback_source,
+            'pressure_msl': 100920,
+            'visibility': 35000,
+        },
+        {
+            # Has visibility (should lose to nearer source) and dew_point
+            'timestamp': now,
+            **far_fallback_source,
+            'visibility': 20000,
+            'dew_point': 292.17,
+        },
+    ]
+    SYNOPExporter().export(records)
+    resp = api.get('/current_weather?lat=52&lon=7.6')
+    assert resp.status_code == 200
+    w = resp.json()['weather']
+    sources = {s['station_name']: s['id'] for s in resp.json()['sources']}
+    assert len(sources) == 3
+    # Primary fields
+    assert w['temperature'] == 23.0
+    assert w['cloud_cover'] == 88
+    # Near fallback
+    assert w['pressure_msl'] == 1009.2
+    assert w['visibility'] == 35000
+    # Far fallback (only source with dew_point)
+    assert w['dew_point'] == 19.02
+    fb = w.get('fallback_source_ids', {})
+    assert fb['pressure_msl'] == sources['Near Synop']
+    assert fb['visibility'] == sources['Near Synop']
+    assert fb['dew_point'] == sources['Far Synop']
+    assert 'temperature' not in fb
+
+
 def test_radar_response(radar_data, api):
     resp = api.get('/radar?date=2025-09-23T08:55')
     assert resp.status_code == 200

@@ -55,11 +55,29 @@ SCENARIOS = {
         },
         'description': 'Berlin-Kreuzberg — most Tempelhof, sunshine Potsdam',
     },
+    'e) Current, no fallback': {
+        'endpoint': '/current_weather',
+        'params': {
+            'lat': 52.3813,
+            'lon': 13.0622,
+        },
+        'description': 'Potsdam — full synop station',
+    },
+    'f) Current, with fallback': {
+        'endpoint': '/current_weather',
+        'params': {
+            'lat': 52.45,
+            'lon': 13.3,
+        },
+        'description': 'Berlin-Dahlem — many fields from Potsdam',
+    },
 }
 
 
 def analyze_fallback(data):
     weather = data.get('weather', [])
+    if isinstance(weather, dict):
+        weather = [weather]
     sources = {
         s['id']: s.get('station_name', s['id'])
         for s in data.get('sources', [])
