@@ -133,6 +133,29 @@ async def _fill_missing_fields(conn, weather_rows, source_ids):
         'last_date': max_date,
         'source_ids': source_ids,
     }
+    if (max_date - min_date).days >= 3:
+        per_field_sql = ' UNION '.join(
+            f"""(
+            SELECT source_id
+            FROM weather
+            WHERE
+                timestamp BETWEEN {{date}} AND {{last_date}} AND
+                source_id = ANY({{source_ids}}::int[]) AND
+                {f} IS NOT NULL
+            GROUP BY source_id
+            ORDER BY array_position({{source_ids}}::int[], source_id)
+            LIMIT 3
+            )"""
+            for f in missing_fields
+        )
+        trim_sql, trim_params = topg(per_field_sql, params)
+        useful_ids = [
+            r['source_id']
+            for r in await conn.fetch(trim_sql, *trim_params)
+        ]
+        if not useful_ids:
+            return
+        params['source_ids'] = useful_ids
     sql = f"""
         SELECT *
         FROM weather

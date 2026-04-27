@@ -124,6 +124,16 @@ SCENARIOS = {
         },
         'description': 'Duisburg — solar from Essen',
     },
+    'm) München, 4-week span': {
+        'endpoint': '/weather',
+        'params': {
+            'lat': 48.14,
+            'lon': 11.58,
+            'date': '2026-04-13',
+            'last_date': '2026-05-11',
+        },
+        'description': 'München — 2wk past + 2wk future, ~672 hours',
+    },
 }
 
 
