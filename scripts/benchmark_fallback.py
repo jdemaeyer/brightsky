@@ -15,7 +15,6 @@ IGNORED_FALLBACK_FIELDS = {
     'wind_gust_direction',
     'precipitation_probability',
     'precipitation_probability_6h',
-    'solar',
 }
 
 SCENARIOS = {
@@ -70,6 +69,60 @@ SCENARIOS = {
             'lon': 13.3,
         },
         'description': 'Berlin-Dahlem — many fields from Potsdam',
+    },
+    'g) Stuttgart, full w/ solar': {
+        'endpoint': '/weather',
+        'params': {
+            'lat': 48.78,
+            'lon': 9.18,
+            'date': '2026-04-20',
+        },
+        'description': 'Stuttgart — full station, has solar natively',
+    },
+    'h) München, solar-only gap': {
+        'endpoint': '/weather',
+        'params': {
+            'lat': 48.14,
+            'lon': 11.58,
+            'date': '2026-04-20',
+        },
+        'description': 'München-Stadt — solar is only missing field',
+    },
+    'i) Frankfurt, solar via fallback': {
+        'endpoint': '/weather',
+        'params': {
+            'lat': 50.1,
+            'lon': 8.68,
+            'date': '2026-04-20',
+        },
+        'description': 'Frankfurt — solar from Frankfurt/Main via fallback',
+    },
+    'j) Lübeck, rural fallback': {
+        'endpoint': '/weather',
+        'params': {
+            'lat': 53.87,
+            'lon': 10.69,
+            'date': '2026-04-20',
+        },
+        'description': 'Lübeck — solar+sunshine from Boltenhagen',
+    },
+    'k) Dresden, urban fallback': {
+        'endpoint': '/weather',
+        'params': {
+            'lat': 51.05,
+            'lon': 13.74,
+            'date': '2026-04-20',
+        },
+        'description': 'Dresden — solar from Klotzsche',
+    },
+    'l) Duisburg, urban fallback': {
+        'endpoint': '/weather',
+        'params': {
+            'lat': 51.48,
+            'lon': 6.76,
+            'date': '2026-04-20',
+        },
+        'description': 'Duisburg — solar from Essen',
     },
 }
 
