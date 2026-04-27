@@ -72,22 +72,7 @@ async def weather(
     source_ids = [row['id'] for row in sources_rows]
     if len(weather_rows) < int((last_date - date).total_seconds()) // 3600:
         weather_rows = await _weather(conn, date, last_date, source_ids)
-    await _fill_missing_fields(
-        conn,
-        weather_rows,
-        date,
-        last_date,
-        source_ids,
-        True,
-    )
-    await _fill_missing_fields(
-        conn,
-        weather_rows,
-        date,
-        last_date,
-        source_ids,
-        False,
-    )
+    await _fill_missing_fields(conn, weather_rows, source_ids)
     used_source_ids = {row['source_id'] for row in weather_rows}
     used_source_ids.update(
         source_id
@@ -100,32 +85,19 @@ async def weather(
     }
 
 
-async def _weather(
-    conn,
-    date,
-    last_date,
-    source_ids,
-    not_null=None,
-    not_null_or=False,
-):
+async def _weather(conn, date, last_date, source_ids):
     params = {
         'date': date,
         'last_date': last_date,
         'source_ids': source_ids,
     }
-    where = "timestamp BETWEEN {date} AND {last_date}"
-    order_by = "timestamp"
-    where += " AND source_id = ANY({source_ids}::int[])"
-    order_by += ", array_position({source_ids}::int[], source_id)"
-    if not_null:
-        glue = ' OR ' if not_null_or else ' AND '
-        constraint = glue.join(f"{x} IS NOT NULL" for x in not_null)
-        where += f" AND ({constraint})"
-    sql = f"""
+    sql = """
         SELECT DISTINCT ON (timestamp) *
         FROM weather
-        WHERE {where}
-        ORDER BY {order_by}
+        WHERE
+            timestamp BETWEEN {date} AND {last_date} AND
+            source_id = ANY({source_ids}::int[])
+        ORDER BY timestamp, array_position({source_ids}::int[], source_id)
     """
     sql, params = topg(sql, params)
     rows = await conn.fetch(sql, *params)
@@ -144,45 +116,53 @@ IGNORED_MISSING_FIELDS = {
 }
 
 
-async def _fill_missing_fields(
-    conn,
-    weather_rows,
-    date,
-    last_date,
-    source_ids,
-    partial,
-):
+async def _fill_missing_fields(conn, weather_rows, source_ids):
     incomplete_rows = []
     missing_fields = set()
     for row in weather_rows:
-        missing_row_fields = set(k for k, v in row.items() if v is None)
-        relevant_fields = missing_row_fields.difference(IGNORED_MISSING_FIELDS)
+        missing_row_fields = {k for k, v in row.items() if v is None}
+        relevant_fields = missing_row_fields - IGNORED_MISSING_FIELDS
         if relevant_fields:
             incomplete_rows.append((row, missing_row_fields))
             missing_fields.update(relevant_fields)
-    if missing_fields:
-        min_date = incomplete_rows[0][0]['timestamp']
-        max_date = incomplete_rows[-1][0]['timestamp']
-        fallback_rows = {
-            row['timestamp']: row
-            for row in await _weather(
-                conn,
-                min_date,
-                max_date,
-                source_ids,
-                not_null=missing_fields,
-                not_null_or=partial,
-            )
-        }
-        for row, fields in incomplete_rows:
-            fallback_row = fallback_rows.get(row['timestamp'])
-            if fallback_row:
+    if not incomplete_rows:
+        return
+    min_date = incomplete_rows[0][0]['timestamp']
+    max_date = incomplete_rows[-1][0]['timestamp']
+    not_null = ' OR '.join(f"{f} IS NOT NULL" for f in missing_fields)
+    params = {
+        'date': min_date,
+        'last_date': max_date,
+        'source_ids': source_ids,
+    }
+    sql = f"""
+        SELECT *
+        FROM weather
+        WHERE
+            timestamp BETWEEN {{date}} AND {{last_date}} AND
+            source_id = ANY({{source_ids}}::int[]) AND
+            ({not_null})
+        ORDER BY timestamp, array_position({{source_ids}}::int[], source_id)
+    """
+    sql, params = topg(sql, params)
+    all_rows = await conn.fetch(sql, *params)
+    fallback_by_ts = {}
+    for fb_row in all_rows:
+        fallback_by_ts.setdefault(fb_row['timestamp'], []).append(fb_row)
+    for row, fields in incomplete_rows:
+        for fb_row in fallback_by_ts.get(row['timestamp'], []):
+            filled = []
+            for f in fields:
+                if fb_row[f] is None:
+                    continue
                 row.setdefault('fallback_source_ids', {})
-                for f in fields:
-                    if fallback_row[f] is None:
-                        continue
-                    row[f] = fallback_row[f]
-                    row['fallback_source_ids'][f] = fallback_row['source_id']
+                row[f] = fb_row[f]
+                row['fallback_source_ids'][f] = fb_row['source_id']
+                filled.append(f)
+            for f in filled:
+                fields.discard(f)
+            if not fields:
+                break
 
 
 async def current_weather(

@@ -482,6 +482,76 @@ def test_weather_icon(data, api):
         assert record['icon'] == condition['_expected_icon'], condition
 
 
+def test_weather_fallback_fills_per_field(db, api):
+    primary_source = {
+        'observation_type': 'historical',
+        'lat': 52.01,
+        'lon': 7.61,
+        'height': 50,
+        'station_name': 'Close Station',
+        'dwd_station_id': '99901',
+        'wmo_station_id': '99901',
+    }
+    near_fallback_source = {
+        'observation_type': 'historical',
+        'lat': 52.05,
+        'lon': 7.65,
+        'height': 50,
+        'station_name': 'Near Fallback',
+        'dwd_station_id': '99902',
+        'wmo_station_id': '99902',
+    }
+    far_fallback_source = {
+        'observation_type': 'historical',
+        'lat': 52.15,
+        'lon': 7.75,
+        'height': 50,
+        'station_name': 'Far Fallback',
+        'dwd_station_id': '99903',
+        'wmo_station_id': '99903',
+    }
+    ts = datetime.datetime(2020, 6, 1, 12, tzinfo=tzutc())
+    records = [
+        {
+            'timestamp': ts,
+            **primary_source,
+            'temperature': 293.15,
+            'precipitation': 0.5,
+        },
+        {
+            # Has cloud_cover and wind_speed
+            'timestamp': ts,
+            **near_fallback_source,
+            'cloud_cover': 75,
+            'wind_speed': 3.5,
+        },
+        {
+            # Has cloud_cover (should lose to nearer source) and sunshine
+            'timestamp': ts,
+            **far_fallback_source,
+            'cloud_cover': 50,
+            'sunshine': 1800,
+        },
+    ]
+    DBExporter().export(records)
+    resp = api.get('/weather?lat=52&lon=7.6&date=2020-06-01T12:00')
+    w = resp.json()['weather'][0]
+    sources = {s['station_name']: s['id'] for s in resp.json()['sources']}
+    # Primary fields
+    assert w['temperature'] == 20.0
+    assert w['precipitation'] == 0.5
+    # Near fallback
+    assert w['cloud_cover'] == 75
+    assert w['wind_speed'] == 12.6
+    # Far fallback (only source with sunshine)
+    assert w['sunshine'] == 30.0
+    fb = w.get('fallback_source_ids', {})
+    assert fb['cloud_cover'] == sources['Near Fallback']
+    assert fb['wind_speed'] == sources['Near Fallback']
+    assert fb['sunshine'] == sources['Far Fallback']
+    assert 'temperature' not in fb
+
+
 def test_synop_disallows_lat_lon(data, api):
     resp = api.get(
         '/synop',
