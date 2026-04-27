@@ -18,7 +18,7 @@ astral==3.2
     # via -r requirements.txt
 asyncpg==0.31.0
     # via -r requirements.txt
-certifi==2026.2.25
+certifi==2026.4.22
     # via
     #   -r requirements.txt
     #   httpcore
@@ -30,7 +30,7 @@ charset-normalizer==3.4.7
     # via
     #   -r requirements.txt
     #   requests
-click==8.3.2
+click==8.3.3
     # via
     #   -r requirements.txt
     #   uvicorn
@@ -40,11 +40,11 @@ cssselect==1.4.0
     # via
     #   -r requirements.txt
     #   parsel
-dwdparse==0.9.21
+dwdparse==0.9.22
     # via -r requirements.txt
 falcon==4.2.0
     # via -r requirements.txt
-fastapi==0.136.0
+fastapi==0.136.1
     # via -r requirements.txt
 freezegun==1.5.5
     # via -r requirements-dev.in
@@ -69,7 +69,7 @@ humanfriendly==10.0
     # via
     #   -r requirements.txt
     #   coloredlogs
-idna==3.12
+idna==3.13
     # via
     #   -r requirements.txt
     #   anyio
@@ -96,7 +96,7 @@ numpy==2.4.4
     #   shapely
 orjson==3.11.8
     # via -r requirements.txt
-packaging==26.1
+packaging==26.2
     # via
     #   -r requirements.txt
     #   gunicorn
@@ -136,7 +136,7 @@ redis==7.4.0
     # via -r requirements.txt
 requests==2.33.1
     # via -r requirements.txt
-ruff==0.15.11
+ruff==0.15.12
     # via -r requirements-dev.in
 sentry-sdk==2.58.0
     # via -r requirements.txt
@@ -169,7 +169,7 @@ urllib3==2.6.3
     #   sentry-sdk
 uv==0.11.7
     # via -r requirements-dev.in
-uvicorn==0.45.0
+uvicorn==0.46.0
     # via -r requirements.txt
 w3lib==2.4.1
     # via
