@@ -55,7 +55,7 @@ class DWDPoller:
 
     def poll_url(self, url):
         self.logger.debug("Loading %s", url)
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=10)
         resp.raise_for_status()
         return self.parse(url, resp.text)
 

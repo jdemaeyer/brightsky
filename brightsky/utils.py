@@ -41,7 +41,11 @@ def download(url, directory):
     Download a resource from `url` into `directory`, returning its path and
     fingerprint.
     """
-    resp = requests.get(url, headers={'User-Agent': USER_AGENT})
+    resp = requests.get(
+        url,
+        headers={'User-Agent': USER_AGENT},
+        timeout=10,
+    )
     resp.raise_for_status()
     filename = os.path.basename(url)
     path = os.path.join(directory, filename)
