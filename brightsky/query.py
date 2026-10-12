@@ -553,7 +553,7 @@ async def sources(
         distance = """
             earth_distance(ll_to_earth({lat}, {lon}), ll_to_earth(lat, lon))
         """
-        select += f", round({distance}) AS distance"
+        select += f", round({distance})::int AS distance"
         where = f"""
             earth_box(
                 ll_to_earth({{lat}}, {{lon}}),

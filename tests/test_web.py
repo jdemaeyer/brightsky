@@ -621,6 +621,23 @@ def test_current_weather_response(synop_data, api, db):
         assert resp.json()['weather'][k] == v, k
 
 
+def test_integer_fields_serialized_without_fraction(data, synop_data, api):
+    # Our schema declares these as integers, so they must not be serialized
+    # as e.g. `29.0`
+    sources = api.get('/sources?lat=52&lon=7.6').json()['sources']
+    weather = api.get('/weather?lat=52&lon=7.6&date=2020-08-20').json()
+    current = api.get('/current_weather?lat=52&lon=7.6').json()
+    values = [
+        *(s['distance'] for s in sources),
+        weather['weather'][0]['sunshine'],
+        current['sources'][0]['distance'],
+        current['weather']['sunshine_30'],
+        current['weather']['sunshine_60'],
+    ]
+    for value in values:
+        assert type(value) is int, value
+
+
 def test_current_weather_fallback_fills_per_field(db, api):
     primary_source = {
         'observation_type': 'synop',

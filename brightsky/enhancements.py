@@ -4,6 +4,8 @@ from brightsky.settings import settings
 from brightsky.utils import daytime
 
 
+SUNSHINE_KEYS = ['sunshine', 'sunshine_10', 'sunshine_30', 'sunshine_60']
+
 def enhance(result, timezone=None, units='si'):
     if 'sources' in result:
         enhance_sources(result['sources'], timezone=timezone)
@@ -28,6 +30,11 @@ def enhance_records(records, source_map, timezone=None, units='si'):
         record['icon'] = get_icon(record, source_map[record['source_id']])
         if units != 'si':
             convert_record(record, units)
+            # Our schema declares sunshine durations as integers, but
+            # dwdparse converts them to float minutes
+            for key in SUNSHINE_KEYS:
+                if record.get(key) is not None:
+                    record[key] = round(record[key])
         process_timestamp(record, 'timestamp', timezone)
 
 
