@@ -18,7 +18,7 @@ astral==3.2
     # via -r requirements.txt
 asyncpg==0.32.0
     # via -r requirements.txt
-certifi==2026.7.22
+certifi==2026.10.19
     # via
     #   -r requirements.txt
     #   httpcore
@@ -44,7 +44,7 @@ dwdparse==0.9.22
     # via -r requirements.txt
 falcon==4.4.0
     # via -r requirements.txt
-fastapi==0.143.0
+fastapi==0.151.0
     # via -r requirements.txt
 freezegun==1.5.5
     # via -r requirements-dev.in
@@ -75,7 +75,7 @@ idna==3.20
     #   anyio
     #   httpx
     #   requests
-ijson==3.5.1
+ijson==3.6.0
     # via -r requirements.txt
 iniconfig==2.3.1
     # via pytest
@@ -104,7 +104,7 @@ packaging==26.3
     # via pytest
 parsel==1.12.1
     # via -r requirements.txt
-pluggy==1.6.0
+pluggy==1.7.0
     # via pytest
 psycopg2-binary==2.9.13
     # via -r requirements.txt
@@ -124,7 +124,7 @@ pytest==9.1.1
     # via
     #   -r requirements-dev.in
     #   pytest-env
-pytest-env==1.8.0
+pytest-env==1.8.1
     # via -r requirements-dev.in
 python-dateutil==2.9.0.post0
     # via
@@ -136,9 +136,9 @@ redis==8.1.0
     # via -r requirements.txt
 requests==2.34.2
     # via -r requirements.txt
-ruff==0.17.0
+ruff==0.17.1
     # via -r requirements-dev.in
-sentry-sdk==2.71.0
+sentry-sdk==2.72.0
     # via -r requirements.txt
 shapely==2.2.0
     # via -r requirements.txt
@@ -146,7 +146,7 @@ six==1.17.0
     # via
     #   -r requirements.txt
     #   python-dateutil
-starlette==1.7.0
+starlette==1.9.0
     # via
     #   -r requirements.txt
     #   fastapi
@@ -169,7 +169,7 @@ urllib3==2.8.0
     #   -r requirements.txt
     #   requests
     #   sentry-sdk
-uv==0.13.0
+uv==0.13.3
     # via -r requirements-dev.in
 uvicorn==0.54.0
     # via -r requirements.txt
