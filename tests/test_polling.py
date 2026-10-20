@@ -60,8 +60,8 @@ def test_dwdpoller_poll_ignores_parsed_files(db, data_dir):
     url = 'http://example.com/stundenwerte_FF_00011_akt.zip'
     with open(data_dir / 'dwd_opendata_index.html') as f:
         resp_text = f.read()
-    config = {'get.return_value.text': resp_text}
-    with patch('brightsky.polling.requests', **config):
+    config = {'return_value.text': resp_text}
+    with patch('brightsky.polling.http_get', **config):
         urls = [info['url'] for info in poller.poll()]
         with db.cursor() as cur:
             cur.execute(

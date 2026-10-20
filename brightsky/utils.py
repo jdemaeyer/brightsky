@@ -9,12 +9,29 @@ from astral import Observer
 from astral.sun import daylight
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 
 logger = logging.getLogger(__name__)
 
 
 USER_AGENT = 'Bright Sky / https://brightsky.dev/'
+
+# The DWD Open Data server sporadically stalls on requests
+RETRY = Retry(
+    total=3,
+    backoff_factor=1,
+    status_forcelist=[500, 502, 503, 504],
+)
+
+
+def http_get(url, **kwargs):
+    with requests.Session() as session:
+        session.mount('https://', HTTPAdapter(max_retries=RETRY))
+        session.mount('http://', HTTPAdapter(max_retries=RETRY))
+        session.headers['User-Agent'] = USER_AGENT
+        return session.get(url, **kwargs)
 
 
 def configure_logging():
@@ -41,11 +58,7 @@ def download(url, directory):
     Download a resource from `url` into `directory`, returning its path and
     fingerprint.
     """
-    resp = requests.get(
-        url,
-        headers={'User-Agent': USER_AGENT},
-        timeout=10,
-    )
+    resp = http_get(url, timeout=10)
     resp.raise_for_status()
     filename = os.path.basename(url)
     path = os.path.join(directory, filename)

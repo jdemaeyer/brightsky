@@ -3,12 +3,12 @@ import logging
 import re
 
 import dateutil.parser
-import requests
 from dateutil.tz import tzutc
 from parsel import Selector
 
 from brightsky.db import fetch
 from brightsky.parsers import get_parser
+from brightsky.utils import http_get
 
 
 class DWDPoller:
@@ -55,7 +55,7 @@ class DWDPoller:
 
     def poll_url(self, url):
         self.logger.debug("Loading %s", url)
-        resp = requests.get(url, timeout=10)
+        resp = http_get(url, timeout=10)
         resp.raise_for_status()
         return self.parse(url, resp.text)
 
